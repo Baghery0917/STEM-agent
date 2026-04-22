@@ -1,0 +1,65 @@
+import { Button, Layout, Menu, Typography } from 'antd';
+import {
+  ApartmentOutlined,
+  ArrowLeftOutlined,
+  DatabaseOutlined,
+  FileTextOutlined,
+  TeamOutlined,
+} from '@ant-design/icons';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+
+const { Header, Sider, Content } = Layout;
+
+const MENU = [
+  { key: '/admin/knowledge', label: '知识结构', icon: <ApartmentOutlined /> },
+  { key: '/admin/questions', label: '题库管理', icon: <FileTextOutlined /> },
+  { key: '/admin/students', label: '学生管理', icon: <TeamOutlined /> },
+  { key: '/admin/db', label: '数据库浏览', icon: <DatabaseOutlined /> },
+];
+
+export default function AdminLayout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const activeKey =
+    MENU.find((m) => location.pathname.startsWith(m.key))?.key ?? '/admin/knowledge';
+
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      <Header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: '#1f2937',
+          padding: '0 24px',
+          gap: 16,
+        }}
+      >
+        <Typography.Title level={4} style={{ margin: 0, color: '#fff' }}>
+          STEM 管理台
+        </Typography.Title>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          style={{ color: '#fff', marginLeft: 'auto' }}
+          onClick={() => navigate('/home')}
+        >
+          返回学生端
+        </Button>
+      </Header>
+      <Layout>
+        <Sider theme="light" width={220}>
+          <Menu
+            mode="inline"
+            items={MENU}
+            selectedKeys={[activeKey]}
+            onClick={(info) => navigate(info.key)}
+            style={{ height: '100%', borderRight: 0 }}
+          />
+        </Sider>
+        <Content style={{ padding: 24, background: '#f5f7fb' }}>
+          <Outlet />
+        </Content>
+      </Layout>
+    </Layout>
+  );
+}
