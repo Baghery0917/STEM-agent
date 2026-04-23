@@ -19,27 +19,17 @@ services:
   backend:
     build: ./backend
     container_name: stem-backend
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/stem_db
       DATABASE_URL_SYNC: postgresql://postgres:postgres@db:5432/stem_db
-      PGVECTOR_DIMENSION: 1024
       APP_ENV: development
       DEBUG: "true"
       LOG_LEVEL: DEBUG
       HOST: 0.0.0.0
       PORT: 8000
       CORS_ORIGINS: http://localhost,http://127.0.0.1
-      LLM_BASE_URL: ${LLM_BASE_URL:-}
-      LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:-}
-      LLM_VISION_MODEL: ${LLM_VISION_MODEL:-}
-      LLM_EMBEDDING_MODEL: ${LLM_EMBEDDING_MODEL:-}
-      LLM_EMBEDDING_DIMENSION: ${LLM_EMBEDDING_DIMENSION:-1024}
-      EMOTION_BASE_URL: ${EMOTION_BASE_URL:-}
-      EMOTION_API_KEY: ${EMOTION_API_KEY:-}
-      TEACHING_STRATEGY_BASE_URL: ${TEACHING_STRATEGY_BASE_URL:-}
-      TEACHING_STRATEGY_API_KEY: ${TEACHING_STRATEGY_API_KEY:-}
-      TEACHING_REFERENCE_SIMILARITY_THRESHOLD: ${TEACHING_REFERENCE_SIMILARITY_THRESHOLD:-0.8}
     ports:
       - "8000:8000"
     depends_on:
