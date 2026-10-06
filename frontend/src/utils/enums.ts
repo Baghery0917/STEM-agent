@@ -1,17 +1,17 @@
-import type { Difficulty, Gender, MessageType, PracticeMode, QuestionType } from '@/api/types';
+import type { Difficulty, Gender, MessageType, QuestionType } from '@/api/types';
 
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
-  single_choice: '单选题',
-  multiple_choice: '多选题',
-  fill_blank: '填空题',
-  short_answer: '简答题',
-  calculation: '计算题',
+  single_choice: '单选',
+  multiple_choice: '多选',
+  fill_blank: '填空',
+  short_answer: '简答',
+  calculation: '计算',
 };
 
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
-  easy: '简单',
+  easy: '基础',
   medium: '中等',
-  hard: '困难',
+  hard: '较难',
 };
 
 export const DIFFICULTY_COLOR: Record<Difficulty, string> = {
@@ -26,17 +26,12 @@ export const GENDER_LABEL: Record<Gender, string> = {
   other: '其他',
 };
 
-export const PRACTICE_MODE_LABEL: Record<PracticeMode, string> = {
-  focused: 'Focused（专注练习）',
-  general: 'General（通用练习）',
-};
-
 export const MESSAGE_TYPE_LABEL: Record<MessageType, string> = {
   question_submit: '题目提交',
   llm_analysis: '知识点分析',
-  student_data: '学生画像',
+  student_data: '读取你的画像',
   strategy: '教学策略',
-  reference_search: '相似题检索',
+  reference_search: '检索参考题',
   chat: '对话',
 };
 

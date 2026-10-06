@@ -4,7 +4,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import Base
-from app.models.practice import PracticeMode, PracticeSession
+from app.models.practice import PracticeSession
 from app.models.question import Difficulty, Question, QuestionType
 from app.models.student import Gender, Student
 from app.models.teaching import TeachingSession, TeachingSessionStatus
@@ -207,7 +207,7 @@ class TestAdminDbSerialization:
         """list/tuple/set columns come back as json.dumps(...) strings."""
         student = await _make_student(db_session)
         ps = PracticeSession(
-            mode=PracticeMode.FOCUSED,
+            timed=False,
             knowledge_point_ids=[1, 2, 3],
             difficulty_range=[Difficulty.EASY, Difficulty.MEDIUM],
             student_id=student.id,

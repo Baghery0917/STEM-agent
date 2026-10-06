@@ -12,7 +12,7 @@ TEST_DATABASE_URL = "postgresql+asyncpg://physiq@127.0.0.1:5432/stem_db_test"
 
 # Base.metadata.create_all 不会清理 PG ENUM；跨测试残留会导致 duplicate type 错误
 _ENUM_TYPES = (
-    "practicemode",
+    "explainstyle",
     "teachingsessionstatus",
     "pipelinestatus",
     "messagerole",

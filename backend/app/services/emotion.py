@@ -80,6 +80,10 @@ class EmotionService:
         facial, text_value = await asyncio.gather(facial_task, text_task)
         return InstantEmotion(facial=facial, text=text_value)
 
+    async def detect_facial(self, frame_base64: str | None, *, student_id: int) -> float | None:
+        """只做面部识别（练习提交时用，没有文本可分析）"""
+        return await self._detect_facial(frame_base64, student_id)
+
     async def _detect_facial(self, frame_base64: str | None, student_id: int) -> float | None:
         if not frame_base64 or not self.facial.is_configured():
             return None
@@ -138,6 +142,7 @@ class EmotionService:
         instant_values: list[float],
         start_time: datetime,
         end_time: datetime,
+        mode: EmotionMode = EmotionMode.TEACHING,
     ) -> float | None:
         """会话结束：即时情绪均值以指数平滑回流到知识点历史，并写一行情绪图谱流水"""
         values = [v for v in instant_values if v is not None]
@@ -164,7 +169,7 @@ class EmotionService:
             db.add(EmotionLog(
                 student_id=student_id,
                 section_id=section_id,
-                mode=EmotionMode.TEACHING,
+                mode=mode,
                 session_id=session_id,
                 emotion_value=session_value,
                 start_time=start_time,

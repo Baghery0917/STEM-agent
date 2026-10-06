@@ -5,13 +5,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.schemas.practice import (
-    NextQuestionResponse,
     PracticeItemResponse,
+    PracticeMatchRequest,
+    PracticeMatchResponse,
     PracticeSessionDetailResponse,
     PracticeSessionResponse,
     SkipQuestionRequest,
-    StartFocusedRequest,
-    StartGeneralRequest,
+    SkipQuestionResponse,
+    StarQuestionRequest,
+    StartPracticeRequest,
     StartSessionResponse,
     SubmitAnswerRequest,
     SubmitAnswerResponse,
@@ -23,149 +25,118 @@ router = APIRouter()
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
+def _bad_request(e: Exception) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/match", response_model=PracticeMatchResponse)
+async def match_questions(data: PracticeMatchRequest, db: DbSession) -> PracticeMatchResponse:
+    """开始前预估题库里符合范围的题数，前端展示「题库匹配 N 题」"""
+    service = PracticeService(db)
+    try:
+        count = await service.count_matching(
+            knowledge_point_ids=data.knowledge_point_ids,
+            difficulty_range=data.difficulty_range,
+            question_types=data.question_types,
+        )
+    except ValueError as e:
+        raise _bad_request(e)
+    return PracticeMatchResponse(matched_count=count)
+
+
 @router.post(
-    "/sessions/focused",
+    "/sessions",
     response_model=StartSessionResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def start_focused_session(
-    data: StartFocusedRequest, db: DbSession,
-) -> StartSessionResponse:
+async def start_session(data: StartPracticeRequest, db: DbSession) -> StartSessionResponse:
     service = PracticeService(db)
     try:
-        session, question = await service.start_focused_session(
+        session, questions = await service.start_session(
             student_id=data.student_id,
             knowledge_point_ids=data.knowledge_point_ids,
             difficulty_range=data.difficulty_range,
             total_count=data.total_count,
+            timed=data.timed,
+            question_types=data.question_types,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e),
-        )
+        raise _bad_request(e)
     return StartSessionResponse(
         session=PracticeSessionResponse.model_validate(session),
-        question=QuestionPublicResponse.model_validate(question),
+        questions=[QuestionPublicResponse.model_validate(q) for q in questions],
     )
 
 
-@router.post(
-    "/sessions/general",
-    response_model=StartSessionResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def start_general_session(
-    data: StartGeneralRequest, db: DbSession,
-) -> StartSessionResponse:
-    service = PracticeService(db)
-    try:
-        session, question = await service.start_general_session(
-            student_id=data.student_id,
-            knowledge_point_ids=data.knowledge_point_ids,
-            difficulty_range=data.difficulty_range,
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e),
-        )
-    return StartSessionResponse(
-        session=PracticeSessionResponse.model_validate(session),
-        question=QuestionPublicResponse.model_validate(question),
-    )
-
-
-@router.post(
-    "/sessions/{session_id}/submit",
-    response_model=SubmitAnswerResponse,
-)
+@router.post("/sessions/{session_id}/submit", response_model=SubmitAnswerResponse)
 async def submit_answer(
-    session_id: int,
-    data: SubmitAnswerRequest,
-    db: DbSession,
+    session_id: int, data: SubmitAnswerRequest, db: DbSession,
 ) -> SubmitAnswerResponse:
     service = PracticeService(db)
     try:
-        item, is_correct, next_question = await service.submit_answer(
+        item, is_correct, question, session = await service.submit_answer(
             session_id=session_id,
             question_id=data.question_id,
             user_answer=data.user_answer,
-            emotion=data.emotion,
+            duration_seconds=data.duration_seconds,
+            frame_base64=data.frame_base64,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e),
-        )
+        raise _bad_request(e)
     return SubmitAnswerResponse(
         item=PracticeItemResponse.model_validate(item),
         is_correct=is_correct,
-        next_question=QuestionPublicResponse.model_validate(next_question) if next_question else None,
+        correct_answer=question.answer,
+        analysis=question.analysis,
+        analysis_image=question.analysis_image,
+        session=PracticeSessionResponse.model_validate(session),
     )
 
 
-@router.post(
-    "/sessions/{session_id}/skip",
-    response_model=NextQuestionResponse,
-)
+@router.post("/sessions/{session_id}/skip", response_model=SkipQuestionResponse)
 async def skip_question(
-    session_id: int,
-    data: SkipQuestionRequest,
-    db: DbSession,
-) -> NextQuestionResponse:
+    session_id: int, data: SkipQuestionRequest, db: DbSession,
+) -> SkipQuestionResponse:
     service = PracticeService(db)
     try:
-        question = await service.skip_question(
+        item, session = await service.skip_question(
             session_id=session_id,
             question_id=data.question_id,
+            duration_seconds=data.duration_seconds,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e),
-        )
-    return NextQuestionResponse(
-        question=QuestionPublicResponse.model_validate(question) if question else None,
+        raise _bad_request(e)
+    return SkipQuestionResponse(
+        item=PracticeItemResponse.model_validate(item),
+        session=PracticeSessionResponse.model_validate(session),
     )
 
 
-@router.post(
-    "/sessions/{session_id}/next",
-    response_model=NextQuestionResponse,
-)
-async def next_question(
-    session_id: int, db: DbSession,
-) -> NextQuestionResponse:
+@router.post("/sessions/{session_id}/star", response_model=PracticeSessionResponse)
+async def star_question(
+    session_id: int, data: StarQuestionRequest, db: DbSession,
+) -> PracticeSessionResponse:
     service = PracticeService(db)
     try:
-        question = await service.next_question(session_id=session_id)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e),
+        session = await service.star_question(
+            session_id=session_id, question_id=data.question_id, starred=data.starred,
         )
-    return NextQuestionResponse(
-        question=QuestionPublicResponse.model_validate(question) if question else None,
-    )
+    except ValueError as e:
+        raise _bad_request(e)
+    return PracticeSessionResponse.model_validate(session)
 
 
-@router.post(
-    "/sessions/{session_id}/end",
-    response_model=PracticeSessionResponse,
-)
-async def end_session(
-    session_id: int, db: DbSession,
-) -> PracticeSessionResponse:
+@router.post("/sessions/{session_id}/end", response_model=PracticeSessionResponse)
+async def end_session(session_id: int, db: DbSession) -> PracticeSessionResponse:
     service = PracticeService(db)
     try:
         session = await service.end_session(session_id=session_id)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e),
-        )
+        raise _bad_request(e)
     return PracticeSessionResponse.model_validate(session)
 
 
-@router.get(
-    "/sessions",
-    response_model=list[PracticeSessionResponse],
-)
+@router.get("/sessions", response_model=list[PracticeSessionResponse])
 async def list_sessions(
     db: DbSession,
     student_id: int = Query(..., ge=1),
@@ -179,17 +150,10 @@ async def list_sessions(
     return [PracticeSessionResponse.model_validate(s) for s in sessions]
 
 
-@router.get(
-    "/sessions/{session_id}",
-    response_model=PracticeSessionDetailResponse,
-)
-async def get_session(
-    session_id: int, db: DbSession,
-) -> PracticeSessionDetailResponse:
+@router.get("/sessions/{session_id}", response_model=PracticeSessionDetailResponse)
+async def get_session(session_id: int, db: DbSession) -> PracticeSessionDetailResponse:
     service = PracticeService(db)
     session = await service.get_session(session_id)
     if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     return PracticeSessionDetailResponse.model_validate(session)

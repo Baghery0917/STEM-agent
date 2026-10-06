@@ -11,6 +11,7 @@ from app.models.teaching import TeachingSessionStatus
 from app.schemas.teaching import (
     ChatRequest,
     EndSessionRequest,
+    RateMessageRequest,
     SubmitQuestionRequest,
     TeachingChatResponse,
     TeachingSessionDetailResponse,
@@ -50,22 +51,46 @@ async def start_session(
     db: DbSession,
 ) -> TeachingSessionDetailResponse:
     service = TeachingService(db)
-    session = await service.create_session_shell(
-        student_id=data.student_id,
-        question_content=data.question_content,
-        question_image=data.question_image,
-    )
+    try:
+        session = await service.create_session_shell(
+            student_id=data.student_id,
+            question_content=data.question_content,
+            question_image=data.question_image,
+            source_practice_session_id=data.source_practice_session_id,
+            source_question_ids=data.source_question_ids,
+        )
+    except LookupError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     await db.commit()
     detail = await service.get_session(session.id)
+    # 流水线用的题目文本：练习转来时取拼好的第一条消息
+    pipeline_content = detail.messages[0].content if detail.messages else data.question_content
 
     background_tasks.add_task(
         _run_pipeline_bg,
         session.id,
-        data.question_content,
+        pipeline_content,
         data.question_image,
         data.frame_base64,
     )
     return TeachingSessionDetailResponse.model_validate(detail)
+
+
+@router.post("/sessions/rate", response_model=TeachingMessageResponse)
+async def rate_message(data: RateMessageRequest, db: DbSession) -> TeachingMessageResponse:
+    """学生对某条 AI 回复的掌握度自评（选填，可取消）"""
+    service = TeachingService(db)
+    try:
+        msg = await service.rate_message(
+            session_id=data.session_id, message_id=data.message_id, rating=data.rating,
+        )
+    except LookupError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return TeachingMessageResponse.model_validate(msg)
 
 
 @router.post("/sessions/chat", response_model=TeachingChatResponse)
@@ -173,6 +198,8 @@ async def list_sessions(
             pipeline_status=session.pipeline_status,
             strategy=session.strategy,
             ended_at=session.ended_at,
+            source_practice_session_id=session.source_practice_session_id,
+            source_question_ids=session.source_question_ids,
             created_at=session.created_at,
             updated_at=session.updated_at,
             preview=preview,

@@ -1,138 +1,135 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Empty, List, Progress, Row, Tabs, Tag, Typography } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import { getStudentReport } from '@/api/reports';
+import type { ReportMode } from '@/api/types';
 import { useStudentStore } from '@/stores/studentStore';
-import NotImplementedCard from '@/components/common/NotImplementedCard';
-import { formatRelative } from '@/utils/format';
+import TopBar from '@/components/shell/TopBar';
+import { emotionBarHeight, emotionTone } from '@/utils/emotion';
+import { shortTime } from '@/utils/time';
+
+const WEEKDAY = ['日', '一', '二', '三', '四', '五', '六'];
 
 export default function Report() {
-  const student = useStudentStore((s) => s.current);
-
-  const recentQuery = useQuery({
-    queryKey: ['student-report', student?.id, 'recent'],
-    queryFn: () => getStudentReport(student!.id, 'recent'),
-    enabled: !!student,
+  const student = useStudentStore((s) => s.current)!;
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<ReportMode>('recent');
+  const q = useQuery({
+    queryKey: ['student-report', student.id, mode],
+    queryFn: () => getStudentReport(student.id, mode, true),
+    staleTime: 60_000,
   });
-
-  const allQuery = useQuery({
-    queryKey: ['student-report', student?.id, 'all'],
-    queryFn: () => getStudentReport(student!.id, 'all'),
-    enabled: !!student,
-  });
-
-  if (!student) return null;
-
-  const renderRecent = () => {
-    const data = recentQuery.data;
-    return (
-      <NotImplementedCard
-        title="近一周动态（Recent 模式）"
-        description="活跃知识点统计 + 近期情绪明细。待后端接口 GET /students/:id/report?mode=recent 上线后自动生效。"
-      >
-        <Row gutter={16}>
-          <Col xs={24} md={14}>
-            <Card size="small" title="活跃知识点" style={{ marginBottom: 16 }}>
-              {data?.active_knowledge_points.length ? (
-                <List
-                  dataSource={data.active_knowledge_points}
-                  renderItem={(kp) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        title={kp.section_title}
-                        description={`练习 ${kp.total_practice_count} 次 · 教学 ${kp.total_teaching_count} 次`}
-                      />
-                      <Progress
-                        percent={Math.round(kp.mastery_level * 100)}
-                        style={{ width: 140 }}
-                      />
-                    </List.Item>
-                  )}
-                />
-              ) : (
-                <Empty description="暂无数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-              )}
-            </Card>
-          </Col>
-          <Col xs={24} md={10}>
-            <Card size="small" title="近期情绪明细">
-              {data?.emotion_logs.length ? (
-                <List
-                  size="small"
-                  dataSource={data.emotion_logs}
-                  renderItem={(log) => (
-                    <List.Item>
-                      <Tag color={log.mode === 'teaching' ? 'purple' : 'cyan'}>
-                        {log.mode}
-                      </Tag>
-                      <span style={{ marginRight: 8 }}>{log.section_title}</span>
-                      <Tag>{log.emotion}</Tag>
-                      <Typography.Text type="secondary" style={{ marginLeft: 'auto' }}>
-                        {formatRelative(log.created_at)}
-                      </Typography.Text>
-                    </List.Item>
-                  )}
-                />
-              ) : (
-                <Empty description="暂无情绪数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-              )}
-            </Card>
-          </Col>
-        </Row>
-      </NotImplementedCard>
-    );
-  };
-
-  const renderAll = () => {
-    const data = allQuery.data;
-    return (
-      <NotImplementedCard
-        title="学习全景（All 模式）"
-        description="全量知识点聚合 + 历史情绪趋势。待后端接口 GET /students/:id/report?mode=all 上线后自动生效。"
-      >
-        <Row gutter={16}>
-          <Col xs={24} md={14}>
-            <Card size="small" title="已学习知识点" style={{ marginBottom: 16 }}>
-              {data?.active_knowledge_points.length ? (
-                <List
-                  dataSource={data.active_knowledge_points}
-                  renderItem={(kp) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        title={kp.section_title}
-                        description={`正确 ${kp.correct_count} / ${kp.total_practice_count}`}
-                      />
-                      <Progress
-                        percent={Math.round(kp.mastery_level * 100)}
-                        style={{ width: 140 }}
-                      />
-                    </List.Item>
-                  )}
-                />
-              ) : (
-                <Empty description="暂无数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-              )}
-            </Card>
-          </Col>
-          <Col xs={24} md={10}>
-            <Card size="small" title="情绪趋势（按知识点）">
-              <Empty description="折线图待接入" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            </Card>
-          </Col>
-        </Row>
-      </NotImplementedCard>
-    );
-  };
+  const r = q.data;
+  const rangeText = r
+    ? mode === 'recent'
+      ? `近 7 天 · ${dayjs(r.range_start).format('M 月 D 日')} – ${dayjs(r.range_end).format('M 月 D 日')}`
+      : `全部 · 截至 ${dayjs(r.range_end).format('M 月 D 日')}`
+    : '';
+  const active = r?.knowledge_points.filter((k) => k.recent_practice_count + k.recent_teaching_count > 0).length ?? 0;
+  const lowDays = r?.emotion_days.filter((d) => d.value != null && d.value >= 3) ?? [];
 
   return (
-    <div className="page-container">
-      <Typography.Title level={3}>学习报告</Typography.Title>
-      <Tabs
-        defaultActiveKey="recent"
-        items={[
-          { key: 'recent', label: '近一周动态', children: renderRecent() },
-          { key: 'all', label: '学习全景', children: renderAll() },
-        ]}
-      />
-    </div>
+    <>
+      <TopBar crumb="学习报告" showSeg={false} />
+      <section className="stage">
+        <div className="report">
+          <div className="rhead">
+            <div><h1>学习报告</h1><div className="sub">{rangeText}</div></div>
+            <div className="right">
+              <div className="radio">
+                <button type="button" className={mode === 'recent' ? 'on' : ''} onClick={() => setMode('recent')}>近一周</button>
+                <button type="button" className={mode === 'all' ? 'on' : ''} onClick={() => setMode('all')}>全部</button>
+              </div>
+              <button type="button" className="btn" onClick={() => window.print()}>导出 PDF</button>
+            </div>
+          </div>
+
+          {q.isLoading && <div className="empty-note">正在生成报告…</div>}
+          {q.isError && <div className="empty-note">报告加载失败：{(q.error as Error).message}</div>}
+
+          {r && (
+            <>
+              <div className="insight">
+                <div className="who">S</div>
+                <p>
+                  {r.summary
+                    ?? (r.practice_count + r.teaching_count === 0
+                      ? '这段时间还没有学习记录。发一道题，或者开始一组练习，报告就会有内容了。'
+                      : `这段时间你练了 ${r.answered_count} 题（对 ${r.correct_count}）、讲了 ${r.teaching_count} 道。`)}
+                </p>
+                <button type="button" className="btn" onClick={() => navigate('/teaching', { state: { prefill: '帮我看看最近的学习报告，哪里最需要补？' } })}>和我聊聊这份报告</button>
+              </div>
+
+              <div className="grid2">
+                <div className="card">
+                  <div className="hd">知识点掌握度<span className="sp">活跃 {active} 个</span></div>
+                  <div className="bd" style={{ padding: '6px 16px' }}>
+                    {r.knowledge_points.length === 0 && <div className="empty-note">还没有知识点数据</div>}
+                    {r.knowledge_points.map((k) => {
+                      const pct = Math.round(k.mastery_level * 100);
+                      const low = pct < 60;
+                      return (
+                        <div className="mrow" key={k.section_id}>
+                          <div>
+                            {k.section_title}
+                            <div className="sub">
+                              练 {mode === 'recent' ? k.recent_practice_count : k.total_practice_count} · 讲 {mode === 'recent' ? k.recent_teaching_count : k.total_teaching_count}
+                              {k.total_practice_count > 0 && ` · 正确率 ${Math.round((k.correct_count / k.total_practice_count) * 100)}%`}
+                            </div>
+                          </div>
+                          <div className="bar"><i className={low ? 'low' : ''} style={{ width: `${pct}%` }} /></div>
+                          <div className="pct">{pct}%</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div className="card">
+                    <div className="hd">学习状态<span className="sp">来自情绪识别 · 近 7 天</span></div>
+                    <div className="bd" style={{ paddingTop: 8 }}>
+                      <div className="spark">
+                        {r.emotion_days.map((d) => (
+                          <i
+                            key={d.date}
+                            className={d.value == null ? 'none' : emotionTone(d.value) === 'warn' ? 'w' : ''}
+                            style={{ ['--h' as string]: `${emotionBarHeight(d.value)}%` }}
+                            title={d.value == null ? `${d.date} 无记录` : `${d.date} · ${d.count} 条`}
+                          />
+                        ))}
+                      </div>
+                      <div className="axis">{r.emotion_days.map((d) => <span key={d.date}>{WEEKDAY[dayjs(d.date).day()]}</span>)}</div>
+                      <div className="hint" style={{ marginTop: 8 }}>
+                        {r.emotion_logs.length === 0
+                          ? '开启情绪识别后，这里会显示每天的学习状态。'
+                          : lowDays.length
+                            ? `${lowDays.map((d) => `周${WEEKDAY[dayjs(d.date).day()]}`).join('、')}状态偏低，其余时间平稳。`
+                            : '这段时间状态整体平稳。'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="card">
+                    <div className="hd">最近记录</div>
+                    <div className="bd logs" style={{ padding: '4px 16px' }}>
+                      {r.emotion_logs.length === 0 && <div className="empty-note">暂无记录</div>}
+                      {r.emotion_logs.slice(0, 8).map((l, i) => (
+                        <div key={i}>
+                          <span className={`badge ${l.mode === 'teaching' ? 't' : 'p'}`}>{l.mode === 'teaching' ? '讲' : '练'}</span>
+                          {l.section_title}
+                          <span className={`badge ${emotionTone(l.emotion_value) === 'warn' ? 'w' : l.emotion_value <= 1.5 ? 'p' : 'g'}`}>{l.emotion}</span>
+                          <span className="tm">{shortTime(l.created_at)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+    </>
   );
 }

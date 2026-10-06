@@ -393,15 +393,31 @@ Base URL: `http://localhost:8000/api/v1`
 ## Teaching（教学对话）
 
 #### POST /teaching/sessions
-开始教学会话。
+开始教学会话。流水线在后台执行，前端轮询 GET /teaching/sessions/{id} 直到 `pipeline_status` 为 `done` / `failed`。
 
 **Request Body:**
 ```json
 {
   "student_id": "integer (>= 1)",
   "question_content": "string (min_length=1)",
-  "question_image": "string | null"
+  "question_image": "string | null",
+  "frame_base64": "string | null  (摄像头单帧，仅用于面部情绪识别，不落库)",
+  "source_practice_session_id": "integer | null  (从练习转来时填)",
+  "source_question_ids": "list[int] | null  (从练习转来的题目；为空则取该练习的星标题)"
 }
+```
+
+从练习转来时，后端把题干、学生作答与正确答案拼成第一条 `question_submit` 消息，格式：
+
+```
+（来自练习 #7）
+
+【练习第 3 题】
+<题干>
+我的答案：1 m（答错）
+正确答案：3 m
+
+<学生附言>
 ```
 
 **Response (201):** TeachingSessionDetailResponse
@@ -469,6 +485,22 @@ Base URL: `http://localhost:8000/api/v1`
 
 **Error:** 400 - Session not found or not active
 
+#### POST /teaching/sessions/rate
+学生对某条 AI 回复的掌握度自评（选填，可取消）。结束会话时若未显式传 `mastery_level_delta`，取最后一条自评映射：0 → −0.1，1 → +0.05，2 → +0.15，3 → +0.25。
+
+**Request Body:**
+```json
+{
+  "session_id": "integer (>= 1)",
+  "message_id": "integer (>= 1)",
+  "rating": "integer 0-3 | null  (0 还没懂 / 1 看懂了讲解 / 2 能自己做 / 3 能讲给别人；null 取消)"
+}
+```
+
+**Response (200):** TeachingMessageResponse（含 `self_rating`）
+
+**Error:** 404 - Message not found；400 - Only assistant messages can be rated
+
 #### POST /teaching/sessions/end
 结束教学会话。
 
@@ -502,18 +534,34 @@ Base URL: `http://localhost:8000/api/v1`
 
 ## Practice（练习）
 
-### Focused Mode
+不再区分专项 / 综合模式。开始时按范围一次性抽满题目，学生可在题目间自由切换，每题都可跳过（计 0 分、不计入档案）。`timed` 只影响前端：计时中不能中途转去提问，只能先星标。
 
-#### POST /practice/sessions/focused
-创建 Focused 练习会话。
+#### POST /practice/match
+开始前预估题库里符合范围的题数。
+
+**Request Body:**
+```json
+{
+  "knowledge_point_ids": "list[int] (min_length=1)",
+  "difficulty_range": "list[str] (min_length=1)",
+  "question_types": "list[str] | null"
+}
+```
+
+**Response (200):** `{ "matched_count": 37 }`
+
+#### POST /practice/sessions
+创建练习会话并一次性抽题。
 
 **Request Body:**
 ```json
 {
   "student_id": "integer (>= 1)",
   "knowledge_point_ids": "list[int] (min_length=1)",
-  "difficulty_range": "list[str] (min_length=1, e.g. [\"easy\", \"medium\"])",
-  "total_count": "integer (1-100)"
+  "difficulty_range": "list[str] (min_length=1)",
+  "question_types": "list[str] | null",
+  "total_count": "integer (1-100, default 10)",
+  "timed": "boolean (default false)"
 }
 ```
 
@@ -522,195 +570,130 @@ Base URL: `http://localhost:8000/api/v1`
 {
   "session": {
     "id": 1,
-    "mode": "focused",
+    "timed": true,
     "knowledge_point_ids": [1, 2],
     "difficulty_range": ["easy", "medium"],
     "student_id": 1,
     "total_count": 5,
+    "question_ids": [11, 12, 13, 14, 15],
+    "starred_question_ids": [],
     "started_at": "...",
     "ended_at": null,
     "skip_count": 0,
     "correct_count": 0,
     "wrong_count": 0,
-    "skipped_question_ids": [],
     "created_at": "...",
     "updated_at": "..."
   },
-  "question": {
-    "id": 1,
-    "type": "single_choice",
-    "content": "string",
-    "answer": "string",
-    "difficulty": "easy",
-    "knowledge_point_ids": [1],
-    "created_at": "...",
-    "updated_at": "..."
-  }
+  "questions": [ { "id": 11, "type": "single_choice", "content": "...", "content_image": null, "difficulty": "easy", "knowledge_point_ids": [1] } ]
 }
 ```
 
-**Error:** 400 - No questions match the given criteria
+- 题库不足时 `total_count` 按实际抽到的数量返回
+- `questions` 不含答案与解析
 
-### General Mode
-
-#### POST /practice/sessions/general
-创建 General 练习会话。
-
-**Request Body:**
-```json
-{
-  "student_id": "integer (>= 1)",
-  "knowledge_point_ids": "list[int] (min_length=1)",
-  "difficulty_range": "list[str] (min_length=1)"
-}
-```
-
-**Response (201):** StartSessionResponse（mode 为 general，total_count 初始为 0）
-
-**Error:** 400 - No questions match the given criteria
-
-### 通用端点
+**Error:** 400 - No questions match the given criteria / Knowledge point ids not found
 
 #### POST /practice/sessions/{session_id}/submit
-提交答案。
+提交答案，即时批改并返回答案与解析。
 
 **Request Body:**
 ```json
 {
   "question_id": "integer (>= 1)",
   "user_answer": "string (min_length=1)",
-  "emotion": "string | null (e.g. \"happy\", \"confused\")"
+  "duration_seconds": "integer | null",
+  "frame_base64": "string | null  (提交瞬间的摄像头单帧，只转发给面部情绪识别，不落库)"
 }
 ```
 
 **Response (200):** SubmitAnswerResponse
 ```json
 {
-  "item": {
-    "id": 1,
-    "practice_session_id": 1,
-    "student_id": 1,
-    "question_id": 1,
-    "user_answer": "A",
-    "sequence": 0,
-    "is_correct": true,
-    "is_skipped": false,
-    "started_at": "...",
-    "ended_at": "...",
-    "emotion": "happy",
-    "created_at": "...",
-    "updated_at": "..."
-  },
+  "item": { "id": 1, "question_id": 11, "user_answer": "A", "is_correct": true, "is_skipped": false, "duration_seconds": 20, "emotion": "自信", "emotion_value": 1.0, "...": "..." },
   "is_correct": true,
-  "next_question": {
-    "id": 2,
-    "type": "single_choice",
-    "content": "string",
-    "answer": "string",
-    "difficulty": "medium",
-    "knowledge_point_ids": [2],
-    "created_at": "...",
-    "updated_at": "..."
-  }
+  "correct_answer": "A",
+  "analysis": "string | null",
+  "analysis_image": "string | null",
+  "session": { "...": "PracticeSessionResponse，计数已更新" }
 }
 ```
 
-- Focused 模式：答完所有题后 `next_question` 为 null
-- General 模式：`next_question` 始终为 null
-
-**Error:** 400 - Session not found / Session already ended / Question not found
+**Error:** 400 - Session not found / Session already ended / Question does not belong to this session / Question already answered in this session
 
 #### POST /practice/sessions/{session_id}/skip
-跳过当前题目（仅 General 模式可用）。
+跳过一题（任何模式都可以）。写一条 `is_skipped=true` 的记录，`skip_count` +1，不计入学生档案。
 
-**Request Body:**
-```json
-{
-  "question_id": "integer (>= 1)"
-}
-```
+**Request Body:** `{ "question_id": 11, "duration_seconds": 5 }`
 
-**Response (200):** NextQuestionResponse
-```json
-{
-  "question": {
-    "id": 3,
-    "type": "single_choice",
-    "content": "string",
-    "answer": "string",
-    "difficulty": "easy",
-    "knowledge_point_ids": [1],
-    "created_at": "...",
-    "updated_at": "..."
-  }
-}
-```
+**Response (200):** `{ "item": PracticeItemResponse, "session": PracticeSessionResponse }`
 
-- 跳过不创建 PracticeItem 记录
-- 无更多题目时 `question` 为 null
+#### POST /practice/sessions/{session_id}/star
+星标 / 取消星标一题。
 
-**Error:** 400 - Skip is only allowed in general mode / Session already ended
+**Request Body:** `{ "question_id": 11, "starred": true }`
 
-#### POST /practice/sessions/{session_id}/next
-主动获取下一题。
-
-**Response (200):** NextQuestionResponse
-
-- 已作答/已跳过的题目不会重复出现
-- 无更多题目时 `question` 为 null
-
-**Error:** 400 - Session not found / Session already ended
+**Response (200):** PracticeSessionResponse（`starred_question_ids` 已更新）
 
 #### POST /practice/sessions/{session_id}/end
-结束练习。
+结束练习。作答题的面部情绪均值回流到涉及知识点的历史情绪，并写一行 `mode=practice` 的情绪流水。
 
 **Response (200):** PracticeSessionResponse
-- Focused 模式：`total_count` 保持创建时的值
-- General 模式：`total_count` 更新为实际作答数（correct + wrong）
 
 **Error:** 400 - Session not found / Session already ended
 
+#### GET /practice/sessions
+学生的练习列表，按开始时间倒序。
+
+**Query Parameters:** `student_id` (int, required), `limit` (1-100, default 20), `offset` (default 0)
+
+**Response (200):** `list[PracticeSessionResponse]`
+
 #### GET /practice/sessions/{session_id}
-获取练习详情。
+练习详情：全部题目（不含答案）与作答记录（含题目完整信息，用于回顾）。
 
 **Response (200):** PracticeSessionDetailResponse
 ```json
 {
-  "id": 1,
-  "mode": "focused",
-  "knowledge_point_ids": [1, 2],
-  "difficulty_range": ["easy", "medium"],
-  "student_id": 1,
-  "total_count": 5,
-  "started_at": "...",
-  "ended_at": "...",
-  "skip_count": 0,
-  "correct_count": 3,
-  "wrong_count": 2,
-  "skipped_question_ids": [],
-  "created_at": "...",
-  "updated_at": "...",
-  "items": [
-    {
-      "id": 1,
-      "practice_session_id": 1,
-      "student_id": 1,
-      "question_id": 1,
-      "user_answer": "A",
-      "sequence": 0,
-      "is_correct": true,
-      "is_skipped": false,
-      "started_at": "...",
-      "ended_at": "...",
-      "emotion": "happy",
-      "created_at": "...",
-      "updated_at": "..."
-    }
-  ]
+  "...": "PracticeSessionResponse 字段",
+  "questions": [ "QuestionPublicResponse" ],
+  "items": [ { "...": "PracticeItemResponse", "question": "QuestionResponse | null" } ]
 }
 ```
 
 **Error:** 404 - Session not found
+
+---
+
+## Report（学习报告）
+
+#### GET /students/{student_id}/report
+知识点掌握度、练习/教学统计、情绪趋势与流水，可选 LLM 一段话总结。
+
+**Query Parameters:**
+- `mode` (`recent` | `all`, default `recent`)：`recent` 为近 7 天
+- `summary` (bool, default true)：是否让 LLM 生成总结；列表页预取时传 false 省一次调用
+
+**Response (200):** StudentReport
+```json
+{
+  "mode": "recent",
+  "range_start": "...", "range_end": "...",
+  "practice_count": 2, "teaching_count": 1,
+  "answered_count": 12, "correct_count": 9,
+  "knowledge_points": [
+    { "section_id": 1, "section_title": "...", "mastery_level": 0.72, "correct_count": 20, "total_practice_count": 24, "total_teaching_count": 1, "last_practice_at": "...", "last_teaching_at": null, "recent_practice_count": 24, "recent_teaching_count": 1 }
+  ],
+  "emotion_days": [ { "date": "2026-10-01", "value": 2.1, "count": 3 } ],
+  "emotion_logs": [ { "section_id": 1, "section_title": "...", "mode": "teaching", "session_id": 12, "emotion_value": 3.6, "emotion": "受挫", "created_at": "..." } ],
+  "summary": "string | null"
+}
+```
+
+- `emotion_days` 固定 7 天，没有记录的天 `value` 为 null
+- `summary` LLM 失败或无学习记录时为 null
+
+**Error:** 404 - Student not found
 
 ---
 
@@ -723,7 +706,7 @@ Base URL: `http://localhost:8000/api/v1`
 | QuestionType | `single_choice`, `multiple_choice`, `fill_blank`, `short_answer`, `calculation` |
 | Difficulty | `easy`, `medium`, `hard` |
 | Gender | `male`, `female`, `other` |
-| PracticeMode | `focused`, `general` |
+| ExplainStyle | `direct`, `guided`, `hint`（学生讲解风格覆盖，PUT /students/{id} 可改） |
 | TeachingSessionStatus | `active`, `completed`, `cancelled` |
 | MessageRole | `user`, `assistant`, `system` |
 | MessageType | `question_submit`, `llm_analysis`, `student_data`, `strategy`, `reference_search`, `chat` |

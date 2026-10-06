@@ -41,7 +41,7 @@ export default function AdminLayout() {
           type="text"
           icon={<ArrowLeftOutlined />}
           style={{ color: '#fff', marginLeft: 'auto' }}
-          onClick={() => navigate('/home')}
+          onClick={() => navigate('/teaching')}
         >
           返回学生端
         </Button>

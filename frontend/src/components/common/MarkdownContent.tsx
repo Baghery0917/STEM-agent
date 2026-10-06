@@ -10,7 +10,7 @@ interface Props {
 
 export default function MarkdownContent({ content, className }: Props) {
   return (
-    <div className={`markdown-content ${className ?? ''}`}>
+    <div className={className}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}

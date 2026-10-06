@@ -2,6 +2,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
+    ARRAY,
     DateTime,
     Enum,
     Float,
@@ -69,6 +70,13 @@ class TeachingSession(BaseModel):
     end_reason: Mapped[SessionEndReason | None] = mapped_column(
         Enum(SessionEndReason), nullable=True,
     )
+    # 从练习转来的会话：来源练习与题目，前端据此渲染"来自练习第 N 题"卡片
+    source_practice_session_id: Mapped[int | None] = mapped_column(
+        ForeignKey("practice_sessions.id", ondelete="SET NULL"), nullable=True,
+    )
+    source_question_ids: Mapped[list[int] | None] = mapped_column(
+        ARRAY(Integer), nullable=True,
+    )
 
     messages: Mapped[list["TeachingMessage"]] = relationship(
         "TeachingMessage",
@@ -93,6 +101,8 @@ class TeachingMessage(BaseModel):
     facial_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     text_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     emotion_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # 学生对这条 AI 回复的掌握度自评：0 还没懂 / 1 看懂了讲解 / 2 能自己做 / 3 能讲给别人；仅 assistant 消息有值
+    self_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     session: Mapped["TeachingSession"] = relationship(
         "TeachingSession", back_populates="messages",

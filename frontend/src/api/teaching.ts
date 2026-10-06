@@ -2,7 +2,9 @@ import { apiClient } from './client';
 import type {
   ChatRequest,
   EndSessionRequest,
+  RateMessageRequest,
   SubmitQuestionRequest,
+  TeachingMessageResponse,
   TeachingChatResponse,
   TeachingSessionDetailResponse,
   TeachingSessionSummaryResponse,
@@ -95,6 +97,11 @@ export async function streamChat(
   } catch (err) {
     handlers.onError((err as Error).message || 'stream aborted');
   }
+}
+
+export async function rateMessage(body: RateMessageRequest) {
+  const { data } = await apiClient.post<TeachingMessageResponse>('/teaching/sessions/rate', body);
+  return data;
 }
 
 export async function endTeachingSession(body: EndSessionRequest) {

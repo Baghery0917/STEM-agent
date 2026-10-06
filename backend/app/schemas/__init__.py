@@ -24,20 +24,20 @@ from app.schemas.teaching import (
     TeachingChatResponse,
 )
 from app.schemas.practice import (
-    PracticeSessionCreate,
-    PracticeSessionUpdate,
     PracticeSessionResponse,
     PracticeSessionDetailResponse,
-    PracticeItemCreate,
     PracticeItemResponse,
-    StartFocusedRequest,
-    StartGeneralRequest,
+    StartPracticeRequest,
+    PracticeMatchRequest,
+    PracticeMatchResponse,
     SubmitAnswerRequest,
     SkipQuestionRequest,
+    StarQuestionRequest,
     StartSessionResponse,
     SubmitAnswerResponse,
-    NextQuestionResponse,
+    SkipQuestionResponse,
 )
+from app.schemas.report import StudentReport
 
 __all__ = [
     "VolumeCreate", "VolumeUpdate", "VolumeResponse",
@@ -51,10 +51,10 @@ __all__ = [
     "TeachingReferenceCreate", "TeachingReferenceResponse",
     "SubmitQuestionRequest", "ChatRequest", "EndSessionRequest",
     "TeachingSessionDetailResponse", "TeachingChatResponse",
-    "PracticeSessionCreate", "PracticeSessionUpdate",
     "PracticeSessionResponse", "PracticeSessionDetailResponse",
-    "PracticeItemCreate", "PracticeItemResponse",
-    "StartFocusedRequest", "StartGeneralRequest",
-    "SubmitAnswerRequest", "SkipQuestionRequest",
-    "StartSessionResponse", "SubmitAnswerResponse", "NextQuestionResponse",
+    "PracticeItemResponse",
+    "StartPracticeRequest", "PracticeMatchRequest", "PracticeMatchResponse",
+    "SubmitAnswerRequest", "SkipQuestionRequest", "StarQuestionRequest",
+    "StartSessionResponse", "SubmitAnswerResponse", "SkipQuestionResponse",
+    "StudentReport",
 ]

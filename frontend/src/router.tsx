@@ -2,12 +2,11 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import StudentLayout from '@/layouts/StudentLayout';
 import AdminLayout from '@/layouts/AdminLayout';
 import Login from '@/pages/Login';
-import Home from '@/pages/student/Home';
 import Teaching from '@/pages/student/Teaching';
 import PracticeSetup from '@/pages/student/PracticeSetup';
 import PracticeRunner from '@/pages/student/PracticeRunner';
-import PracticeHistory from '@/pages/student/PracticeHistory';
 import Report from '@/pages/student/Report';
+import Settings from '@/pages/student/Settings';
 import KnowledgePage from '@/pages/admin/KnowledgePage';
 import QuestionsPage from '@/pages/admin/QuestionsPage';
 import StudentsPage from '@/pages/admin/StudentsPage';
@@ -19,14 +18,15 @@ export default function AppRoutes() {
       <Route path="/login" element={<Login />} />
 
       <Route element={<StudentLayout />}>
-        <Route index element={<Navigate to="/home" replace />} />
-        <Route path="/home" element={<Home />} />
+        <Route index element={<Navigate to="/teaching" replace />} />
+        <Route path="/home" element={<Navigate to="/teaching" replace />} />
         <Route path="/teaching" element={<Teaching />} />
         <Route path="/teaching/:sessionId" element={<Teaching />} />
-        <Route path="/practice/setup" element={<PracticeSetup />} />
-        <Route path="/practice/history" element={<PracticeHistory />} />
+        <Route path="/practice" element={<Navigate to="/practice/new" replace />} />
+        <Route path="/practice/new" element={<PracticeSetup />} />
         <Route path="/practice/:sessionId" element={<PracticeRunner />} />
         <Route path="/report" element={<Report />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
       <Route path="/admin" element={<AdminLayout />}>
@@ -37,7 +37,7 @@ export default function AppRoutes() {
         <Route path="db" element={<DatabasePage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/home" replace />} />
+      <Route path="*" element={<Navigate to="/teaching" replace />} />
     </Routes>
   );
 }

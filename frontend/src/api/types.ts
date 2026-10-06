@@ -111,10 +111,13 @@ export interface QuestionListParams {
   chapter_id?: number;
 }
 
+export type ExplainStyle = 'direct' | 'guided' | 'hint';
+
 export interface StudentResponse extends Timestamps {
   id: number;
   name: string;
   gender: Gender;
+  explain_style?: ExplainStyle | null;
 }
 
 export interface StudentCreate {
@@ -122,7 +125,7 @@ export interface StudentCreate {
   gender: Gender;
 }
 
-export type StudentUpdate = Partial<StudentCreate>;
+export type StudentUpdate = Partial<StudentCreate> & { explain_style?: ExplainStyle | null };
 
 export interface TeachingReferenceResponse extends Timestamps {
   id: number;
@@ -139,6 +142,12 @@ export interface TeachingMessageResponse extends Timestamps {
   message_type: MessageType;
   sequence: number;
   references?: TeachingReferenceResponse[];
+  facial_value?: number | null;
+  text_value?: number | null;
+  /** 即时情绪 1=自信 … 5=非常受挫，仅 user 消息有值 */
+  emotion_value?: number | null;
+  /** 掌握度自评 0 还没懂 / 1 看懂了讲解 / 2 能自己做 / 3 能讲给别人，仅 assistant 消息 */
+  self_rating?: number | null;
 }
 
 export interface TeachingSessionDetailResponse extends Timestamps {
@@ -148,6 +157,8 @@ export interface TeachingSessionDetailResponse extends Timestamps {
   pipeline_status: PipelineStatus;
   strategy?: string | null;
   ended_at?: string | null;
+  source_practice_session_id?: number | null;
+  source_question_ids?: number[] | null;
   messages: TeachingMessageResponse[];
 }
 
@@ -158,6 +169,8 @@ export interface TeachingSessionSummaryResponse extends Timestamps {
   pipeline_status: PipelineStatus;
   strategy?: string | null;
   ended_at?: string | null;
+  source_practice_session_id?: number | null;
+  source_question_ids?: number[] | null;
   preview?: string | null;
   message_count: number;
 }
@@ -168,6 +181,15 @@ export interface SubmitQuestionRequest {
   question_image?: string | null;
   /** 发送瞬间的摄像头单帧 jpeg data URL，仅用于面部情绪识别 */
   frame_base64?: string | null;
+  /** 从练习转来：后端把题干、作答、答案拼进第一条消息 */
+  source_practice_session_id?: number | null;
+  source_question_ids?: number[] | null;
+}
+
+export interface RateMessageRequest {
+  session_id: number;
+  message_id: number;
+  rating: number | null;
 }
 
 export interface ChatRequest {
@@ -188,17 +210,18 @@ export interface TeachingChatResponse {
 
 export interface PracticeSessionResponse extends Timestamps {
   id: number;
-  mode: PracticeMode;
+  timed: boolean;
   knowledge_point_ids: number[];
-  difficulty_range: string[];
+  difficulty_range: Difficulty[];
   student_id: number;
   total_count: number;
+  question_ids: number[];
+  starred_question_ids: number[];
   started_at: string;
   ended_at?: string | null;
   skip_count: number;
   correct_count: number;
   wrong_count: number;
-  skipped_question_ids: number[];
 }
 
 export interface PracticeItemResponse extends Timestamps {
@@ -212,7 +235,9 @@ export interface PracticeItemResponse extends Timestamps {
   is_skipped: boolean;
   started_at: string;
   ended_at?: string | null;
+  duration_seconds?: number | null;
   emotion?: string | null;
+  emotion_value?: number | null;
 }
 
 export interface PracticeItemWithQuestionResponse extends PracticeItemResponse {
@@ -220,45 +245,72 @@ export interface PracticeItemWithQuestionResponse extends PracticeItemResponse {
 }
 
 export interface PracticeSessionDetailResponse extends PracticeSessionResponse {
+  questions: QuestionPublicResponse[];
   items: PracticeItemWithQuestionResponse[];
 }
 
-export interface StartFocusedRequest {
-  student_id: number;
+export interface QuestionPublicResponse extends Timestamps {
+  id: number;
+  type: QuestionType;
+  content: string;
+  content_image?: string | null;
+  difficulty: Difficulty;
   knowledge_point_ids: number[];
-  difficulty_range: Difficulty[];
-  total_count: number;
 }
 
-export interface StartGeneralRequest {
+export interface StartPracticeRequest {
   student_id: number;
   knowledge_point_ids: number[];
   difficulty_range: Difficulty[];
+  question_types?: QuestionType[] | null;
+  total_count: number;
+  timed: boolean;
+}
+
+export interface PracticeMatchRequest {
+  knowledge_point_ids: number[];
+  difficulty_range: Difficulty[];
+  question_types?: QuestionType[] | null;
+}
+
+export interface PracticeMatchResponse {
+  matched_count: number;
 }
 
 export interface StartSessionResponse {
   session: PracticeSessionResponse;
-  question: QuestionResponse;
+  questions: QuestionPublicResponse[];
 }
 
 export interface SubmitAnswerRequest {
   question_id: number;
   user_answer: string;
-  emotion?: string | null;
+  duration_seconds?: number | null;
+  frame_base64?: string | null;
 }
 
 export interface SubmitAnswerResponse {
   item: PracticeItemResponse;
   is_correct: boolean;
-  next_question: QuestionResponse | null;
+  correct_answer: string;
+  analysis?: string | null;
+  analysis_image?: string | null;
+  session: PracticeSessionResponse;
 }
 
 export interface SkipQuestionRequest {
   question_id: number;
+  duration_seconds?: number | null;
 }
 
-export interface NextQuestionResponse {
-  question: QuestionResponse | null;
+export interface SkipQuestionResponse {
+  item: PracticeItemResponse;
+  session: PracticeSessionResponse;
+}
+
+export interface StarQuestionRequest {
+  question_id: number;
+  starred: boolean;
 }
 
 export type ReportMode = 'recent' | 'all';
@@ -272,18 +324,36 @@ export interface KnowledgePointMastery {
   total_teaching_count: number;
   last_practice_at?: string | null;
   last_teaching_at?: string | null;
+  recent_practice_count: number;
+  recent_teaching_count: number;
 }
 
-export interface EmotionLog {
+export interface EmotionLogEntry {
   section_id: number;
   section_title: string;
-  emotion: string;
   mode: 'teaching' | 'practice';
+  session_id?: number | null;
+  emotion_value: number;
+  emotion: string;
   created_at: string;
+}
+
+export interface EmotionDay {
+  date: string;
+  value?: number | null;
+  count: number;
 }
 
 export interface StudentReport {
   mode: ReportMode;
-  active_knowledge_points: KnowledgePointMastery[];
-  emotion_logs: EmotionLog[];
+  range_start: string;
+  range_end: string;
+  practice_count: number;
+  teaching_count: number;
+  answered_count: number;
+  correct_count: number;
+  knowledge_points: KnowledgePointMastery[];
+  emotion_days: EmotionDay[];
+  emotion_logs: EmotionLogEntry[];
+  summary?: string | null;
 }

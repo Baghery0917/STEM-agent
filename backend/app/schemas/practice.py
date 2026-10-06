@@ -2,44 +2,28 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.practice import PracticeMode
-from app.models.question import Difficulty
+from app.models.question import Difficulty, QuestionType
 from app.schemas.base import BaseSchema, TimestampSchema
 from app.schemas.question import QuestionPublicResponse, QuestionResponse
 
 
 class PracticeSessionBase(BaseSchema):
-    mode: PracticeMode
+    timed: bool
     knowledge_point_ids: list[int]
     difficulty_range: list[Difficulty]
     student_id: int
     total_count: int
 
 
-class PracticeSessionCreate(BaseModel):
-    student_id: int = Field(..., ge=1)
-    knowledge_point_ids: list[int] = Field(..., min_length=1)
-    difficulty_range: list[Difficulty] = Field(..., min_length=1)
-    total_count: int = Field(0, ge=0)
-
-
-class PracticeSessionUpdate(BaseModel):
-    ended_at: datetime | None = None
-    skip_count: int | None = None
-    correct_count: int | None = None
-    wrong_count: int | None = None
-    total_count: int | None = None
-    skipped_question_ids: list[int] | None = None
-
-
 class PracticeSessionResponse(PracticeSessionBase, TimestampSchema):
     id: int
+    question_ids: list[int]
+    starred_question_ids: list[int]
     started_at: datetime
     ended_at: datetime | None
     skip_count: int
     correct_count: int
     wrong_count: int
-    skipped_question_ids: list[int]
 
 
 class PracticeItemBase(BaseSchema):
@@ -51,13 +35,9 @@ class PracticeItemBase(BaseSchema):
     is_skipped: bool
     started_at: datetime
     ended_at: datetime | None
-    emotion: str | None
-
-
-class PracticeItemCreate(BaseModel):
-    question_id: int = Field(..., ge=1)
-    user_answer: str = Field(..., min_length=1)
+    duration_seconds: int | None = None
     emotion: str | None = None
+    emotion_value: float | None = None
 
 
 class PracticeItemResponse(PracticeItemBase, TimestampSchema):
@@ -73,43 +53,66 @@ class PracticeItemWithQuestionResponse(PracticeItemResponse):
 # 请求/响应 schema（练习流程使用）
 # ---------------------------------------------------------------------------
 
-class StartFocusedRequest(BaseModel):
+class StartPracticeRequest(BaseModel):
     student_id: int = Field(..., ge=1)
     knowledge_point_ids: list[int] = Field(..., min_length=1)
     difficulty_range: list[Difficulty] = Field(..., min_length=1)
-    total_count: int = Field(..., ge=1, le=100)
+    question_types: list[QuestionType] | None = None
+    total_count: int = Field(10, ge=1, le=100)
+    timed: bool = False
 
 
-class StartGeneralRequest(BaseModel):
-    student_id: int = Field(..., ge=1)
+class PracticeMatchRequest(BaseModel):
+    """开始前预估：按范围能抽到多少题"""
+
     knowledge_point_ids: list[int] = Field(..., min_length=1)
     difficulty_range: list[Difficulty] = Field(..., min_length=1)
+    question_types: list[QuestionType] | None = None
+
+
+class PracticeMatchResponse(BaseModel):
+    matched_count: int
 
 
 class SubmitAnswerRequest(BaseModel):
     question_id: int = Field(..., ge=1)
     user_answer: str = Field(..., min_length=1)
-    emotion: str | None = None
+    duration_seconds: int | None = Field(None, ge=0)
+    # 提交瞬间的摄像头单帧，只转发给面部识别，不落库
+    frame_base64: str | None = Field(None, max_length=2_000_000)
 
 
 class SkipQuestionRequest(BaseModel):
     question_id: int = Field(..., ge=1)
+    duration_seconds: int | None = Field(None, ge=0)
+
+
+class StarQuestionRequest(BaseModel):
+    question_id: int = Field(..., ge=1)
+    starred: bool = True
 
 
 class StartSessionResponse(BaseModel):
     session: PracticeSessionResponse
-    question: QuestionPublicResponse
+    questions: list[QuestionPublicResponse]
 
 
 class SubmitAnswerResponse(BaseModel):
+    """提交后立即反馈：含正确答案与解析（即时批改）"""
+
     item: PracticeItemResponse
     is_correct: bool
-    next_question: QuestionPublicResponse | None = None
+    correct_answer: str
+    analysis: str | None = None
+    analysis_image: str | None = None
+    session: PracticeSessionResponse
 
 
-class NextQuestionResponse(BaseModel):
-    question: QuestionPublicResponse | None = None
+class SkipQuestionResponse(BaseModel):
+    item: PracticeItemResponse
+    session: PracticeSessionResponse
 
 
 class PracticeSessionDetailResponse(PracticeSessionResponse):
+    questions: list[QuestionPublicResponse] = []
     items: list[PracticeItemWithQuestionResponse] = []
