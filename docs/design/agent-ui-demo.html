@@ -64,7 +64,7 @@
   .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
 
   /* ---------- shell ---------- */
-  .app { display: grid; grid-template-columns: 264px 1fr auto; height: 100vh; overflow: hidden; }
+  .app { display: grid; grid-template-columns: 264px 1fr; height: 100vh; overflow: hidden; }
 
   /* ---------- left rail ---------- */
   .rail {
@@ -399,30 +399,6 @@
   .box .tools .modehint { font-size: 12px; color: var(--ink-3); margin-left: 6px; }
   .foot { text-align: center; font-size: 11.5px; color: var(--ink-3); margin-top: 8px; }
 
-  /* ---------- right drawer ---------- */
-  .drawer { width: 0; border-left: 1px solid transparent; background: var(--panel-2); overflow: hidden; transition: width .28s cubic-bezier(.2,.8,.2,1), border-color .28s; }
-  .drawer.open { width: 320px; border-color: var(--line); }
-  .drawer .in { width: 320px; height: 100%; display: flex; flex-direction: column; }
-  .drawer .dh { display: flex; align-items: center; padding: 14px 16px 10px; font-weight: 600; font-size: 13.5px; gap: 8px; }
-  .drawer .dh .iconbtn { margin-left: auto; }
-  .dtabs { display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid var(--line); }
-  .dtabs button { padding: 8px 10px; font-size: 12.5px; color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; }
-  .dtabs button.on { color: var(--ink); border-color: var(--ink); font-weight: 500; }
-  .dbody { flex: 1; overflow: auto; padding: 14px 16px 24px; }
-  .sec { margin-bottom: 18px; }
-  .sec h5 { margin: 0 0 8px; font-size: 11.5px; letter-spacing: .4px; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
-  .kp { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px; background: var(--panel); border: 1px solid var(--line-2); margin-bottom: 6px; font-size: 13px; }
-  .kp .bar { width: 64px; height: 5px; border-radius: 5px; background: var(--line-2); overflow: hidden; margin-left: auto; }
-  .kp .bar i { display: block; height: 100%; background: var(--accent); }
-  .kp .pct { font-size: 11.5px; color: var(--ink-3); width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
-  .strat { font-size: 13px; color: var(--ink-2); background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; padding: 10px 12px; }
-  .strat li { margin: 4px 0; }
-  .ref { padding: 10px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line-2); margin-bottom: 8px; font-size: 12.5px; }
-  .ref .t { display: flex; justify-content: space-between; color: var(--ink-3); font-size: 11.5px; margin-bottom: 4px; }
-  .emoline { display: flex; align-items: flex-end; gap: 4px; height: 44px; padding: 4px 0; }
-  .emoline i { flex: 1; border-radius: 3px 3px 0 0; background: var(--accent); opacity: .35; }
-  .emoline i.now { opacity: 1; }
-
   /* ---------- report view ---------- */
   .report { max-width: 920px; margin: 0 auto; padding: 24px 28px 120px; }
   .report h1 { font-size: 22px; font-weight: 600; letter-spacing: -.4px; margin: 0; }
@@ -519,8 +495,7 @@
       </div>
       <div class="right">
         <div class="emo" title="情绪识别运行中，仅用于调整讲解方式"><span class="cam"></span>状态：平稳</div>
-        <button class="iconbtn" id="drawerBtn" onclick="toggleDrawer()" title="本轮依据：知识点 / 画像 / 策略 / 参考题">◫</button>
-        <button class="iconbtn" onclick="toggleTheme()" title="切换主题">◐</button>
+                <button class="iconbtn" onclick="toggleTheme()" title="切换主题">◐</button>
       </div>
     </header>
 
@@ -560,7 +535,7 @@
                   <div class="step done"><span class="st"></span><span class="nm">知识点分析</span><span class="out"><span class="pill">牛顿第二定律</span><span class="pill">摩擦力</span><span class="pill">受力分解</span></span></div>
                   <div class="step done"><span class="st"></span><span class="nm">读取你的画像</span><span class="out">摩擦力方向判断近 2 周错 3 次 · 上次学习 4 天前</span></div>
                   <div class="step done"><span class="st"></span><span class="nm">教学策略</span><span class="out">先让你自己找错，不直接给答案 · 语气鼓励</span></div>
-                  <div class="step done"><span class="st"></span><span class="nm">检索参考题</span><span class="out">命中 2 道相似题 <a onclick="openDrawer('ref')">查看</a></span></div>
+                  <div class="step done"><span class="st"></span><span class="nm">检索参考题</span><span class="out">命中 2 道相似题 · #2311（91%）#1876（84%）</span></div>
                 </div>
               </details>
 
@@ -867,47 +842,7 @@ x = v²/(2a) = 400/10 = 40 m</textarea>
     </div>
   </main>
 
-  <!-- ===================== RIGHT DRAWER ===================== -->
-  <aside class="drawer" id="drawer">
-    <div class="in">
-      <div class="dh">本轮依据<button class="iconbtn" onclick="toggleDrawer()">×</button></div>
-      <div class="dtabs">
-        <button class="on" onclick="dtab(this,'d-kp')">知识点</button>
-        <button onclick="dtab(this,'d-profile')">我的画像</button>
-        <button onclick="dtab(this,'d-strat')">策略</button>
-        <button onclick="dtab(this,'d-ref')" id="dtab-ref">参考题</button>
-      </div>
-      <div class="dbody">
-        <div class="dsec" id="d-kp">
-          <div class="sec"><h5>本题涉及</h5>
-            <div class="kp">牛顿第二定律<span class="bar"><i style="width:58%"></i></span><span class="pct">58%</span></div>
-            <div class="kp">摩擦力<span class="bar"><i style="width:52%"></i></span><span class="pct">52%</span></div>
-            <div class="kp">受力分解<span class="bar"><i style="width:81%"></i></span><span class="pct">81%</span></div>
-          </div>
-          <div class="sec"><h5>所属章节</h5><div class="muted" style="font-size:12.5px">力学 › 牛顿运动定律 › 牛顿第二定律的应用</div></div>
-        </div>
-        <div class="dsec" id="d-profile" style="display:none">
-          <div class="sec"><h5>牛顿第二定律 · 历史</h5>
-            <div class="kp">累计练题 <b style="margin-left:auto">6</b></div>
-            <div class="kp">历史错误率 <b style="margin-left:auto">50%</b></div>
-            <div class="kp">上次学习 <b style="margin-left:auto">4 天前</b></div>
-          </div>
-          <div class="sec"><h5>常见错因</h5><div class="strat"><ul style="margin:0;padding-left:16px"><li>摩擦力方向与运动趋势相反，判断反了（3 次）</li><li>cos / sin 分量写反（1 次）</li></ul></div></div>
-          <div class="sec"><h5>情绪轨迹（该知识点）</h5><div class="emoline"><i style="height:70%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:30%"></i><i style="height:45%" class="now"></i></div><div class="hint">近两次偏"受挫"，当前轮次已切换为引导式讲解。</div></div>
-        </div>
-        <div class="dsec" id="d-strat" style="display:none">
-          <div class="sec"><h5>教学策略模块返回</h5><div class="strat"><ol style="margin:0;padding-left:16px"><li>不直接给答案，先让学生定位错误步骤</li><li>聚焦"运动趋势 → 摩擦力方向"这一处，不展开其他</li><li>语气：肯定已做对的部分，再指出问题</li><li>如连续两轮仍错，切换为完整示范</li></ol></div></div>
-          <div class="sec"><h5>注入上下文</h5><div class="muted" style="font-size:12.5px">历史情绪图谱 · 相似题 2 道 · 本会话 4 轮对话</div></div>
-        </div>
-        <div class="dsec" id="d-ref" style="display:none">
-          <div class="sec"><h5>相似题（向量检索）</h5>
-            <div class="ref"><div class="t"><span>#2311 · 中等</span><span>相似度 91%</span></div>质量为 m 的物体在倾角 θ 的粗糙斜面上受沿斜面向上的恒力 F 作用，动摩擦因数 μ……</div>
-            <div class="ref"><div class="t"><span>#1876 · 基础</span><span>相似度 84%</span></div>物块静止在斜面上，判断摩擦力方向并求大小……</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </aside>
+
 </div>
 
 <div class="guide">
@@ -920,7 +855,6 @@ x = v²/(2a) = 400/10 = 40 m</textarea>
   <button onclick="go('teach2')">练习→教学</button>
   <button onclick="go('report')">报告</button>
   <button onclick="go('settings')">设置</button>
-  <button onclick="toggleDrawer()">右栏</button>
   <button onclick="toggleTheme()">主题</button>
 </div>
 
@@ -964,24 +898,11 @@ x = v²/(2a) = 400/10 = 40 m</textarea>
     ctx.innerHTML = v === 'teach' ? '<span class="tg">牛顿第二定律 <span class="x">×</span></span><span class="tg">IMG_2031.jpg <span class="x">×</span></span>'
                   : v === 'teach2' ? '<span class="tg">练习第 9 题 <span class="x">×</span></span><span class="tg">我的作答 <span class="x">×</span></span>' : '';
   }
-  function toggleDrawer() {
-    const d = document.getElementById('drawer'); d.classList.toggle('open');
-    document.getElementById('drawerBtn').classList.toggle('on', d.classList.contains('open'));
-  }
-  function openDrawer(tab) {
-    const d = document.getElementById('drawer'); if (!d.classList.contains('open')) toggleDrawer();
-    if (tab === 'ref') dtab(document.getElementById('dtab-ref'), 'd-ref');
-  }
-  function dtab(btn, id) {
-    document.querySelectorAll('.dtabs button').forEach(b => b.classList.toggle('on', b === btn));
-    document.querySelectorAll('.dsec').forEach(s => s.style.display = s.id === id ? '' : 'none');
-  }
   function toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
   function pick(el) { document.querySelectorAll('#opts .opt').forEach(o => o.classList.remove('pick')); el.classList.add('pick'); }
 
   const init = new URLSearchParams(location.search);
   if (init.get('theme')) document.body.dataset.theme = init.get('theme');
-  if (init.get('drawer') === '1') toggleDrawer();
   go(init.get('view') || 'empty');
 </script>
 </body>
