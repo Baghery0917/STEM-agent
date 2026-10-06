@@ -293,10 +293,6 @@
   .stat .k { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
   .stat.ok .v { color: var(--practice); } .stat.no .v { color: var(--bad); }
 
-  /* mastery slider card */
-  .slider { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 6px; background: linear-gradient(90deg, var(--accent) 0 65%, var(--line-2) 65%); outline: none; }
-  .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--panel); border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
-  .scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); margin-top: 6px; }
 
 
   /* ---------- practice task-flow ---------- */
@@ -391,6 +387,17 @@
   .handoff .hb .my { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 13px; color: var(--ink-2); }
   .handoff .hb .my b { color: var(--bad); font-weight: 600; }
 
+  /* self-rate strip attached to the latest AI reply */
+  .selfrate { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding: 8px 10px 8px 12px; border-radius: 10px; border: 1px dashed var(--line); font-size: 12.5px; color: var(--ink-3); }
+  .selfrate .q { color: var(--ink-2); }
+  .selfrate .opt-tag { font-size: 10.5px; padding: 0 5px; border-radius: 4px; background: var(--line-2); margin-left: 5px; }
+  .selfrate .pills { display: flex; gap: 4px; }
+  .selfrate .pills button { padding: 4px 10px; border-radius: 999px; font-size: 12px; color: var(--ink-2); border: 1px solid transparent; }
+  .selfrate .pills button:hover { background: var(--line-2); }
+  .selfrate .pills button.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 500; }
+  .selfrate .state { margin-left: auto; font-size: 11.5px; }
+  .selfrate.filled { border-style: solid; }
+  .selfrate.filled .state { color: var(--accent); }
   /* ---------- composer ---------- */
   .composer-wrap { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 24px 18px; pointer-events: none; background: linear-gradient(to top, var(--bg) 60%, transparent); }
   .composer { max-width: 760px; margin: 0 auto; pointer-events: auto; }
@@ -503,6 +510,7 @@
         <button class="b-p" onclick="setMode('practice')"><span class="d"></span>练习</button>
       </div>
       <div class="right">
+        <button class="btn ghost" id="endBtn" style="font-size:12.5px;display:none">结束会话</button>
         <div class="emo" title="情绪识别运行中，仅用于调整讲解方式"><span class="cam"></span>状态：平稳</div>
                 <button class="iconbtn" onclick="toggleTheme()" title="切换主题">◐</button>
       </div>
@@ -569,18 +577,22 @@
             <div class="who">S</div>
             <div class="body">
               <p>方向这次对了，这是最关键的一步。现在只剩一个数值：<span class="math">cos30° ≈ 0.866</span>，所以摩擦力是 <span class="math">0.2 × 20 × 0.866 ≈ 3.46N</span>，不是 2.3N。</p>
-              <p>代进去：<span class="math">(15 − 10 − 3.46) / 2 ≈ 0.77</span>……等等，你这里算得没错，是我要再核一下题干。你的截图里 μ 写的是 0.2，但第二行小字写了 <span class="math">g = 9.8</span>。用 9.8 重算一遍<span class="cursor"></span></p>
+              <p>代进去：<span class="math">(15 − 10 − 3.46) / 2 ≈ 0.77</span>……等等，你这里算得没错，是我要再核一下题干。你的截图里 μ 写的是 0.2，但第二行小字写了 <span class="math">g = 9.8</span>。用 9.8 重算一遍：<span class="math">(15 − 9.8 − 3.39) / 2 ≈ 0.9</span>，还是不到 1.37。</p>
+              <p>所以问题可能在题干本身，或者答案给的是另一种情况。把原题第二行小字拍清楚一点发我，我们对一下条件。</p>
+              <div class="ai-actions"><button>复制</button><button>重新讲</button><button>讲得太快</button><button>讲得太慢</button></div>
+              <div class="selfrate" id="selfrate">
+                <span class="q">到这里，这道题你掌握得怎么样？<span class="opt-tag">选填</span></span>
+                <div class="pills">
+                  <button onclick="rate(this,0)">还没懂</button>
+                  <button onclick="rate(this,1)">看懂了讲解</button>
+                  <button onclick="rate(this,2)">能自己做</button>
+                  <button onclick="rate(this,3)">能讲给别人</button>
+                </div>
+                <span class="state" id="rateState">未填 · 不影响档案</span>
+              </div>
             </div>
           </div>
 
-          <div class="card" style="margin-top:8px">
-            <div class="hd"><span class="badge t">结束会话</span>这道题你感觉掌握到什么程度？<span class="sp">用于更新你的知识点档案</span></div>
-            <div class="bd">
-              <input class="slider" type="range" min="0" max="100" value="65" />
-              <div class="scale"><span>完全没懂</span><span>能看懂讲解</span><span>能独立做</span><span>能讲给别人</span></div>
-              <div class="qfoot" style="margin-top:14px"><button class="btn pri">结束并保存</button><button class="btn ghost">再问一个</button></div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -923,6 +935,7 @@
     document.getElementById('newLabel').textContent = document.body.dataset.mode === 'practice' ? '新练习' : '新对话';
     const ah = document.getElementById('actHint'); if (ah) ah.textContent = v === 'practice2' ? '不计时 · 每题可跳过（0 分），随时可转去提问' : '计时中 · 每题可跳过（0 分），卡住就星标';
     if (v === 'teach2') { const t = document.getElementById('s-teach2'); if (t) t.style.display = ''; }
+    document.getElementById('endBtn').style.display = (v === 'teach' || v === 'teach2') ? '' : 'none';
     refreshComposer(v);
     document.getElementById('stage').scrollTop = 0;
   }
@@ -939,6 +952,13 @@
                   : v === 'teach2' ? '<span class="tg">练习第 9 题 <span class="x">×</span></span><span class="tg">我的作答 <span class="x">×</span></span>' : '';
   }
   function toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
+  function rate(btn, v) {
+    const wrap = document.getElementById('selfrate'), st = document.getElementById('rateState');
+    const was = btn.classList.contains('on');
+    wrap.querySelectorAll('.pills button').forEach(b => b.classList.remove('on'));
+    if (was) { wrap.classList.remove('filled'); st.textContent = '未填 · 不影响档案'; return; }
+    btn.classList.add('on'); wrap.classList.add('filled'); st.textContent = '已记录 · 再点一次取消';
+  }
   function pick(el) { el.closest('.opts').querySelectorAll('.opt').forEach(o => o.classList.remove('pick')); el.classList.add('pick'); }
 
   const init = new URLSearchParams(location.search);
