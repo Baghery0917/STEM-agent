@@ -1,16 +1,19 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.external.teaching_strategy import StrategyResult
+from app.models.emotion import EmotionLog, EmotionMode, StudentKpEmotion
 from app.models.student import Gender, Student
 from app.models.student_knowledge_summary import StudentKnowledgeSummary
 from app.models.teaching import (
     MessageRole,
     MessageType,
     PipelineStatus,
+    SessionEndReason,
     TeachingMessage,
     TeachingSession,
     TeachingSessionStatus,
@@ -20,9 +23,10 @@ from app.schemas.section import SectionCreate
 from app.schemas.student import StudentCreate
 from app.schemas.volume import VolumeCreate
 from app.services.chapter import ChapterService
+from app.services.emotion import EmotionService, InstantEmotion
 from app.services.section import SectionService
 from app.services.student import StudentService
-from app.services.teaching import TeachingService, _DEFAULT_ASSISTANT_REPLY
+from app.services.teaching import TeachingService, _DEFAULT_ASSISTANT_REPLY, _utcnow
 from app.services.volume import VolumeService
 
 
@@ -33,6 +37,11 @@ def mock_llm_chat():
         # Default return for unrecognized prompts
         return "This is a mock teaching response."
     return _mock
+
+
+def patch_text_emotion(value: float | None = None):
+    # 文本情绪分类与策略 fallback 共用同一个 LLMClient；固定它，chat side_effect 顺序才可预测
+    return patch.object(EmotionService, "_detect_text", new=AsyncMock(return_value=value))
 
 
 async def create_test_student(db: AsyncSession, name: str = "Test Student"):
@@ -73,6 +82,7 @@ class TestTeachingService:
         with (
             patch("app.services.teaching.LLMClient") as MockLLM,
             patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
         ):
             mock_llm = MockLLM.return_value
             mock_llm.chat = AsyncMock(side_effect=[
@@ -118,12 +128,14 @@ class TestTeachingService:
         with (
             patch("app.services.teaching.LLMClient") as MockLLM,
             patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
         ):
             mock_llm = MockLLM.return_value
             mock_llm.chat = AsyncMock(side_effect=[
                 f'[{{"section_id": {section.id}, "confidence": 0.9}}]',
                 "Strategy: Guided discovery\nReason: Test.",
                 "Welcome! Let's explore.",
+                "Strategy: Follow-up\nReason: Test.",
                 "Good question! Let's think about it...",
             ])
             mock_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
@@ -176,6 +188,7 @@ class TestTeachingService:
         with (
             patch("app.services.teaching.LLMClient") as MockLLM,
             patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
         ):
             mock_llm = MockLLM.return_value
             mock_llm.chat = AsyncMock(side_effect=[
@@ -216,6 +229,7 @@ class TestTeachingService:
         with (
             patch("app.services.teaching.LLMClient") as MockLLM,
             patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
         ):
             mock_llm = MockLLM.return_value
             mock_llm.chat = AsyncMock(side_effect=[
@@ -257,6 +271,7 @@ class TestTeachingService:
         with (
             patch("app.services.teaching.LLMClient") as MockLLM,
             patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
         ):
             mock_llm = MockLLM.return_value
             mock_llm.chat = AsyncMock(side_effect=[
@@ -288,6 +303,7 @@ class TestTeachingService:
         with (
             patch("app.services.teaching.LLMClient") as MockLLM,
             patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
         ):
             mock_llm = MockLLM.return_value
             mock_llm.chat = AsyncMock(side_effect=[
@@ -325,6 +341,7 @@ class TestTeachingService:
             patch("app.services.teaching.LLMClient") as MockLLM,
             patch("app.services.teaching.TeachingStrategyClient") as MockStrategy,
             patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
         ):
             mock_llm = MockLLM.return_value
             mock_llm.chat = AsyncMock(side_effect=[
@@ -335,7 +352,7 @@ class TestTeachingService:
             mock_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
 
             mock_strategy = MockStrategy.return_value
-            mock_strategy._base_url = ""
+            mock_strategy.is_configured.return_value = False
 
             mock_q_llm = MockQuestionLLM.return_value
             mock_q_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
@@ -575,6 +592,7 @@ class TestTeachingService:
         with (
             patch("app.services.teaching.LLMClient") as MockLLM,
             patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
         ):
             mock_llm = MockLLM.return_value
             mock_llm.chat = AsyncMock(side_effect=[
@@ -639,6 +657,7 @@ class TestTeachingService:
         with (
             patch("app.services.teaching.LLMClient") as MockLLM,
             patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
         ):
             mock_llm = MockLLM.return_value
             mock_llm.chat = AsyncMock(side_effect=[
@@ -744,6 +763,7 @@ class TestTeachingService:
         with (
             patch("app.services.teaching.LLMClient") as MockLLM,
             patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
         ):
             mock_llm = MockLLM.return_value
             mock_llm.chat = AsyncMock(side_effect=[
@@ -769,12 +789,14 @@ class TestTeachingService:
                 yield t
 
         service2.llm.chat_stream = fake_stream
+        service2.llm.chat = AsyncMock(return_value="Strategy: Guided\nReason: Test.")
 
         session_id = session.id
 
         acc: list[str] = []
-        async for d in service2.chat_stream(session_id, "what is 1+1?"):
-            acc.append(d)
+        with patch_text_emotion():
+            async for d in service2.chat_stream(session_id, "what is 1+1?"):
+                acc.append(d)
 
         assert acc == ["1+", "1=", "2"]
         assert "".join(acc) == "1+1=2"
@@ -801,6 +823,369 @@ class TestTeachingService:
         assert last_two[1].role == MessageRole.ASSISTANT
         assert last_two[1].content == "1+1=2"
         assert last_two[1].message_type == MessageType.CHAT
+
+    async def test_strategy_refreshed_every_turn(self, db_session: AsyncSession):
+        """Per-turn strategy: start + one chat → 2 STRATEGY messages, session.strategy is the latest"""
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+
+        with (
+            patch("app.services.teaching.LLMClient") as MockLLM,
+            patch("app.services.teaching.TeachingStrategyClient") as MockStrategy,
+            patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
+        ):
+            mock_llm = MockLLM.return_value
+            mock_llm.chat = AsyncMock(side_effect=[
+                f'[{{"section_id": {section.id}, "confidence": 0.9}}]',
+                "Welcome!",
+                "Let's continue.",
+            ])
+            mock_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            mock_strategy = MockStrategy.return_value
+            mock_strategy.is_configured.return_value = True
+            mock_strategy.get_strategy = AsyncMock(side_effect=[
+                StrategyResult(strategy="Worked example first", reason="Cold start"),
+                StrategyResult(strategy="Socratic questioning", reason="Student engaged"),
+            ])
+
+            mock_q_llm = MockQuestionLLM.return_value
+            mock_q_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            service = TeachingService(db_session)
+            session = await service.start_session(
+                student_id=student.id,
+                question_content="Why does ice float?",
+            )
+            assert session.strategy == "Worked example first"
+
+            await service.chat(session_id=session.id, user_message="Is it about density?")
+
+        assert mock_strategy.get_strategy.await_count == 2
+        second_call = mock_strategy.get_strategy.await_args_list[1].kwargs
+        assert second_call["message"] == "Is it about density?"
+        assert second_call["session_id"] == session.id
+
+        await db_session.refresh(session)
+        assert session.strategy == "Socratic questioning"
+
+        result = await db_session.execute(
+            select(TeachingMessage)
+            .where(
+                TeachingMessage.session_id == session.id,
+                TeachingMessage.message_type == MessageType.STRATEGY,
+            )
+            .order_by(TeachingMessage.sequence)
+        )
+        strategy_msgs = list(result.scalars().all())
+        assert len(strategy_msgs) == 2
+        assert "Worked example first" in strategy_msgs[0].content
+        assert "Socratic questioning" in strategy_msgs[1].content
+
+    async def test_instant_emotion_persisted_on_user_message(self, db_session: AsyncSession):
+        """Instant emotion: facial 4.0 + text 3.0 → emotion_value 3.6 on the QUESTION_SUBMIT message"""
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+
+        with (
+            patch("app.services.teaching.LLMClient") as MockLLM,
+            patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch.object(
+                EmotionService,
+                "detect_instant",
+                new=AsyncMock(return_value=InstantEmotion(facial=4.0, text=3.0)),
+            ),
+        ):
+            mock_llm = MockLLM.return_value
+            mock_llm.chat = AsyncMock(side_effect=[
+                f'[{{"section_id": {section.id}, "confidence": 0.9}}]',
+                "Strategy: Test\nReason: Test.",
+                "Welcome!",
+            ])
+            mock_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            mock_q_llm = MockQuestionLLM.return_value
+            mock_q_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            service = TeachingService(db_session)
+            session = await service.start_session(
+                student_id=student.id,
+                question_content="I keep getting this wrong",
+                frame_base64="ZmFrZQ==",
+            )
+
+        user_msgs = [m for m in session.messages if m.role == MessageRole.USER]
+        assert len(user_msgs) == 1
+        assert user_msgs[0].message_type == MessageType.QUESTION_SUBMIT
+        assert user_msgs[0].facial_value == 4.0
+        assert user_msgs[0].text_value == 3.0
+        assert user_msgs[0].emotion_value == pytest.approx(3.6)
+
+        system_msgs = [m for m in session.messages if m.role == MessageRole.SYSTEM]
+        assert all(m.emotion_value is None for m in system_msgs)
+
+    async def test_strategy_mcp_failure_falls_back_to_llm(self, db_session: AsyncSession):
+        """MCP configured but raising → strategy comes from LLM fallback, pipeline still DONE"""
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+
+        with (
+            patch("app.services.teaching.LLMClient") as MockLLM,
+            patch("app.services.teaching.TeachingStrategyClient") as MockStrategy,
+            patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
+        ):
+            mock_llm = MockLLM.return_value
+            mock_llm.chat = AsyncMock(side_effect=[
+                f'[{{"section_id": {section.id}, "confidence": 0.9}}]',
+                "Strategy: LLM fallback plan\nReason: MCP down.",
+                "Welcome!",
+            ])
+            mock_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            mock_strategy = MockStrategy.return_value
+            mock_strategy.is_configured.return_value = True
+            mock_strategy.get_strategy = AsyncMock(side_effect=RuntimeError("MCP unreachable"))
+
+            mock_q_llm = MockQuestionLLM.return_value
+            mock_q_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            service = TeachingService(db_session)
+            session = await service.start_session(
+                student_id=student.id,
+                question_content="Test question",
+            )
+
+        mock_strategy.get_strategy.assert_awaited_once()
+        assert session.strategy == "LLM fallback plan"
+        assert session.pipeline_status == PipelineStatus.DONE
+        chat_msgs = [m for m in session.messages if m.message_type == MessageType.CHAT]
+        assert len(chat_msgs) == 1
+        assert chat_msgs[0].content == "Welcome!"
+
+    async def test_end_session_flows_emotion_back_with_ema(self, db_session: AsyncSession):
+        """Flow back: first session writes 4.0/count 1 + TEACHING log; second session EMA → 3.4/count 2"""
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+
+        with (
+            patch("app.services.teaching.LLMClient") as MockLLM,
+            patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(4.0),
+        ):
+            mock_llm = MockLLM.return_value
+            mock_llm.chat = AsyncMock(side_effect=[
+                f'[{{"section_id": {section.id}, "confidence": 0.9}}]',
+                "Strategy: Test\nReason: Test.",
+                "Welcome!",
+                "Strategy: Test\nReason: Test.",
+                "Keep going.",
+            ])
+            mock_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            mock_q_llm = MockQuestionLLM.return_value
+            mock_q_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            service = TeachingService(db_session)
+            session = await service.start_session(
+                student_id=student.id,
+                question_content="This is too hard",
+            )
+            await service.chat(session_id=session.id, user_message="I still don't get it")
+            ended = await service.end_session(session_id=session.id)
+
+        assert ended.end_reason == SessionEndReason.USER
+        result = await db_session.execute(
+            select(TeachingMessage.emotion_value)
+            .where(
+                TeachingMessage.session_id == session.id,
+                TeachingMessage.role == MessageRole.USER,
+            )
+            .order_by(TeachingMessage.sequence)
+        )
+        assert list(result.scalars().all()) == [4.0, 4.0]
+
+        result = await db_session.execute(
+            select(StudentKpEmotion).where(
+                StudentKpEmotion.student_id == student.id,
+                StudentKpEmotion.section_id == section.id,
+            )
+        )
+        kp_emotion = result.scalar_one()
+        assert kp_emotion.emotion_value == pytest.approx(4.0)
+        assert kp_emotion.sample_count == 1
+
+        result = await db_session.execute(
+            select(EmotionLog).where(EmotionLog.student_id == student.id)
+        )
+        logs = list(result.scalars().all())
+        assert len(logs) == 1
+        assert logs[0].mode == EmotionMode.TEACHING
+        assert logs[0].session_id == session.id
+        assert logs[0].section_id == section.id
+        assert logs[0].emotion_value == pytest.approx(4.0)
+        assert logs[0].start_time is not None
+        assert logs[0].end_time is not None
+
+        with (
+            patch("app.services.teaching.LLMClient") as MockLLM,
+            patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(2.0),
+        ):
+            mock_llm = MockLLM.return_value
+            mock_llm.chat = AsyncMock(side_effect=[
+                f'[{{"section_id": {section.id}, "confidence": 0.9}}]',
+                "Strategy: Test\nReason: Test.",
+                "Welcome back!",
+            ])
+            mock_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            mock_q_llm = MockQuestionLLM.return_value
+            mock_q_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            service = TeachingService(db_session)
+            second = await service.start_session(
+                student_id=student.id,
+                question_content="I think I got it now",
+            )
+            await service.end_session(session_id=second.id)
+
+        await db_session.refresh(kp_emotion)
+        assert kp_emotion.emotion_value == pytest.approx(4.0 * 0.7 + 2.0 * 0.3)
+        assert kp_emotion.sample_count == 2
+
+        result = await db_session.execute(
+            select(func.count(EmotionLog.id)).where(EmotionLog.student_id == student.id)
+        )
+        assert result.scalar() == 2
+
+    async def test_end_session_without_emotion_writes_no_history(self, db_session: AsyncSession):
+        """Edge case: no instant emotion values → no StudentKpEmotion/EmotionLog rows, no error"""
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+
+        with (
+            patch("app.services.teaching.LLMClient") as MockLLM,
+            patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
+        ):
+            mock_llm = MockLLM.return_value
+            mock_llm.chat = AsyncMock(side_effect=[
+                f'[{{"section_id": {section.id}, "confidence": 0.9}}]',
+                "Strategy: Test\nReason: Test.",
+                "Welcome!",
+            ])
+            mock_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            mock_q_llm = MockQuestionLLM.return_value
+            mock_q_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+
+            service = TeachingService(db_session)
+            session = await service.start_session(
+                student_id=student.id,
+                question_content="Test question",
+            )
+            ended = await service.end_session(session_id=session.id)
+
+        assert ended.status == TeachingSessionStatus.COMPLETED
+        assert ended.end_reason == SessionEndReason.USER
+        assert all(m.emotion_value is None for m in ended.messages)
+
+        result = await db_session.execute(
+            select(func.count(StudentKpEmotion.id)).where(
+                StudentKpEmotion.student_id == student.id,
+            )
+        )
+        assert result.scalar() == 0
+        result = await db_session.execute(
+            select(func.count(EmotionLog.id)).where(EmotionLog.student_id == student.id)
+        )
+        assert result.scalar() == 0
+
+    async def test_end_idle_sessions_only_ends_stale_ones(self, db_session: AsyncSession):
+        """Idle sweep: only the DONE session whose last message is older than cutoff gets COMPLETED/IDLE"""
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+
+        stale = TeachingSession(
+            student_id=student.id,
+            status=TeachingSessionStatus.ACTIVE,
+            pipeline_status=PipelineStatus.DONE,
+        )
+        recent = TeachingSession(
+            student_id=student.id,
+            status=TeachingSessionStatus.ACTIVE,
+            pipeline_status=PipelineStatus.DONE,
+        )
+        pending = TeachingSession(
+            student_id=student.id,
+            status=TeachingSessionStatus.ACTIVE,
+            pipeline_status=PipelineStatus.PENDING,
+        )
+        db_session.add_all([stale, recent, pending])
+        await db_session.flush()
+
+        old_time = _utcnow() - timedelta(hours=2)
+        analysis = f"Identified knowledge points:\n- {section.id}: {section.title}"
+        db_session.add_all([
+            TeachingMessage(
+                session_id=stale.id, role=MessageRole.USER, content="old question",
+                message_type=MessageType.QUESTION_SUBMIT, sequence=0,
+                emotion_value=3.0, text_value=3.0,
+                created_at=old_time, updated_at=old_time,
+            ),
+            TeachingMessage(
+                session_id=stale.id, role=MessageRole.SYSTEM, content=analysis,
+                message_type=MessageType.LLM_ANALYSIS, sequence=1,
+                created_at=old_time, updated_at=old_time,
+            ),
+            TeachingMessage(
+                session_id=stale.id, role=MessageRole.ASSISTANT, content="old reply",
+                message_type=MessageType.CHAT, sequence=2,
+                created_at=old_time, updated_at=old_time,
+            ),
+            TeachingMessage(
+                session_id=recent.id, role=MessageRole.USER, content="fresh question",
+                message_type=MessageType.QUESTION_SUBMIT, sequence=0,
+            ),
+            TeachingMessage(
+                session_id=pending.id, role=MessageRole.USER, content="still running",
+                message_type=MessageType.QUESTION_SUBMIT, sequence=0,
+                created_at=old_time, updated_at=old_time,
+            ),
+        ])
+        await db_session.flush()
+
+        service = TeachingService(db_session)
+        ended = await service.end_idle_sessions(idle_minutes=30)
+
+        assert ended == [stale.id]
+
+        db_session.expire_all()
+        result = await db_session.execute(
+            select(TeachingSession).where(TeachingSession.id.in_([stale.id, recent.id, pending.id]))
+        )
+        by_id = {s.id: s for s in result.scalars().all()}
+        assert by_id[stale.id].status == TeachingSessionStatus.COMPLETED
+        assert by_id[stale.id].end_reason == SessionEndReason.IDLE
+        assert by_id[stale.id].ended_at is not None
+        assert by_id[recent.id].status == TeachingSessionStatus.ACTIVE
+        assert by_id[recent.id].end_reason is None
+        assert by_id[pending.id].status == TeachingSessionStatus.ACTIVE
+
+        result = await db_session.execute(
+            select(StudentKpEmotion).where(
+                StudentKpEmotion.student_id == student.id,
+                StudentKpEmotion.section_id == section.id,
+            )
+        )
+        kp_emotion = result.scalar_one()
+        assert kp_emotion.emotion_value == pytest.approx(3.0)
+        assert kp_emotion.sample_count == 1
+
+        again = await service.end_idle_sessions(idle_minutes=30)
+        assert again == []
 
 
 class TestTeachingRouter:

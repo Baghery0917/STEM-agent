@@ -17,6 +17,8 @@ _ENUM_TYPES = (
     "pipelinestatus",
     "messagerole",
     "messagetype",
+    "sessionendreason",
+    "emotionmode",
     "questiontype",
     "difficulty",
     "gender",

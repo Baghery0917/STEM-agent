@@ -1,17 +1,41 @@
-from contextlib import asynccontextmanager
+import asyncio
+import logging
+from contextlib import asynccontextmanager, suppress
 from collections.abc import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import engine
+from app.database import engine, get_db_context
 from app.api.v1.routers import admin_db, health, knowledge_structure, questions, student, teaching, practice
+from app.services.teaching import TeachingService
+
+logger = logging.getLogger(__name__)
+
+
+async def _idle_session_sweeper() -> None:
+    interval = settings.teaching_idle_sweep_interval_seconds
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            async with get_db_context() as db:
+                ended = await TeachingService(db).end_idle_sessions(
+                    settings.teaching_idle_timeout_minutes,
+                )
+            if ended:
+                logger.info("Auto-ended idle teaching sessions: %s", ended)
+        except Exception:
+            logger.exception("Idle session sweep failed")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    sweeper = asyncio.create_task(_idle_session_sweeper())
     yield
+    sweeper.cancel()
+    with suppress(asyncio.CancelledError):
+        await sweeper
     await engine.dispose()
 
 

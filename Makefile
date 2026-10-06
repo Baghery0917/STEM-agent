@@ -3,6 +3,10 @@
         frontend-install frontend-dev frontend-build \
         db-up db-down db-reset migrate migrate-create clean
 
+# 外部服务共享网络（教学策略服务等通过它直连 stem-db）
+network:
+	docker network inspect stem-net >/dev/null 2>&1 || docker network create stem-net
+
 # 帮助信息
 help:
 	@echo "Available commands:"
@@ -19,6 +23,7 @@ help:
 	@echo "  make frontend-dev      - 启动前端开发服务器"
 	@echo "  make frontend-build    - 构建前端"
 	@echo ""
+	@echo "  make network           - 创建 stem-net 共享网络（首次 make up 前执行一次）"
 	@echo "  make db-up             - 启动数据库容器"
 	@echo "  make db-down           - 停止数据库容器"
 	@echo "  make db-reset          - 重置数据库（删除数据卷并重建）"

@@ -2,7 +2,13 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.teaching import MessageRole, MessageType, PipelineStatus, TeachingSessionStatus
+from app.models.teaching import (
+    MessageRole,
+    MessageType,
+    PipelineStatus,
+    SessionEndReason,
+    TeachingSessionStatus,
+)
 from app.schemas.base import BaseSchema, TimestampSchema
 
 
@@ -12,6 +18,7 @@ class TeachingSessionBase(BaseSchema):
     pipeline_status: PipelineStatus = PipelineStatus.PENDING
     strategy: str | None = None
     ended_at: datetime | None = None
+    end_reason: SessionEndReason | None = None
 
 
 class TeachingSessionCreate(TeachingSessionBase):
@@ -51,6 +58,9 @@ class TeachingMessageUpdate(BaseModel):
 
 class TeachingMessageResponse(TeachingMessageBase, TimestampSchema):
     id: int
+    facial_value: float | None = None
+    text_value: float | None = None
+    emotion_value: float | None = None
 
 
 class TeachingReferenceBase(BaseSchema):
@@ -71,15 +81,18 @@ class TeachingReferenceResponse(TeachingReferenceBase, TimestampSchema):
 # 请求/响应 schema（教学流程使用）
 # ---------------------------------------------------------------------------
 
+# frame_base64：发送瞬间的摄像头单帧 jpeg（data URL 或裸 base64），只转发给面部识别，不落库
 class SubmitQuestionRequest(BaseModel):
     student_id: int = Field(..., ge=1)
     question_content: str = Field(..., min_length=1)
     question_image: str | None = None
+    frame_base64: str | None = Field(None, max_length=2_000_000)
 
 
 class ChatRequest(BaseModel):
     session_id: int = Field(..., ge=1)
     message: str = Field(..., min_length=1)
+    frame_base64: str | None = Field(None, max_length=2_000_000)
 
 
 class EndSessionRequest(BaseModel):

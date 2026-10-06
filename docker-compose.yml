@@ -8,8 +8,12 @@ services:
       POSTGRES_DB: stem_db
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
+    networks:
+      - default
+      - stem-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d stem_db"]
       interval: 5s
@@ -49,3 +53,9 @@ services:
 
 volumes:
   pgdata:
+
+# stem-net：供同一台机器上其他 compose 项目（教学策略服务等）直连 stem-db:5432
+# 首次使用先执行: docker network create stem-net
+networks:
+  stem-net:
+    external: true

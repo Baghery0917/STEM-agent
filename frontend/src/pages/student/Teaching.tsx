@@ -32,6 +32,8 @@ import ChatInput from '@/components/teaching/ChatInput';
 import PipelineProgress from '@/components/teaching/PipelineProgress';
 import StrategyPanel from '@/components/teaching/StrategyPanel';
 import SessionHistorySidebar from '@/components/teaching/SessionHistorySidebar';
+import CameraWidget from '@/components/teaching/CameraWidget';
+import { useCameraFrame } from '@/hooks/useCameraFrame';
 
 export default function Teaching() {
   const { sessionId } = useParams<{ sessionId?: string }>();
@@ -44,6 +46,7 @@ export default function Teaching() {
   const [mastery, setMastery] = useState(0);
   const [streamingText, setStreamingText] = useState('');
   const [sending, setSending] = useState(false);
+  const camera = useCameraFrame();
 
   const sessionQuery = useQuery({
     queryKey: ['teaching-session', sessionId],
@@ -96,7 +99,7 @@ export default function Teaching() {
     setSending(true);
     setStreamingText('');
     await streamChat(
-      { session_id: sid, message: msg },
+      { session_id: sid, message: msg, frame_base64: camera.captureFrame() },
       {
         onDelta: (delta) => setStreamingText((t) => t + delta),
         onDone: async () => {
@@ -148,7 +151,10 @@ export default function Teaching() {
 
   if (!sessionId) {
     centerContent = (
-      <StartSessionView onSubmit={startMutation.mutate} loading={startMutation.isPending} />
+      <StartSessionView
+        onSubmit={(body) => startMutation.mutate({ ...body, frame_base64: camera.captureFrame() })}
+        loading={startMutation.isPending}
+      />
     );
   } else if (sessionQuery.isLoading || !sessionQuery.data) {
     centerContent = (
@@ -256,8 +262,14 @@ export default function Teaching() {
         <SessionHistorySidebar studentId={student.id} activeSessionId={activeSessionId} />
       </Col>
 
-      <Col span={rightContent ? 12 : 19} style={{ height: '100%' }}>
+      <Col span={rightContent ? 12 : 19} style={{ height: '100%', position: 'relative' }}>
         {centerContent}
+        <CameraWidget
+          videoRef={camera.videoRef}
+          enabled={camera.enabled}
+          status={camera.status}
+          onToggle={camera.setEnabled}
+        />
       </Col>
 
       {rightContent && (

@@ -29,6 +29,11 @@ class PipelineStatus(str, enum.Enum):
     FAILED = "failed"
 
 
+class SessionEndReason(str, enum.Enum):
+    USER = "user"
+    IDLE = "idle"
+
+
 class MessageRole(str, enum.Enum):
     USER = "user"
     ASSISTANT = "assistant"
@@ -61,6 +66,9 @@ class TeachingSession(BaseModel):
     ended_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True,
     )
+    end_reason: Mapped[SessionEndReason | None] = mapped_column(
+        Enum(SessionEndReason), nullable=True,
+    )
 
     messages: Mapped[list["TeachingMessage"]] = relationship(
         "TeachingMessage",
@@ -81,6 +89,10 @@ class TeachingMessage(BaseModel):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     message_type: Mapped[MessageType] = mapped_column(Enum(MessageType), nullable=False)
     sequence: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # 即时情绪，仅 user 消息有值；1=自信 … 5=非常受挫
+    facial_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    text_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    emotion_value: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     session: Mapped["TeachingSession"] = relationship(
         "TeachingSession", back_populates="messages",

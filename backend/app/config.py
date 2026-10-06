@@ -42,13 +42,23 @@ class Settings(BaseSettings):
     llm_embedding_model: str = ""
     llm_embedding_dimension: int = 1024
 
-    # Emotion Recognition Service
+    # 面部情绪识别服务（HTTP，POST {base_url}/recognize multipart image）
     emotion_base_url: str = ""
     emotion_api_key: str = ""
+    emotion_timeout_seconds: float = 3.0
 
-    # Teaching Strategy Service
-    teaching_strategy_base_url: str = ""
+    # 教学策略服务（MCP Streamable HTTP，tool: get_teaching_strategy）
+    teaching_strategy_mcp_url: str = ""
     teaching_strategy_api_key: str = ""
+    teaching_strategy_timeout_seconds: float = 5.0
+
+    # 即时情绪加权：综合 = 面部 * w + 文本 * (1 - w)
+    emotion_facial_weight: float = 0.6
+    # 历史情绪回流：新 = 旧 * (1 - alpha) + 本 session 均值 * alpha
+    emotion_history_alpha: float = 0.3
+    # 空闲自动结束：最后一条消息超过该分钟数的 active 会话自动结束并回流情绪
+    teaching_idle_timeout_minutes: int = 30
+    teaching_idle_sweep_interval_seconds: int = 300
 
     # Teaching: 参考题相似度阈值（>= 该值的最相似题才作为参考）
     teaching_reference_similarity_threshold: float = 0.8

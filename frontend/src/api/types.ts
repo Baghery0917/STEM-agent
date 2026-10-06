@@ -166,11 +166,14 @@ export interface SubmitQuestionRequest {
   student_id: number;
   question_content: string;
   question_image?: string | null;
+  /** 发送瞬间的摄像头单帧 jpeg data URL，仅用于面部情绪识别 */
+  frame_base64?: string | null;
 }
 
 export interface ChatRequest {
   session_id: number;
   message: string;
+  frame_base64?: string | null;
 }
 
 export interface EndSessionRequest {

@@ -1,8 +1,9 @@
+import asyncio
 import json
 import logging
 import re
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,15 +14,19 @@ from app.external.teaching_strategy import StrategyResult, TeachingStrategyClien
 from app.llm.client import LLMClient
 from app.models.section import Section
 from app.models.student_knowledge_summary import StudentKnowledgeSummary
+from app.models.emotion import StudentKpEmotion
 from app.models.teaching import (
     MessageRole,
     MessageType,
     PipelineStatus,
+    SessionEndReason,
     TeachingMessage,
     TeachingReference,
     TeachingSession,
     TeachingSessionStatus,
 )
+from app.external.emotion import describe_value
+from app.services.emotion import EmotionService, InstantEmotion
 from app.services.question import QuestionService
 
 
@@ -36,6 +41,11 @@ _DEFAULT_STRATEGY = StrategyResult(
     strategy="Adaptive guided inquiry",
     reason="Default strategy (external service unavailable)",
 )
+_EMOTION_GUIDANCE = (
+    "\n情绪使用规则：历史情绪反映学生对这些知识点的长期感受，当前状态反映此刻。"
+    "状态偏向受挫（>=3）时先肯定已做对的部分、放慢节奏、一次只推进一小步；"
+    "状态自信（<=2）时可以直接追问更深的问题。不要在回复里提及你观察到了情绪。"
+)
 _DEFAULT_ASSISTANT_REPLY = (
     "我现在暂时无法调用讲解服务，请稍后再试。你可以先尝试描述一下你对题目的初步思路。"
 )
@@ -47,6 +57,7 @@ class TeachingService:
         self.llm = LLMClient()
         self.strategy_client = TeachingStrategyClient()
         self.question_service = QuestionService()
+        self.emotion = EmotionService(llm=self.llm)
 
     # ------------------------------------------------------------------
     # 公开方法
@@ -82,6 +93,7 @@ class TeachingService:
         session_id: int,
         question_content: str,
         question_image: str | None = None,
+        frame_base64: str | None = None,
     ) -> None:
         result = await self.db.execute(
             select(TeachingSession).where(TeachingSession.id == session_id)
@@ -106,11 +118,17 @@ class TeachingService:
             )
             await self.db.commit()
 
-            # 3. 检索学生知识数据
+            # 3. 学生知识数据 + 历史总体情绪（整个 session 冻结不变）
+            section_ids = [s.id for s in sections]
             knowledge_data = await self._get_student_knowledge_data(
-                session.student_id, [s.id for s in sections],
+                session.student_id, section_ids,
             )
-            knowledge_content = self._format_knowledge_content(knowledge_data)
+            emotion_history = await self.emotion.get_history(
+                self.db, session.student_id, section_ids,
+            )
+            knowledge_content = self._format_knowledge_content(
+                knowledge_data, emotion_history, sections,
+            )
             await self._add_message(
                 session_id=session_id,
                 role=MessageRole.SYSTEM,
@@ -120,17 +138,26 @@ class TeachingService:
             )
             await self.db.commit()
 
-            # 4. 获取教学策略
-            strategy_result = await self._get_teaching_strategy(
-                student_id=session.student_id,
-                sections=sections,
-                knowledge_data=knowledge_data,
+            # 4. 即时情绪 + 教学策略（两者互不依赖，并行）
+            instant, strategy_result = await asyncio.gather(
+                self.emotion.detect_instant(
+                    question_content, frame_base64,
+                    student_id=session.student_id, session_id=session_id,
+                ),
+                self._get_teaching_strategy(
+                    student_id=session.student_id,
+                    session_id=session_id,
+                    message=question_content,
+                    sections=sections,
+                    knowledge_data=knowledge_data,
+                ),
             )
+            await self._apply_instant_emotion(session_id, sequence=0, instant=instant)
             session.strategy = strategy_result.strategy
             await self._add_message(
                 session_id=session_id,
                 role=MessageRole.SYSTEM,
-                content=f"Strategy: {strategy_result.strategy}\nReason: {strategy_result.reason}",
+                content=self._format_strategy_content(strategy_result),
                 message_type=MessageType.STRATEGY,
                 sequence=3,
             )
@@ -148,6 +175,8 @@ class TeachingService:
                 question_content=question_content,
                 sections=sections,
                 knowledge_data=knowledge_data,
+                emotion_history=emotion_history,
+                instant_emotion=instant,
                 strategy=strategy_result.strategy,
                 references=references,
             )
@@ -186,19 +215,21 @@ class TeachingService:
         student_id: int,
         question_content: str,
         question_image: str | None = None,
+        frame_base64: str | None = None,
     ) -> TeachingSession:
         session = await self.create_session_shell(
             student_id=student_id,
             question_content=question_content,
             question_image=question_image,
         )
-        await self.run_pipeline(session.id, question_content, question_image)
+        await self.run_pipeline(session.id, question_content, question_image, frame_base64)
         return await self._get_session_with_messages(session.id)
 
     async def chat(
         self,
         session_id: int,
         user_message: str,
+        frame_base64: str | None = None,
     ) -> tuple[TeachingMessage, list[TeachingReference]]:
         session = await self._get_session_with_messages(session_id)
         if not session:
@@ -206,21 +237,11 @@ class TeachingService:
         if session.status != TeachingSessionStatus.ACTIVE:
             raise ValueError(f"Session is not active (status={session.status.value})")
 
-        next_seq = await self._get_next_sequence(session_id)
+        await self._record_user_turn(session, user_message, frame_base64)
 
-        # 记录用户消息
-        await self._add_message(
-            session_id=session_id,
-            role=MessageRole.USER,
-            content=user_message,
-            message_type=MessageType.CHAT,
-            sequence=next_seq,
-        )
-
-        # 生成 assistant 回复
         assistant_content = await self._generate_chat_response(session_id)
 
-        next_seq += 1
+        next_seq = await self._get_next_sequence(session_id)
         assistant_msg = await self._add_message(
             session_id=session_id,
             role=MessageRole.ASSISTANT,
@@ -236,6 +257,7 @@ class TeachingService:
         self,
         session_id: int,
         user_message: str,
+        frame_base64: str | None = None,
     ) -> AsyncIterator[str]:
         session = await self._get_session_with_messages(session_id)
         if not session:
@@ -243,14 +265,7 @@ class TeachingService:
         if session.status != TeachingSessionStatus.ACTIVE:
             raise ValueError(f"Session is not active (status={session.status.value})")
 
-        next_seq = await self._get_next_sequence(session_id)
-        await self._add_message(
-            session_id=session_id,
-            role=MessageRole.USER,
-            content=user_message,
-            message_type=MessageType.CHAT,
-            sequence=next_seq,
-        )
+        await self._record_user_turn(session, user_message, frame_base64)
         await self.db.commit()
 
         llm_messages = await self._build_chat_messages(session_id)
@@ -283,6 +298,7 @@ class TeachingService:
         self,
         session_id: int,
         mastery_level_delta: float | None = None,
+        reason: SessionEndReason = SessionEndReason.USER,
     ) -> TeachingSession:
         session = await self._get_session_with_messages(session_id)
         if not session:
@@ -292,6 +308,7 @@ class TeachingService:
 
         session.status = TeachingSessionStatus.COMPLETED
         session.ended_at = _utcnow()
+        session.end_reason = reason
 
         section_ids = self._extract_section_ids_from_session(session)
         await self._update_knowledge_summaries(
@@ -300,9 +317,52 @@ class TeachingService:
             mastery_level_delta=mastery_level_delta or 0.0,
         )
 
+        instant_values = [
+            m.emotion_value for m in session.messages
+            if m.role == MessageRole.USER and m.emotion_value is not None
+        ]
+        await self.emotion.flow_back(
+            self.db,
+            student_id=session.student_id,
+            section_ids=section_ids,
+            session_id=session.id,
+            instant_values=instant_values,
+            start_time=session.created_at,
+            end_time=session.ended_at,
+        )
+
         await self.db.flush()
         await self.db.refresh(session)
         return session
+
+    async def end_idle_sessions(self, idle_minutes: int) -> list[int]:
+        """最后一条消息超过 idle_minutes 的 active 会话自动结束并回流情绪"""
+        cutoff = _utcnow() - timedelta(minutes=idle_minutes)
+        last_msg_subq = (
+            select(func.max(TeachingMessage.created_at))
+            .where(TeachingMessage.session_id == TeachingSession.id)
+            .correlate(TeachingSession)
+            .scalar_subquery()
+        )
+        result = await self.db.execute(
+            select(TeachingSession.id).where(
+                TeachingSession.status == TeachingSessionStatus.ACTIVE,
+                TeachingSession.pipeline_status.in_(
+                    [PipelineStatus.DONE, PipelineStatus.FAILED],
+                ),
+                func.coalesce(last_msg_subq, TeachingSession.created_at) < cutoff,
+            )
+        )
+        ended: list[int] = []
+        for (session_id,) in result.all():
+            try:
+                await self.end_session(session_id, reason=SessionEndReason.IDLE)
+                await self.db.commit()
+                ended.append(session_id)
+            except Exception:
+                logger.exception("Failed to auto-end idle session %s", session_id)
+                await self.db.rollback()
+        return ended
 
     async def cancel_session(self, session_id: int) -> TeachingSession:
         session = await self._get_session_with_messages(session_id)
@@ -413,6 +473,77 @@ class TeachingService:
         await self.db.refresh(msg)
         return msg
 
+    async def _record_user_turn(
+        self,
+        session: TeachingSession,
+        user_message: str,
+        frame_base64: str | None,
+    ) -> None:
+        """写入用户消息，并行取即时情绪与本轮策略，策略作为系统消息入库"""
+        next_seq = await self._get_next_sequence(session.id)
+        await self._add_message(
+            session_id=session.id,
+            role=MessageRole.USER,
+            content=user_message,
+            message_type=MessageType.CHAT,
+            sequence=next_seq,
+        )
+
+        sections = await self._load_session_sections(session)
+        knowledge_data = await self._get_student_knowledge_data(
+            session.student_id, [s.id for s in sections],
+        )
+        instant, strategy_result = await asyncio.gather(
+            self.emotion.detect_instant(
+                user_message, frame_base64,
+                student_id=session.student_id, session_id=session.id,
+            ),
+            self._get_teaching_strategy(
+                student_id=session.student_id,
+                session_id=session.id,
+                message=user_message,
+                sections=sections,
+                knowledge_data=knowledge_data,
+            ),
+        )
+        await self._apply_instant_emotion(session.id, sequence=next_seq, instant=instant)
+        session.strategy = strategy_result.strategy
+        await self._add_message(
+            session_id=session.id,
+            role=MessageRole.SYSTEM,
+            content=self._format_strategy_content(strategy_result),
+            message_type=MessageType.STRATEGY,
+            sequence=next_seq + 1,
+        )
+
+    async def _apply_instant_emotion(
+        self, session_id: int, sequence: int, instant: InstantEmotion,
+    ) -> None:
+        result = await self.db.execute(
+            select(TeachingMessage).where(
+                TeachingMessage.session_id == session_id,
+                TeachingMessage.sequence == sequence,
+            )
+        )
+        msg = result.scalar_one_or_none()
+        if msg is None:
+            return
+        msg.facial_value = instant.facial
+        msg.text_value = instant.text
+        msg.emotion_value = instant.value
+        await self.db.flush()
+
+    async def _load_session_sections(self, session: TeachingSession) -> list[Section]:
+        section_ids = self._extract_section_ids_from_session(session)
+        if not section_ids:
+            return []
+        result = await self.db.execute(select(Section).where(Section.id.in_(section_ids)))
+        return list(result.scalars().all())
+
+    @staticmethod
+    def _format_strategy_content(strategy_result: StrategyResult) -> str:
+        return f"Strategy: {strategy_result.strategy}\nReason: {strategy_result.reason}"
+
     # ------------------------------------------------------------------
     # 知识点分析
     # ------------------------------------------------------------------
@@ -503,21 +634,46 @@ Respond with a JSON array of objects, each with "section_id" and "confidence" (0
         return list(result.scalars().all())
 
     def _format_knowledge_content(
-        self, summaries: list[StudentKnowledgeSummary],
+        self,
+        summaries: list[StudentKnowledgeSummary],
+        emotion_history: dict[int, StudentKpEmotion] | None = None,
+        sections: list[Section] | None = None,
     ) -> str:
+        parts: list[str] = []
         if not summaries:
-            return "No prior knowledge data for related sections."
+            parts.append("No prior knowledge data for related sections.")
+        else:
+            lines = []
+            for s in summaries:
+                error_rate = 0.0
+                if s.total_practice_count > 0:
+                    error_rate = 1.0 - (s.correct_count / s.total_practice_count)
+                lines.append(
+                    f"Section {s.section_id}: mastery={s.mastery_level:.2f}, "
+                    f"correct={s.correct_count}, practice={s.total_practice_count}, "
+                    f"teaching={s.total_teaching_count}, error_rate={error_rate:.2f}"
+                )
+            parts.append("Student knowledge data:\n" + "\n".join(lines))
+        parts.append(self._format_emotion_history(emotion_history or {}, sections or []))
+        return "\n\n".join(parts)
+
+    @staticmethod
+    def _format_emotion_history(
+        emotion_history: dict[int, StudentKpEmotion], sections: list[Section],
+    ) -> str:
+        if not sections:
+            return "Emotion history: none."
         lines = []
-        for s in summaries:
-            error_rate = 0.0
-            if s.total_practice_count > 0:
-                error_rate = 1.0 - (s.correct_count / s.total_practice_count)
-            lines.append(
-                f"Section {s.section_id}: mastery={s.mastery_level:.2f}, "
-                f"correct={s.correct_count}, practice={s.total_practice_count}, "
-                f"teaching={s.total_teaching_count}, error_rate={error_rate:.2f}"
-            )
-        return "Student knowledge data:\n" + "\n".join(lines)
+        for sec in sections:
+            row = emotion_history.get(sec.id)
+            if row:
+                lines.append(
+                    f"- {sec.title}: {describe_value(row.emotion_value)} "
+                    f"({row.emotion_value:.1f}/5, {row.sample_count} sessions)"
+                )
+            else:
+                lines.append(f"- {sec.title}: 无记录")
+        return "Emotion history (1=自信 … 5=非常受挫):\n" + "\n".join(lines)
 
     # ------------------------------------------------------------------
     # 教学策略
@@ -526,30 +682,20 @@ Respond with a JSON array of objects, each with "section_id" and "confidence" (0
     async def _get_teaching_strategy(
         self,
         student_id: int,
+        session_id: int,
+        message: str,
         sections: list[Section],
         knowledge_data: list[StudentKnowledgeSummary],
     ) -> StrategyResult:
-        current_topic = sections[0].title if sections else None
-
-        performance_history = [
-            {
-                "section_id": s.section_id,
-                "mastery_level": s.mastery_level,
-                "correct_count": s.correct_count,
-                "total_practice": s.total_practice_count,
-            }
-            for s in knowledge_data
-        ]
-
         if self.strategy_client.is_configured():
             try:
                 return await self.strategy_client.get_strategy(
                     student_id=student_id,
-                    current_topic=current_topic,
-                    performance_history=performance_history,
+                    session_id=session_id,
+                    message=message,
                 )
             except Exception as exc:
-                logger.warning("Teaching strategy service failed: %s", exc)
+                logger.warning("Teaching strategy MCP failed: %s", exc)
 
         try:
             return await self._fallback_strategy(
@@ -672,6 +818,8 @@ Reason: <one sentence reason>
         question_content: str,
         sections: list[Section],
         knowledge_data: list[StudentKnowledgeSummary],
+        emotion_history: dict[int, StudentKpEmotion],
+        instant_emotion: InstantEmotion,
         strategy: str,
         references: list[tuple] | None = None,
     ) -> str:
@@ -679,6 +827,8 @@ Reason: <one sentence reason>
             strategy=strategy,
             sections=sections,
             knowledge_data=knowledge_data,
+            emotion_history=emotion_history,
+            instant_emotion=instant_emotion,
             references=references,
         )
 
@@ -711,19 +861,31 @@ Reason: <one sentence reason>
 
         strategy_content = ""
         reference_content = ""
+        student_data_content = ""
+        latest_user: TeachingMessage | None = None
         for msg in messages:
             if msg.message_type == MessageType.STRATEGY:
                 strategy_content = msg.content
             elif msg.message_type == MessageType.REFERENCE_SEARCH:
                 reference_content = msg.content
+            elif msg.message_type == MessageType.STUDENT_DATA:
+                student_data_content = msg.content
+            if msg.role == MessageRole.USER:
+                latest_user = msg
 
         system_parts = [
             "You are an expert STEM tutor. Your goal is to help the student understand concepts through guided inquiry.",
         ]
         if strategy_content:
             system_parts.append(f"\n{strategy_content}")
+        if student_data_content:
+            system_parts.append(f"\n{student_data_content}")
+        if latest_user is not None and latest_user.emotion_value is not None:
+            instant = InstantEmotion(latest_user.facial_value, latest_user.text_value)
+            system_parts.append(f"\n学生当前状态：{instant.describe()}")
         if reference_content and not reference_content.startswith("No reference question"):
             system_parts.append(f"\n{reference_content}")
+        system_parts.append(_EMOTION_GUIDANCE)
 
         llm_messages = [{"role": "system", "content": "\n".join(system_parts)}]
         for msg in messages:
@@ -739,6 +901,8 @@ Reason: <one sentence reason>
         strategy: str,
         sections: list[Section],
         knowledge_data: list[StudentKnowledgeSummary],
+        emotion_history: dict[int, StudentKpEmotion] | None = None,
+        instant_emotion: InstantEmotion | None = None,
         references: list[tuple] | None = None,
     ) -> str:
         prompt_parts = [
@@ -762,6 +926,10 @@ Reason: <one sentence reason>
                     f"error rate {error_rate:.0%}"
                 )
 
+        prompt_parts.append("\n" + self._format_emotion_history(emotion_history or {}, sections))
+        if instant_emotion is not None and instant_emotion.value is not None:
+            prompt_parts.append(f"\n学生当前状态：{instant_emotion.describe()}")
+
         if references:
             prompt_parts.append(
                 "\n" + self._format_references_block(
@@ -778,6 +946,7 @@ Reason: <one sentence reason>
             "Ask probing questions. Do not give the full answer immediately. "
             "Adapt your approach based on the teaching strategy and student's knowledge level."
         )
+        prompt_parts.append(_EMOTION_GUIDANCE)
 
         return "\n".join(prompt_parts)
 

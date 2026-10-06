@@ -29,11 +29,12 @@ async def _run_pipeline_bg(
     session_id: int,
     question_content: str,
     question_image: str | None,
+    frame_base64: str | None,
 ) -> None:
     async with get_db_context() as db:
         service = TeachingService(db)
         try:
-            await service.run_pipeline(session_id, question_content, question_image)
+            await service.run_pipeline(session_id, question_content, question_image, frame_base64)
         except Exception:
             logger.exception("Teaching pipeline background task failed for session %s", session_id)
 
@@ -62,6 +63,7 @@ async def start_session(
         session.id,
         data.question_content,
         data.question_image,
+        data.frame_base64,
     )
     return TeachingSessionDetailResponse.model_validate(detail)
 
@@ -73,6 +75,7 @@ async def chat(data: ChatRequest, db: DbSession) -> TeachingChatResponse:
         assistant_msg, _ = await service.chat(
             session_id=data.session_id,
             user_message=data.message,
+            frame_base64=data.frame_base64,
         )
     except LookupError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -102,7 +105,9 @@ async def chat_stream(data: ChatRequest, db: DbSession) -> StreamingResponse:
         async with get_db_context() as inner_db:
             inner_service = TeachingService(inner_db)
             try:
-                async for delta in inner_service.chat_stream(data.session_id, data.message):
+                async for delta in inner_service.chat_stream(
+                    data.session_id, data.message, data.frame_base64,
+                ):
                     yield f"data: {json.dumps({'delta': delta}, ensure_ascii=False)}\n\n"
                 yield "event: done\ndata: {}\n\n"
             except Exception as exc:
