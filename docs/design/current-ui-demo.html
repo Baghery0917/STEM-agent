@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>STEM 智能教学 · 当前前端静态 Demo（feat/teaching-emotion-strategy）</title>
+<style>
+  /* ---------- 基础：模拟 Ant Design 5 默认主题 ---------- */
+  :root {
+    --primary: #1677ff;
+    --brand: #2563eb;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --success: #52c41a;
+    --error: #ff4d4f;
+    --text: #1f2937;
+    --text-2: rgba(0,0,0,.45);
+    --border: #d9d9d9;
+    --split: #f0f0f0;
+    --bg: #f5f7fb;
+    --header-h: 64px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+      'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    font-size: 14px; line-height: 1.5715; color: rgba(0,0,0,.88); background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  h1,h2,h3,h4,h5 { margin: 0; font-weight: 600; color: rgba(0,0,0,.88); }
+  h2 { font-size: 30px; line-height: 1.35; }
+  h3 { font-size: 24px; line-height: 1.33; }
+  h4 { font-size: 20px; line-height: 1.4; }
+  h5 { font-size: 16px; line-height: 1.5; }
+  .secondary { color: var(--text-2); }
+  .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .hidden { display: none !important; }
+
+  /* 按钮 */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 32px; padding: 4px 15px; font-size: 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: #fff; color: rgba(0,0,0,.88);
+    box-shadow: 0 2px 0 rgba(0,0,0,.02); white-space: nowrap; font-family: inherit;
+    transition: all .2s;
+  }
+  .btn:hover { color: #4096ff; border-color: #4096ff; }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 2px 0 rgba(5,145,255,.1); }
+  .btn.primary:hover { background: #4096ff; }
+  .btn.danger { color: var(--error); border-color: var(--error); }
+  .btn.danger:hover { color: #ff7875; border-color: #ff7875; }
+  .btn.link { border: 0; background: none; color: var(--primary); box-shadow: none; padding: 4px 0; }
+  .btn.text { border: 0; background: none; box-shadow: none; }
+  .btn.sm { height: 24px; padding: 0 7px; font-size: 14px; }
+  .btn.lg { height: 40px; padding: 6px 15px; font-size: 16px; border-radius: 8px; }
+  .btn.block { width: 100%; }
+  .btn:disabled { color: rgba(0,0,0,.25); background: rgba(0,0,0,.04); border-color: var(--border); cursor: not-allowed; box-shadow: none; }
+
+  /* 卡片 */
+  .card { background: #fff; border: 1px solid var(--split); border-radius: 8px; }
+  .card .card-head { padding: 0 24px; min-height: 56px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--split); font-weight: 600; font-size: 16px; }
+  .card .card-body { padding: 24px; }
+  .card.small .card-head { min-height: 38px; padding: 0 12px; font-size: 14px; }
+  .card.small .card-body { padding: 12px; }
+  .card.hoverable { cursor: pointer; transition: box-shadow .2s; }
+  .card.hoverable:hover { box-shadow: 0 1px 2px -2px rgba(0,0,0,.16), 0 3px 6px 0 rgba(0,0,0,.12), 0 5px 12px 4px rgba(0,0,0,.09); }
+
+  /* 表单 */
+  .form-item { margin-bottom: 24px; }
+  .form-item label { display: block; margin-bottom: 8px; }
+  .form-item label.radio, .form-item label.checkbox { display: inline-flex; margin-bottom: 0; }
+  .form-item label.req::before { content: '*'; color: var(--error); margin-right: 4px; }
+  .input, textarea.input, select.input {
+    width: 100%; padding: 4px 11px; font-size: 14px; line-height: 1.5715; border: 1px solid var(--border);
+    border-radius: 6px; background: #fff; color: rgba(0,0,0,.88); font-family: inherit; outline: none;
+    transition: all .2s;
+  }
+  .input:focus { border-color: #4096ff; box-shadow: 0 0 0 2px rgba(5,145,255,.1); }
+  .input:disabled { background: rgba(0,0,0,.04); color: rgba(0,0,0,.25); cursor: not-allowed; }
+  textarea.input { resize: vertical; }
+  .input.num { width: 200px; }
+  .radio, .checkbox { display: inline-flex; align-items: center; gap: 8px; margin-right: 8px; cursor: pointer; }
+  .radio input, .checkbox input { width: 16px; height: 16px; margin: 0; accent-color: var(--primary); }
+  .radio.vertical, .checkbox.vertical { display: flex; padding: 6px 0; margin: 0; }
+  .divider { border: 0; border-top: 1px solid var(--split); margin: 24px 0; }
+  .divider.text { display: flex; align-items: center; gap: 16px; color: rgba(0,0,0,.88); font-weight: 500; border: 0; }
+  .divider.text::before, .divider.text::after { content: ''; flex: 1; border-top: 1px solid var(--split); }
+
+  /* 标签 */
+  .tag { display: inline-block; height: 22px; padding: 0 7px; font-size: 12px; line-height: 20px; border-radius: 4px; border: 1px solid #d9d9d9; background: #fafafa; color: rgba(0,0,0,.88); margin-right: 8px; white-space: nowrap; }
+  .tag.blue { color: #0958d9; background: #e6f4ff; border-color: #91caff; }
+  .tag.geekblue { color: #1d39c4; background: #f0f5ff; border-color: #adc6ff; }
+  .tag.green, .tag.success { color: #389e0d; background: #f6ffed; border-color: #b7eb8f; }
+  .tag.volcano { color: #d4380d; background: #fff2e8; border-color: #ffbb96; }
+  .tag.error { color: #cf1322; background: #fff1f0; border-color: #ffa39e; }
+  .tag.processing { color: #0958d9; background: #e6f4ff; border-color: #91caff; }
+  .tag.purple { color: #531dab; background: #f9f0ff; border-color: #d3adf7; }
+  .tag.cyan { color: #08979c; background: #e6fffb; border-color: #87e8de; }
+  .tag.xs { height: 18px; line-height: 16px; font-size: 11px; margin: 0; }
+
+  /* 头像 */
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #ccc; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+
+  /* 统计 */
+  .stat .title { font-size: 14px; color: var(--text-2); margin-bottom: 4px; }
+  .stat .value { font-size: 24px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+
+  /* 栅格 */
+  .row { display: flex; flex-wrap: wrap; gap: 16px; }
+  .row > .col { flex: 1 1 0; min-width: 0; }
+  .row > .col-6 { flex: 0 0 calc(25% - 12px); }
+  .row > .col-8 { flex: 0 0 calc(33.333% - 10.67px); }
+  .row > .col-14 { flex: 0 0 calc(58.333% - 6.67px); }
+  .row > .col-10 { flex: 0 0 calc(41.666% - 9.33px); }
+  @media (max-width: 768px) { .row > [class*="col-"] { flex: 0 0 100%; } }
+
+  /* 进度条 */
+  .progress { display: flex; align-items: center; gap: 8px; }
+  .progress .bar { flex: 1; height: 8px; background: rgba(0,0,0,.06); border-radius: 100px; overflow: hidden; }
+  .progress .bar i { display: block; height: 100%; background: var(--primary); border-radius: 100px; transition: width .3s; }
+  .progress .txt { font-size: 14px; min-width: 60px; }
+
+  /* 表格 */
+  table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.tbl th { background: #fafafa; text-align: left; padding: 16px; font-weight: 600; border-bottom: 1px solid var(--split); }
+  table.tbl td { padding: 16px; border-bottom: 1px solid var(--split); }
+  table.tbl tr:hover td { background: #fafafa; cursor: pointer; }
+
+  /* 警告框 */
+  .alert { display: flex; gap: 8px; padding: 8px 12px; border-radius: 8px; border: 1px solid; }
+  .alert.success { background: #f6ffed; border-color: #b7eb8f; }
+  .alert.error { background: #fff2f0; border-color: #ffccc7; }
+  .alert .ico { font-size: 16px; }
+  .alert.success .ico { color: var(--success); }
+  .alert.error .ico { color: var(--error); }
+  .alert .msg { font-weight: 500; }
+  .alert .desc { font-size: 14px; color: rgba(0,0,0,.88); margin-top: 4px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 32px; border-bottom: 1px solid var(--split); margin-bottom: 16px; }
+  .tabs .tab { padding: 12px 0; cursor: pointer; position: relative; }
+  .tabs .tab.active { color: var(--primary); }
+  .tabs .tab.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--primary); }
+
+  /* 空状态 / Result */
+  .empty { text-align: center; color: var(--text-2); padding: 16px 0; }
+  .empty .pic { width: 64px; height: 40px; margin: 0 auto 8px; border-radius: 50%; background: radial-gradient(ellipse, #f5f5f5 0, #f5f5f5 50%, transparent 51%); border-bottom: 2px solid #eee; }
+  .result { text-align: center; padding: 48px 32px; }
+  .result .ico { font-size: 72px; line-height: 1; margin-bottom: 24px; }
+  .result .ico.success { color: var(--success); }
+  .result .ico.info { color: var(--primary); }
+  .result .t { font-size: 24px; margin-bottom: 8px; }
+  .result .s { color: var(--text-2); }
+
+  /* 模态框 */
+  .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; display: flex; align-items: flex-start; justify-content: center; padding-top: 100px; }
+  .modal { width: 520px; max-width: calc(100vw - 32px); background: #fff; border-radius: 8px; padding: 20px 24px; box-shadow: 0 6px 16px rgba(0,0,0,.08), 0 3px 6px -4px rgba(0,0,0,.12), 0 9px 28px 8px rgba(0,0,0,.05); }
+  .modal .mh { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .modal .mf { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+  .slider { width: 100%; accent-color: var(--primary); }
+  .marks { display: flex; justify-content: space-between; font-size: 14px; color: var(--text-2); margin-top: 4px; }
+
+  /* 全局提示 message */
+  #toast { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+  #toast .m { background: #fff; padding: 9px 12px; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,.08), 0 3px 6px -4px rgba(0,0,0,.12); display: flex; gap: 8px; align-items: center; animation: pop .2s; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-8px); } }
+
+  /* ---------- 学生端布局 ---------- */
+  .layout { min-height: 100vh; display: flex; flex-direction: column; }
+  .header { height: var(--header-h); display: flex; align-items: center; gap: 24px; padding: 0 24px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.04); position: sticky; top: 0; z-index: 10; }
+  .header .logo { color: var(--brand); font-size: 20px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+  .menu-h { flex: 1; display: flex; gap: 0; height: 100%; }
+  .menu-h .mi { padding: 0 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; position: relative; color: rgba(0,0,0,.88); white-space: nowrap; }
+  .menu-h .mi:hover { color: var(--primary); }
+  .menu-h .mi.active { color: var(--primary); }
+  .menu-h .mi.active::after { content: ''; position: absolute; left: 16px; right: 16px; bottom: 0; height: 2px; background: var(--primary); }
+  .user { display: flex; align-items: center; gap: 8px; cursor: pointer; position: relative; }
+  .user .dd { display: none; position: absolute; right: 0; top: 40px; background: #fff; border-radius: 8px; padding: 4px; min-width: 120px; box-shadow: 0 6px 16px rgba(0,0,0,.08), 0 3px 6px -4px rgba(0,0,0,.12), 0 9px 28px 8px rgba(0,0,0,.05); }
+  .user.open .dd { display: block; }
+  .user .dd div { padding: 5px 12px; border-radius: 4px; display: flex; gap: 8px; }
+  .user .dd div:hover { background: rgba(0,0,0,.04); }
+  .user .dd hr { border: 0; border-top: 1px solid var(--split); margin: 4px 0; }
+  .content { flex: 1; }
+
+  /* ---------- 管理台布局 ---------- */
+  .admin-header { height: var(--header-h); display: flex; align-items: center; gap: 16px; padding: 0 24px; background: #1f2937; color: #fff; }
+  .admin-header .logo { font-size: 20px; font-weight: 600; }
+  .admin-body { display: flex; min-height: calc(100vh - var(--header-h)); }
+  .sider { width: 220px; background: #fff; flex-shrink: 0; }
+  .sider .mi { margin: 4px 8px; padding: 0 16px; height: 40px; display: flex; align-items: center; gap: 10px; border-radius: 8px; cursor: pointer; }
+  .sider .mi.active { background: #e6f4ff; color: var(--primary); }
+  .admin-content { flex: 1; padding: 24px; background: var(--bg); }
+
+  /* ---------- 登录页 ---------- */
+  .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #eef2ff 0%, #dbeafe 100%); padding: 24px; }
+  .login .card { width: 520px; max-width: 100%; box-shadow: 0 8px 32px rgba(30,64,175,.1); }
+  .list-item { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--split); }
+  .list-item:last-child { border-bottom: 0; }
+  .list-item .meta { flex: 1; }
+  .list-item .meta .t { font-weight: 500; }
+  .list-item .meta .d { color: var(--text-2); font-size: 14px; }
+
+  /* ---------- 教学页三栏 ---------- */
+  .teach { display: flex; height: calc(100vh - var(--header-h)); }
+  .teach .left { width: 20.83%; background: #fff; border-right: 1px solid var(--split); display: flex; flex-direction: column; }
+  .teach .center { flex: 1; position: relative; display: flex; flex-direction: column; background: #f7f8fa; min-width: 0; }
+  .teach .right { width: 29.16%; background: #fff; border-left: 1px solid var(--split); overflow: auto; padding: 16px; }
+  .teach.nosession .center { background: var(--bg); overflow: auto; }
+  @media (max-width: 900px) {
+    .teach { flex-direction: column; height: auto; }
+    .teach .left, .teach .right { width: 100%; border: 0; border-bottom: 1px solid var(--split); }
+    .teach .left { max-height: 220px; }
+    .teach .center { min-height: 70vh; }
+  }
+  .hist-item { padding: 10px 14px; cursor: pointer; border-left: 3px solid transparent; }
+  .hist-item:hover { background: #fafafa; }
+  .hist-item.active { background: #e6f4ff; border-left-color: var(--primary); }
+  .hist-item .p { font-size: 13px; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .hist-item .f { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 11px; color: #8c8c8c; }
+
+  .sess-head { padding: 12px 20px; border-bottom: 1px solid var(--split); background: #fff; display: flex; align-items: center; gap: 12px; }
+  .sess-head h5 { flex: 1; }
+  .msgs { flex: 1; overflow: auto; padding: 20px; }
+  .bubble { display: flex; gap: 12px; margin-bottom: 16px; }
+  .bubble.user { flex-direction: row-reverse; }
+  .bubble .avatar { background: var(--green); }
+  .bubble.user .avatar { background: var(--brand); }
+  .bubble .body { max-width: 78%; padding: 10px 14px; border-radius: 10px; background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.06); line-height: 1.6; }
+  .bubble.user .body { background: var(--brand); color: #fff; }
+  .bubble .body p { margin: 0 0 8px; } .bubble .body p:last-child { margin: 0; }
+  .bubble .body ol, .bubble .body ul { margin: 0 0 8px 22px; padding: 0; }
+  .bubble .body code { background: rgba(0,0,0,.06); padding: 1px 4px; border-radius: 4px; font-size: .92em; }
+  .bubble .body .math { font-family: 'Times New Roman', serif; font-style: italic; }
+  .sys-card { margin-bottom: 12px; padding: 8px 12px; background: #fafafa; border: 1px dashed var(--border); border-radius: 8px; }
+  .sys-card .c { margin-top: 4px; font-size: 12px; color: var(--text-2); white-space: pre-wrap; max-height: 4.5em; overflow: hidden; }
+  .sys-card.open .c { max-height: none; }
+  .sys-card .exp { color: var(--primary); font-size: 12px; cursor: pointer; }
+  .stream-cursor { display: inline-block; width: 6px; height: 1em; background: currentColor; margin-left: 2px; vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { to { visibility: hidden; } }
+
+  .chat-input { padding: 16px; border-top: 1px solid var(--split); background: #fff; }
+  .chat-input .box { display: flex; }
+  .chat-input textarea { border-radius: 6px 0 0 6px; min-height: 54px; }
+  .chat-input .btn { border-radius: 0 6px 6px 0; height: auto; }
+  .chat-input .hint { font-size: 12px; color: #bfbfbf; margin-top: 4px; }
+
+  /* 流水线 Steps */
+  .pipeline { padding: 12px 20px; background: #fff; border-bottom: 1px solid var(--split); }
+  .steps { display: flex; gap: 0; }
+  .step { display: flex; align-items: center; gap: 8px; flex: 1; font-size: 14px; position: relative; }
+  .step .dot { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-2); background: #fff; flex-shrink: 0; }
+  .step.done .dot { border: 0; color: var(--green); font-size: 20px; }
+  .step.cur .dot { border: 0; color: var(--brand); font-size: 18px; }
+  .step.cur .lbl { font-weight: 500; }
+  .step.wait .lbl { color: var(--text-2); }
+  .step .line { flex: 1; height: 1px; background: var(--split); margin: 0 8px; }
+  .step.done .line { background: var(--green); }
+  .step:last-child .line { display: none; }
+  .spin { display: inline-block; width: 1em; height: 1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: rot .8s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  /* 摄像头小窗 */
+  .cam { position: absolute; left: 16px; bottom: 112px; width: 160px; border-radius: 12px; overflow: hidden; background: #111; box-shadow: 0 4px 16px rgba(0,0,0,.18); z-index: 5; }
+  .cam .view { height: 120px; display: grid; place-items: center; color: #777; font-size: 22px; }
+  .cam .view.on { background: radial-gradient(circle at 50% 40%, #3a3a3a 0, #1a1a1a 60%); position: relative; }
+  .cam .view.on::after { content: ''; position: absolute; width: 44px; height: 56px; border-radius: 50% 50% 45% 45%; background: #6b5a4a; top: 24px; }
+  .cam .bar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #1c1c1c; color: #ccc; font-size: 12px; }
+  .cam .bar span { flex: 1; }
+  .switch { width: 28px; height: 16px; border-radius: 100px; background: rgba(0,0,0,.25); position: relative; cursor: pointer; transition: .2s; }
+  .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: .2s; }
+  .switch.on { background: var(--primary); }
+  .switch.on::after { left: 14px; }
+
+  /* 练习 */
+  .q-body { font-size: 16px; white-space: pre-wrap; margin-bottom: 16px; }
+  .feedback { border: 1px solid; border-radius: 8px; padding: 12px; }
+  .feedback.ok { border-color: var(--success); background: #f6ffed; }
+  .feedback.bad { border-color: var(--error); background: #fff1f0; }
+  .review-item { margin-bottom: 16px; }
+  .review-item.ok { border-color: var(--success); }
+  .review-item.bad { border-color: var(--error); }
+  .analysis { background: #fafafa; padding: 12px; border-radius: 4px; margin-top: 8px; white-space: pre-wrap; }
+
+  /* 报告 */
+  .ni { border: 1px dashed #d9d9d9; }
+  .ni .card-head { color: var(--text-2); font-weight: 500; }
+  .kp { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--split); }
+  .kp .m { flex: 1; } .kp .m .t { font-weight: 500; } .kp .m .d { color: var(--text-2); }
+  .kp .progress { width: 140px; }
+
+  /* 树形多选 */
+  .tree { border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; max-height: 220px; overflow: auto; background: #fff; }
+  .tree .n { padding: 2px 0; }
+  .tree .n.v { font-weight: 600; }
+  .tree .n.c { padding-left: 20px; font-weight: 500; }
+  .tree .n.s { padding-left: 44px; }
+  .sel-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+
+  /* demo 说明条 */
+  .demo-bar { position: fixed; right: 12px; bottom: 12px; z-index: 50; background: #1f2937; color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.2); max-width: 280px; }
+  .demo-bar b { color: #fbbf24; }
+  /* 手机适配：仅为了能在小屏上看 demo，真实前端目前没有做移动端适配 */
+  @media (max-width: 768px) {
+    html, body { overflow-x: hidden; }
+    .header { height: auto; flex-wrap: wrap; gap: 0 12px; padding: 8px 12px 0; }
+    .header .logo { font-size: 16px; flex: 1; }
+    .menu-h { order: 3; width: 100%; flex: none; height: 40px; overflow-x: auto; }
+    .menu-h .mi { padding: 0 8px; }
+    .user span:last-child { display: none; }
+    .teach { height: auto; }
+    .teach .center { min-height: 70vh; }
+    .msgs { max-height: 60vh; }
+    .page-container { padding: 16px 12px; }
+    h2 { font-size: 24px; }
+    .bubble .body { max-width: 88%; }
+    .cam { width: 112px; bottom: 120px; left: 8px; }
+    .cam .view { height: 80px; }
+    .demo-bar { left: 12px; right: 12px; max-width: none; font-size: 11px; padding: 6px 10px; }
+    .sider { width: 120px; }
+    table.tbl th, table.tbl td { padding: 8px; white-space: nowrap; }
+  }
+  .demo-bar a { color: #93c5fd; }
+  .demo-bar .x { float: right; cursor: pointer; margin-left: 8px; color: #9ca3af; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<div class="demo-bar" id="demoBar">
+  <span class="x" onclick="document.getElementById('demoBar').remove()">✕</span>
+  <b>静态 Demo</b>：数据全部写死，无后端。路由用 <code>#</code> 模拟。<br>
+  快速跳转：
+  <a href="#/login">登录</a> ·
+  <a href="#/home">首页</a> ·
+  <a href="#/teaching">新题</a> ·
+  <a href="#/teaching/12?stage=running">生成中</a> ·
+  <a href="#/teaching/12">会话</a> ·
+  <a href="#/teaching/12?stage=failed">失败</a> ·
+  <a href="#/practice/setup">练习</a> ·
+  <a href="#/practice/7">答题</a> ·
+  <a href="#/practice/5">回顾</a> ·
+  <a href="#/practice/history">历史</a> ·
+  <a href="#/report">报告</a> ·
+  <a href="#/admin/knowledge">管理台</a>
+</div>
+
+<script>
+/* =========================================================
+   模拟数据（与 frontend/src/api/types.ts 字段对齐）
+   ========================================================= */
+const STUDENTS = [
+  { id: 1, name: '张小明', gender: 'male' },
+  { id: 2, name: '李华', gender: 'female' },
+];
+const KP_TREE = [
+  { id: 1, title: '八年级物理 · 上册', chapters: [
+    { id: 1, title: '第一章 机械运动', sections: [
+      { id: 1, title: '1.1 长度和时间的测量' }, { id: 2, title: '1.2 运动的描述' }, { id: 3, title: '1.3 运动的快慢' },
+    ]},
+    { id: 2, title: '第二章 声现象', sections: [
+      { id: 4, title: '2.1 声音的产生与传播' }, { id: 5, title: '2.2 声音的特性' },
+    ]},
+  ]},
+  { id: 2, title: '八年级物理 · 下册', chapters: [
+    { id: 3, title: '第七章 力', sections: [
+      { id: 6, title: '7.1 力' }, { id: 7, title: '7.2 弹力' }, { id: 8, title: '7.3 重力' },
+    ]},
+  ]},
+];
+const SECTIONS = KP_TREE.flatMap(v => v.chapters.flatMap(c => c.sections));
+const CHAPTERS = KP_TREE.flatMap(v => v.chapters);
+
+const QUESTIONS = [
+  { id: 101, type: 'single_choice', difficulty: 'easy',
+    content: '一辆汽车在平直公路上匀速行驶，10 s 内通过了 200 m，则它的速度是：\nA. 2 m/s\nB. 20 m/s\nC. 200 m/s\nD. 2000 m/s',
+    answer: 'B', analysis: '根据 v = s / t = 200 m ÷ 10 s = 20 m/s。注意单位换算，题目已经是国际单位制。' },
+  { id: 102, type: 'fill_blank', difficulty: 'medium',
+    content: '声音在 15 ℃ 的空气中传播速度约为 ______ m/s。',
+    answer: '340', analysis: '课本给出的常数：15 ℃ 空气中声速约 340 m/s；温度越高声速越大。' },
+  { id: 103, type: 'calculation', difficulty: 'hard',
+    content: '小明骑自行车前一半路程的速度为 4 m/s，后一半路程的速度为 6 m/s。求全程的平均速度。',
+    answer: '4.8 m/s', analysis: '设全程 2s。t₁ = s/4，t₂ = s/6，总时间 = s/4 + s/6 = 5s/12。平均速度 = 2s ÷ (5s/12) = 4.8 m/s。\n常见错误：直接取 (4+6)/2 = 5 m/s。' },
+];
+const QT = { single_choice: '单选题', multiple_choice: '多选题', fill_blank: '填空题', short_answer: '简答题', calculation: '计算题' };
+const DL = { easy: '简单', medium: '中等', hard: '困难' };
+const DC = { easy: 'green', medium: 'blue', hard: 'volcano' };
+const GL = { male: '男', female: '女', other: '其他' };
+const MT = { question_submit: '题目提交', llm_analysis: '知识点分析', student_data: '学生画像', strategy: '教学策略', reference_search: '相似题检索', chat: '对话' };
+
+const TEACH_SESSIONS = [
+  { id: 12, status: 'active', pipeline_status: 'done', preview: '小明骑自行车前一半路程的速度为 4 m/s，后一半路程的速度为 6 m/s。求全程的平均速度。', created_at: todayAt(14, 32) },
+  { id: 11, status: 'completed', pipeline_status: 'done', preview: '声音在 15 ℃ 的空气中传播速度约为多少？为什么冬天听到的声音传得更远？', created_at: todayAt(9, 5) },
+  { id: 9, status: 'completed', pipeline_status: 'done', preview: '一辆汽车在平直公路上匀速行驶，10 s 内通过了 200 m，则它的速度是多少？', created_at: daysAgo(1) },
+  { id: 7, status: 'cancelled', pipeline_status: 'failed', preview: '什么是弹力？弹簧测力计的原理是什么？', created_at: daysAgo(3) },
+];
+
+const STRATEGY_TEXT =
+`情绪状态：轻度焦虑（摄像头 + 文本综合判断，置信度 0.62）
+知识点：1.3 运动的快慢 → 平均速度
+学生画像：该知识点练习 6 次，正确 3 次，掌握度 0.45；上次教学 2 天前
+
+讲解策略：
+1. 先用生活类比（上学路上快慢不均）建立"平均速度 ≠ 速度平均"的直觉
+2. 分步引导，每步只给一个小问题，等待学生作答后再继续
+3. 语气放缓，避免一次给出完整公式推导
+4. 结尾用参考题 #103 的变式做一次迁移检验`;
+
+const SESSION_MSGS = [
+  { id: 1, role: 'user', message_type: 'question_submit', content: '小明骑自行车前一半路程的速度为 4 m/s，后一半路程的速度为 6 m/s。求全程的平均速度。' },
+  { id: 2, role: 'system', message_type: 'llm_analysis', content: '识别知识点：\n- 1.3 运动的快慢（主）\n- 平均速度的定义：总路程 / 总时间\n易错点：把两段速度直接取算术平均。' },
+  { id: 3, role: 'system', message_type: 'student_data', content: '学生 #1 张小明\n该知识点：练习 6 次，正确 3 次，掌握度 0.45\n近 7 天情绪记录：平静 ×3，困惑 ×2，焦虑 ×1\n面部情绪（本次帧）：轻度焦虑 0.62' },
+  { id: 4, role: 'system', message_type: 'strategy', content: STRATEGY_TEXT },
+  { id: 5, role: 'system', message_type: 'reference_search', content: '相似题检索 Top 3：\n#103 相似度 91.2%\n#101 相似度 67.5%\n#218 相似度 54.0%', references: [
+    { id: 1, question_id: 103, similarity_score: 0.912 }, { id: 2, question_id: 101, similarity_score: 0.675 }, { id: 3, question_id: 218, similarity_score: 0.54 } ] },
+  { id: 6, role: 'assistant', message_type: 'chat', html:
+    `<p>别急，这题很多同学第一反应都是 (4 + 6) ÷ 2 = 5 m/s，咱们先放一放这个答案，一步一步来。</p>
+     <p>先问你一个小问题：<b>平均速度的定义是什么？</b>是"速度的平均"，还是"总路程除以总时间"？</p>` },
+  { id: 7, role: 'user', message_type: 'chat', content: '总路程除以总时间' },
+  { id: 8, role: 'assistant', message_type: 'chat', html:
+    `<p>对，这一点抓住了就成功一半了。</p>
+     <p>那我们把全程设为 <span class="math">2s</span>，前一半是 <span class="math">s</span>，后一半也是 <span class="math">s</span>。</p>
+     <ol><li>前一半用时 <span class="math">t₁ = s / 4</span></li><li>后一半用时 <span class="math">t₂ = s / 6</span></li></ol>
+     <p>你来算一下，<span class="math">t₁ + t₂</span> 用 <span class="math">s</span> 表示是多少？（提示：通分）</p>` },
+  { id: 9, role: 'user', message_type: 'chat', content: '5s/12' },
+  { id: 10, role: 'assistant', message_type: 'chat', html:
+    `<p>完全正确 👍 那平均速度就是：</p>
+     <p><code>v = 2s ÷ (5s/12) = 24/5 = 4.8 m/s</code></p>
+     <p>注意结果比 5 m/s 小——因为慢的那一段<b>花的时间更长</b>，拖低了整体。</p>
+     <p>要不要再试一道变式：前一半<b>时间</b>速度 4 m/s，后一半<b>时间</b>速度 6 m/s，平均速度是多少？</p>` },
+];
+
+const PRACTICE_SESSIONS = [
+  { id: 7, mode: 'focused', knowledge_point_ids: [1,3], total_count: 5, correct_count: 1, wrong_count: 1, skip_count: 0, started_at: todayAt(15, 10), ended_at: null },
+  { id: 5, mode: 'general', knowledge_point_ids: [4,5], total_count: 0, correct_count: 2, wrong_count: 1, skip_count: 1, started_at: daysAgo(1), ended_at: daysAgo(1) },
+  { id: 3, mode: 'focused', knowledge_point_ids: [6,7,8], total_count: 10, correct_count: 7, wrong_count: 3, skip_count: 0, started_at: daysAgo(4), ended_at: daysAgo(4) },
+];
+const REVIEW_ITEMS = [
+  { id: 1, question: QUESTIONS[0], user_answer: 'B', is_correct: true, is_skipped: false },
+  { id: 2, question: QUESTIONS[1], user_answer: '340', is_correct: true, is_skipped: false },
+  { id: 3, question: QUESTIONS[2], user_answer: '5 m/s', is_correct: false, is_skipped: false },
+  { id: 4, question: QUESTIONS[0], user_answer: '', is_correct: false, is_skipped: true },
+];
+const REPORT = {
+  active_knowledge_points: [
+    { section_title: '1.3 运动的快慢', total_practice_count: 6, total_teaching_count: 2, correct_count: 3, mastery_level: 0.45 },
+    { section_title: '2.1 声音的产生与传播', total_practice_count: 4, total_teaching_count: 1, correct_count: 3, mastery_level: 0.7 },
+    { section_title: '7.2 弹力', total_practice_count: 2, total_teaching_count: 1, correct_count: 2, mastery_level: 0.85 },
+  ],
+  emotion_logs: [
+    { mode: 'teaching', section_title: '1.3 运动的快慢', emotion: '焦虑', ago: '2 小时前' },
+    { mode: 'practice', section_title: '1.3 运动的快慢', emotion: '困惑', ago: '5 小时前' },
+    { mode: 'teaching', section_title: '2.1 声音的产生与传播', emotion: '平静', ago: '昨天' },
+    { mode: 'practice', section_title: '7.2 弹力', emotion: '愉快', ago: '3 天前' },
+  ],
+};
+
+function todayAt(h, m) { const d = new Date(); d.setHours(h, m, 0, 0); return d; }
+function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); d.setHours(10, 30); return d; }
+function fmtTime(d) {
+  const now = new Date();
+  const same = d.toDateString() === now.toDateString();
+  return same ? d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+}
+function fmtDT(d) { return d ? d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+/* =========================================================
+   状态与路由
+   ========================================================= */
+const state = {
+  student: JSON.parse(sessionStorage.getItem('demo-student') || 'null'),
+  camera: { enabled: false, status: 'off' },
+  practice: null,   // 练习答题页状态
+  teachStage: null,
+};
+function setStudent(s) { state.student = s; sessionStorage.setItem('demo-student', JSON.stringify(s)); }
+function go(path) { location.hash = '#' + path; }
+function toast(text, type = 'info') {
+  const ico = { success: '<span style="color:#52c41a">✔</span>', error: '<span style="color:#ff4d4f">✖</span>', info: '<span style="color:#1677ff">ℹ</span>', warning: '<span style="color:#faad14">⚠</span>' }[type];
+  const el = document.createElement('div'); el.className = 'm'; el.innerHTML = ico + esc(text);
+  document.getElementById('toast').appendChild(el); setTimeout(() => el.remove(), 2200);
+}
+
+function route() {
+  const raw = location.hash.replace(/^#/, '') || '/home';
+  const [path, qs] = raw.split('?');
+  const q = Object.fromEntries(new URLSearchParams(qs || ''));
+  const app = document.getElementById('app');
+  window.scrollTo(0, 0);
+
+  if (path === '/login') { app.innerHTML = Login(); return; }
+  if (path.startsWith('/admin')) { app.innerHTML = AdminLayout(path); return; }
+
+  if (q.student) setStudent(STUDENTS.find(x => x.id === Number(q.student)) || STUDENTS[0]);
+  if (!state.student) { go('/login'); return; }
+
+  let inner, active = '/home';
+  if (path === '/home') inner = Home();
+  else if (path === '/teaching') { active = '/teaching'; inner = Teaching(null, q); }
+  else if (path.startsWith('/teaching/')) { active = '/teaching'; inner = Teaching(Number(path.split('/')[2]), q); }
+  else if (path === '/practice/setup') { active = '/practice/setup'; inner = PracticeSetup(); }
+  else if (path === '/practice/history') { active = '/practice/setup'; inner = PracticeHistory(); }
+  else if (path.startsWith('/practice/')) { active = '/practice/setup'; inner = PracticeRunner(Number(path.split('/')[2])); }
+  else if (path === '/report') { active = '/report'; inner = Report(q.tab || 'recent'); }
+  else { go('/home'); return; }
+
+  app.innerHTML = StudentLayout(inner, active);
+  afterRender(path);
+}
+window.addEventListener('hashchange', route);
+
+/* =========================================================
+   布局
+   ========================================================= */
+function StudentLayout(inner, active) {
+  const MENU = [['/home', '⌂', '首页'], ['/teaching', '💬', '教学对话'], ['/practice/setup', '⚗', '练习'], ['/report', '📈', '学习报告']];
+  return `
+  <div class="layout">
+    <div class="header">
+      <div class="logo">📘 STEM 智能教学</div>
+      <div class="menu-h">${MENU.map(([k, i, l]) => `<div class="mi ${active === k ? 'active' : ''}" onclick="go('${k}')"><span>${i}</span>${l}</div>`).join('')}</div>
+      <div class="user" id="userDD" onclick="this.classList.toggle('open')">
+        <span class="avatar">👤</span><span>${esc(state.student.name)}</span>
+        <div class="dd">
+          <div onclick="go('/admin/knowledge')">⚙ 管理台</div><hr>
+          <div onclick="setStudent(null);go('/login')">⎋ 切换学生</div>
+        </div>
+      </div>
+    </div>
+    <div class="content">${inner}</div>
+  </div>`;
+}
+
+function AdminLayout(path) {
+  const MENU = [['/admin/knowledge', '知识结构'], ['/admin/questions', '题库管理'], ['/admin/students', '学生管理'], ['/admin/db', '数据库浏览']];
+  const cur = MENU.find(m => path.startsWith(m[0]))?.[0] || '/admin/knowledge';
+  return `
+  <div class="admin-header"><div class="logo">STEM 管理台</div>
+    <button class="btn text" style="color:#fff;margin-left:auto" onclick="go('/home')">← 返回学生端</button></div>
+  <div class="admin-body">
+    <div class="sider">${MENU.map(([k, l]) => `<div class="mi ${cur === k ? 'active' : ''}" onclick="go('${k}')">${l}</div>`).join('')}</div>
+    <div class="admin-content">
+      <div class="card"><div class="card-head">${MENU.find(m => m[0] === cur)[1]}</div>
+        <div class="card-body secondary">管理台页面（知识树编辑、题库 CRUD、学生管理、数据库浏览）不在本次 demo 范围内，仅保留布局骨架。</div></div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   登录
+   ========================================================= */
+function Login() {
+  return `
+  <div class="login"><div class="card"><div class="card-body">
+    <h3 style="text-align:center;margin-bottom:8px">STEM 智能教学系统</h3>
+    <p class="secondary" style="text-align:center;margin:0 0 24px">选择或创建一个学生以进入系统</p>
+    <div class="divider text">已有学生</div>
+    ${STUDENTS.map(s => `
+      <div class="list-item"><span class="avatar">👤</span>
+        <div class="meta"><div class="t">${s.name}</div><div class="d">ID: ${s.id} · ${GL[s.gender]}</div></div>
+        <button class="btn primary" onclick='setStudent(${JSON.stringify(s)});go("/home")'>选择</button></div>`).join('')}
+    <div class="divider text">创建新学生</div>
+    <div class="form-item"><label class="req">姓名</label><input class="input" id="newName" placeholder="请输入姓名" maxlength="100"></div>
+    <div class="form-item"><label class="req">性别</label>
+      <label class="radio"><input type="radio" name="g" value="male" checked>男</label>
+      <label class="radio"><input type="radio" name="g" value="female">女</label>
+      <label class="radio"><input type="radio" name="g" value="other">其他</label></div>
+    <button class="btn primary" onclick="createStudent()">创建并进入</button>
+  </div></div></div>`;
+}
+function createStudent() {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) { toast('请输入姓名', 'error'); return; }
+  const gender = document.querySelector('input[name=g]:checked').value;
+  const s = { id: STUDENTS.length + 1, name, gender };
+  STUDENTS.push(s); toast(`已创建学生 ${name}`, 'success'); setStudent(s); go('/home');
+}
+
+/* =========================================================
+   首页
+   ========================================================= */
+function Home() {
+  const s = state.student;
+  const cards = [
+    ['教学对话', '提交题目，让 AI 按照你的画像个性化讲解。', '💬', '#2563eb', '/teaching'],
+    ['开始练习', '按知识点与难度进行 Focused / General 练习。', '⚗', '#10b981', '/practice/setup'],
+    ['学习报告', '查看近期活跃与学习全景。', '📈', '#f59e0b', '/report'],
+  ];
+  return `
+  <div class="page-container">
+    <h2 style="margin-bottom:4px">你好，${esc(s.name)} 👋</h2>
+    <span class="secondary">${GL[s.gender]} · Student ID #${s.id}</span>
+    <div class="row" style="margin-top:24px">
+      ${[['知识篇（Volume）', KP_TREE.length], ['章（Chapter）', CHAPTERS.length], ['节 / 知识点', SECTIONS.length], ['题库（本页）', '1+']]
+        .map(([t, v]) => `<div class="col-6 card"><div class="card-body stat"><div class="title">${t}</div><div class="value">${v}</div></div></div>`).join('')}
+    </div>
+    <h4 style="margin:32px 0 16px">快速入口</h4>
+    <div class="row">
+      ${cards.map(([t, d, i, c, to]) => `
+        <div class="col-8 card hoverable" style="border-top:3px solid ${c}" onclick="go('${to}')"><div class="card-body" style="display:flex;align-items:center;gap:16px">
+          <div style="width:56px;height:56px;border-radius:12px;background:${c}22;color:${c};display:flex;align-items:center;justify-content:center;font-size:28px">${i}</div>
+          <div style="flex:1"><h5>${t}</h5><span class="secondary">${d}</span></div><span style="color:#bfbfbf">›</span></div></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* =========================================================
+   教学对话
+   ========================================================= */
+function HistorySidebar(activeId) {
+  const TAG = { active: ['processing', '进行中'], completed: ['success', '已完成'], cancelled: ['', '已取消'] };
+  return `
+  <div class="left">
+    <div style="padding:12px;border-bottom:1px solid var(--split)"><button class="btn primary block" onclick="go('/teaching')">＋ 新对话</button></div>
+    <div style="flex:1;overflow:auto;padding:4px 0">
+      ${TEACH_SESSIONS.map(s => `
+        <div class="hist-item ${s.id === activeId ? 'active' : ''}" onclick="go('/teaching/${s.id}')">
+          <div class="p">${esc(s.preview)}</div>
+          <div class="f"><span class="tag xs ${TAG[s.status][0]}">${TAG[s.status][1]}</span><span>${fmtTime(s.created_at)}</span></div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+function CameraWidget() {
+  const on = state.camera.enabled && state.camera.status === 'on';
+  const TXT = { off: '已关闭', starting: '启动中…', on: '识别中', denied: '未授权', unavailable: '不可用' };
+  return `
+  <div class="cam">
+    <div class="view ${on ? 'on' : ''}">${on ? '' : '📷'}</div>
+    <div class="bar"><span title="发送消息时抓一帧判断学习状态，只用于调整讲解方式。画面不上传不保存。">状态 · ${TXT[state.camera.enabled ? state.camera.status : 'off']}</span>
+      <div class="switch ${state.camera.enabled ? 'on' : ''}" onclick="toggleCam()"></div></div>
+  </div>`;
+}
+function toggleCam() {
+  state.camera.enabled = !state.camera.enabled;
+  state.camera.status = state.camera.enabled ? 'starting' : 'off';
+  route();
+  if (state.camera.enabled) setTimeout(() => { state.camera.status = 'on'; route(); }, 900);
+}
+
+function Teaching(sessionId, q) {
+  if (!sessionId) {
+    return `<div class="teach nosession">${HistorySidebar(null)}
+      <div class="center">
+        <div class="page-container" style="max-width:800px">
+          <h3>提交新题目</h3>
+          <p class="secondary">输入题目文本（必要时附图片 URL），提交后 AI 将根据你的学习画像进行个性化讲解。</p>
+          <div class="card"><div class="card-body">
+            <div class="form-item"><label class="req">题目内容</label><textarea class="input" id="qContent" rows="6" placeholder="请在此输入题目文本..."></textarea></div>
+            <div class="form-item"><label>题目图片 URL（可选）</label><input class="input" placeholder="https://..."></div>
+            <button class="btn primary lg" onclick="startTeaching()">提交并开始讲解</button>
+          </div></div>
+        </div>
+        ${CameraWidget()}
+      </div></div>`;
+  }
+
+  const sess = TEACH_SESSIONS.find(s => s.id === sessionId) || TEACH_SESSIONS[0];
+  const stage = q.stage || (sess.pipeline_status === 'failed' ? 'failed' : 'done');   // running | failed | done
+  const isActive = sess.status === 'active';
+  const pipelineDone = stage === 'done';
+
+  const STAGES = ['知识点分析', '学生画像', '教学策略', '参考题检索', '生成讲解'];
+  let doneCount = stage === 'done' ? 5 : stage === 'running' ? (state.runStep ?? 2) : 3;
+  const pipeline = pipelineDone ? '' : `
+    <div class="pipeline"><div class="steps">
+      ${STAGES.map((l, i) => {
+        const cls = i < doneCount ? 'done' : i === doneCount ? 'cur' : 'wait';
+        const dot = i < doneCount ? '✔' : i === doneCount ? (stage === 'failed' ? '<span style="color:#ef4444">⚠</span>' : '<span class="spin"></span>') : (i + 1);
+        return `<div class="step ${cls}"><span class="dot">${dot}</span><span class="lbl">${l}</span><span class="line"></span></div>`; }).join('')}
+    </div>
+    ${stage === 'failed' ? `<div class="alert error" style="margin-top:8px"><span class="ico">⊗</span><div class="msg">讲解生成失败，已写入兜底回复。可以尝试追问或取消重开。</div></div>` : ''}
+    </div>`;
+
+  let msgs = SESSION_MSGS;
+  if (stage === 'running') msgs = SESSION_MSGS.slice(0, 1 + doneCount);
+  if (stage === 'failed') msgs = [...SESSION_MSGS.slice(0, 4), { role: 'assistant', message_type: 'chat', html: '<p>抱歉，讲解生成遇到问题。你可以直接把疑问告诉我，或者取消后重新提交题目。</p>' }];
+
+  const bubbles = msgs.map(m => {
+    if (m.role === 'system' && m.message_type !== 'chat') {
+      return `<div class="sys-card" onclick="this.classList.toggle('open')"><span class="tag">${MT[m.message_type]}</span>
+        <div class="c">${esc(m.content)}</div><span class="exp">展开 / 收起</span></div>`;
+    }
+    const body = m.html || `<p>${esc(m.content)}</p>`;
+    return `<div class="bubble ${m.role}"><span class="avatar">${m.role === 'user' ? '👤' : '🤖'}</span><div class="body">${body}</div></div>`;
+  }).join('');
+
+  const streaming = state.streaming ? `<div class="bubble assistant"><span class="avatar">🤖</span><div class="body">${state.streaming}<span class="stream-cursor"></span></div></div>` : '';
+
+  const placeholder = !pipelineDone ? '讲解生成中，稍候即可追问...' : isActive ? '继续追问...' : '会话已结束，无法发送消息';
+  const disabled = (!isActive || !pipelineDone) ? 'disabled' : '';
+
+  const refs = SESSION_MSGS.find(m => m.references)?.references || [];
+  const right = `
+    <div class="right">
+      <div class="card small" style="margin-bottom:12px"><div class="card-head">会话信息</div><div class="card-body">
+        <div><b>状态：</b><span class="tag ${isActive ? 'processing' : ''}">${sess.status}</span></div>
+        <div><b>会话 ID：</b>#${sess.id}</div>
+        <div><b>消息数：</b>${msgs.length}</div></div></div>
+      <div class="card small" style="margin-bottom:12px"><div class="card-head">教学策略</div><div class="card-body">
+        ${doneCount >= 3 ? `<div style="white-space:pre-wrap">${esc(STRATEGY_TEXT)}</div>` : `<div class="empty"><div class="pic"></div><span style="font-size:13px;color:#8c8c8c">暂无策略数据</span></div>`}</div></div>
+      <div class="card small"><div class="card-head">相关题目引用（${doneCount >= 4 ? refs.length : 0}）</div><div class="card-body">
+        ${doneCount >= 4 ? refs.map(r => `<div style="margin-bottom:8px"><span class="tag">题目 #${r.question_id}</span><span class="tag blue">相似度 ${(r.similarity_score * 100).toFixed(1)}%</span></div>`).join('')
+                         : `<div class="empty"><div class="pic"></div><span style="font-size:13px;color:#8c8c8c">无引用</span></div>`}
+        <hr class="divider" style="margin:8px 0"><span class="secondary" style="font-size:12px">引用来自教学过程中的相似题检索，实际内容需前往题库查看。</span></div></div>
+    </div>`;
+
+  return `<div class="teach">${HistorySidebar(sessionId)}
+    <div class="center">
+      <div class="sess-head"><h5>教学会话 #${sess.id}</h5>
+        ${isActive ? `<button class="btn" onclick="openEndModal()">⊗ 结束会话</button><button class="btn danger" onclick="cancelSession()">⊘ 取消</button>` : ''}</div>
+      ${pipeline}
+      <div class="msgs" id="msgs">${bubbles}${streaming}</div>
+      <div class="chat-input"><div class="box">
+        <textarea class="input" id="chatText" placeholder="${placeholder}" ${disabled} onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+        <button class="btn primary" ${disabled} onclick="sendChat()">➤ 发送</button></div>
+        <div class="hint">Enter 发送 · Shift+Enter 换行</div></div>
+      ${CameraWidget()}
+    </div>
+    ${right}
+    <div id="modalHost"></div>
+  </div>`;
+}
+
+function startTeaching() {
+  const v = document.getElementById('qContent').value.trim();
+  if (!v) { toast('请输入题目内容', 'error'); return; }
+  state.runStep = 0;
+  go('/teaching/12?stage=running');
+  // 模拟流水线逐步推进
+  const tick = () => { state.runStep++; if (state.runStep >= 5) { state.runStep = undefined; go('/teaching/12'); } else { route(); setTimeout(tick, 1100); } };
+  setTimeout(tick, 1100);
+}
+function sendChat() {
+  const ta = document.getElementById('chatText'); const v = ta.value.trim(); if (!v) return;
+  SESSION_MSGS.push({ role: 'user', message_type: 'chat', content: v });
+  const full = '好问题。先把两段的<b>时间</b>设为 <span class="math">t</span>，那么前一段路程 <span class="math">4t</span>，后一段 <span class="math">6t</span>，总路程 <span class="math">10t</span>，总时间 <span class="math">2t</span>，平均速度 = 5 m/s。看出来和"路程平分"的区别了吗？';
+  let i = 0; state.streaming = '';
+  route();
+  const timer = setInterval(() => {
+    i += 3; state.streaming = full.slice(0, i);
+    if (i >= full.length) { clearInterval(timer); state.streaming = null; SESSION_MSGS.push({ role: 'assistant', message_type: 'chat', html: full }); }
+    route();
+  }, 40);
+}
+function openEndModal() {
+  document.getElementById('modalHost').innerHTML = `
+  <div class="modal-mask" onclick="if(event.target===this)this.remove()"><div class="modal">
+    <div class="mh">结束教学会话</div>
+    <p>可选地提交一次掌握度调整（-1 ~ 1），用于聚合学生档案。</p>
+    <input type="range" class="slider" min="-1" max="1" step="0.1" value="0" oninput="document.getElementById('mv').textContent=this.value">
+    <div class="marks"><span>明显下降</span><span>无变化</span><span>明显提升</span></div>
+    <div class="secondary" style="margin-top:8px">当前：<span id="mv">0</span></div>
+    <div class="mf"><button class="btn" onclick="this.closest('.modal-mask').remove()">取消</button>
+      <button class="btn primary" onclick="endSession()">确认结束</button></div>
+  </div></div>`;
+}
+function endSession() { TEACH_SESSIONS[0].status = 'completed'; toast('会话已结束', 'success'); route(); }
+function cancelSession() {
+  if (!confirm('取消会话？\n取消后该会话将标记为 cancelled，不保存摘要。')) return;
+  TEACH_SESSIONS[0].status = 'cancelled'; toast('会话已取消'); go('/teaching');
+}
+
+/* =========================================================
+   练习
+   ========================================================= */
+function PracticeSetup() {
+  return `
+  <div class="page-container" style="max-width:820px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><h3>开始练习</h3>
+      <button class="btn" onclick="go('/practice/history')">查看历史记录</button></div>
+    <p class="secondary">选择知识点、难度与练习模式，系统将从题库检索符合条件的题目。</p>
+    <div class="card"><div class="card-body">
+      <div class="form-item"><label class="req">知识点（节）</label>
+        <div class="tree">${KP_TREE.map(v => `<div class="n v">▾ ${v.title}</div>${v.chapters.map(c => `<div class="n c">▾ ${c.title}</div>${c.sections.map(s => `<div class="n s"><label class="checkbox"><input type="checkbox" class="kp" value="${s.id}" ${[1,3].includes(s.id) ? 'checked' : ''} onchange="renderSelTags()">${s.title}</label></div>`).join('')}`).join('')}`).join('')}</div>
+        <div class="sel-tags" id="selTags"></div></div>
+      <div class="form-item"><label class="req">难度范围</label>
+        <label class="checkbox"><input type="checkbox" checked>简单</label><label class="checkbox"><input type="checkbox" checked>中等</label><label class="checkbox"><input type="checkbox">困难</label></div>
+      <div class="form-item"><label class="req">练习模式</label>
+        <label class="radio"><input type="radio" name="mode" value="focused" checked onchange="toggleCount()">Focused（专注练习）</label>
+        <label class="radio"><input type="radio" name="mode" value="general" onchange="toggleCount()">General（通用练习）</label></div>
+      <div class="form-item" id="countItem"><label class="req">题目数量（1-100，题库不足时按实际返回）</label><input class="input num" type="number" min="1" max="100" value="10"></div>
+      <hr class="divider">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button class="btn primary lg" onclick="startPractice()">开始练习</button>
+        <span class="tag blue">Focused：批量抽题必答</span><span class="tag geekblue">General：每题单抽，可跳过</span></div>
+    </div></div>
+  </div>`;
+}
+function renderSelTags() {
+  const ids = [...document.querySelectorAll('.kp:checked')].map(c => Number(c.value));
+  document.getElementById('selTags').innerHTML = ids.map(id => `<span class="tag">${SECTIONS.find(s => s.id === id).title}</span>`).join('');
+}
+function toggleCount() { document.getElementById('countItem').classList.toggle('hidden', document.querySelector('input[name=mode]:checked').value === 'general'); }
+function startPractice() {
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  const ids = [...document.querySelectorAll('.kp:checked')].map(c => Number(c.value));
+  if (!ids.length) { toast('请选择至少一个知识点', 'error'); return; }
+  state.practice = { session: { id: 8, mode, total_count: mode === 'focused' ? 5 : 0, correct_count: 0, wrong_count: 0, skip_count: 0 }, qi: 0, phase: 'answering', answer: '', result: null, startedAt: Date.now() };
+  go('/practice/8');
+}
+
+function PracticeRunner(id) {
+  const ended = PRACTICE_SESSIONS.find(s => s.id === id && s.ended_at);
+  if (ended) return PracticeReview(ended);
+
+  if (!state.practice || state.practice.session.id !== id) {
+    const base = PRACTICE_SESSIONS.find(s => s.id === id) || PRACTICE_SESSIONS[0];
+    state.practice = { session: { ...base }, qi: (base.correct_count + base.wrong_count) % QUESTIONS.length, phase: 'answering', answer: '', result: null, startedAt: Date.now() };
+  }
+  const p = state.practice, s = p.session, focused = s.mode === 'focused';
+  const answered = s.correct_count + s.wrong_count;
+
+  if (p.phase === 'done') {
+    return `<div class="page-container" style="max-width:720px">
+      <div class="result"><div class="ico success">✔</div><div class="t">本次练习已完成</div><div class="s">共作答 ${answered} 题，正确 ${s.correct_count} 题。</div></div>
+      <div class="row">${[['正确', s.correct_count, '#52c41a'], ['错误', s.wrong_count, '#ff4d4f'], ['跳过', s.skip_count, ''], ['模式', s.mode, '']]
+        .map(([t, v, c]) => `<div class="col-6 card"><div class="card-body stat"><div class="title">${t}</div><div class="value" style="color:${c}">${v}</div></div></div>`).join('')}</div>
+      <div style="margin-top:24px;display:flex;gap:8px"><button class="btn primary" onclick="go('/practice/setup')">再来一组</button><button class="btn" onclick="go('/home')">返回首页</button></div>
+    </div>`;
+  }
+
+  const q = QUESTIONS[p.qi % QUESTIONS.length];
+  const pct = focused ? Math.round(answered / s.total_count * 100) : (answered > 0 ? 100 : 0);
+  const lines = q.content.split('\n');
+  const choices = lines.filter(l => /^[A-Z][\.．、:：\s]/.test(l)).map(l => ({ p: l[0], t: l.slice(1).replace(/^[\.．、:：\s]+/, '') }));
+  const body = lines.filter(l => !/^[A-Z][\.．、:：\s]/.test(l)).join('\n');
+  const dis = p.phase === 'feedback' ? 'disabled' : '';
+  let inputHtml;
+  if (q.type === 'single_choice' && choices.length >= 2)
+    inputHtml = choices.map(c => `<label class="radio vertical"><input type="radio" name="ans" value="${c.p}" ${dis} ${p.answer === c.p ? 'checked' : ''} onchange="state.practice.answer=this.value"><b style="margin-right:8px">${c.p}.</b>${esc(c.t)}</label>`).join('');
+  else if (q.type === 'fill_blank')
+    inputHtml = `<input class="input" placeholder="请填入答案" value="${esc(p.answer)}" ${dis} oninput="state.practice.answer=this.value">`;
+  else
+    inputHtml = `<textarea class="input" rows="4" placeholder="请写下你的答案或解题过程" ${dis} oninput="state.practice.answer=this.value">${esc(p.answer)}</textarea>`;
+
+  const feedback = p.phase === 'feedback' ? `
+    <div class="feedback ${p.result ? 'ok' : 'bad'}" style="margin-bottom:16px">
+      <div class="alert ${p.result ? 'success' : 'error'}"><span class="ico">${p.result ? '✔' : '✖'}</span><div><div class="msg">${p.result ? '回答正确！' : '回答错误'}</div>
+        <div class="desc"><div><b>你的答案：</b>${esc(p.answer)}</div><div><b>参考答案：</b>${esc(q.answer)}</div></div></div></div>
+      <hr class="divider" style="margin:12px 0"><h5>答案解析</h5><div style="white-space:pre-wrap">${esc(q.analysis)}</div></div>` : '';
+
+  const lastOfFocused = focused && answered + 1 >= s.total_count;
+  return `
+  <div class="page-container" style="max-width:900px">
+    <div class="card" style="margin-bottom:16px"><div class="card-head" style="font-weight:400"><span></span>
+      <span><span class="tag ${focused ? 'blue' : 'geekblue'}">${focused ? 'Focused' : 'General'}</span><button class="btn sm danger" onclick="endPractice()">结束练习</button></span></div>
+      <div class="card-body" style="display:flex;gap:16px;align-items:center">
+        <div style="flex:1"><span class="secondary">进度</span><div class="progress"><div class="bar"><i style="width:${pct}%"></i></div><span class="txt">${focused ? `${answered} / ${s.total_count}` : `已作答 ${answered}`}</span></div></div>
+        <div class="stat"><div class="title">思考时长</div><div class="value" style="font-size:18px" id="timer">🕓 0:00</div></div></div></div>
+    <div class="card"><div class="card-head" style="font-size:14px"><span><b>第 ${answered + s.skip_count + 1} 题</b> &nbsp;<span class="tag">${QT[q.type]}</span><span class="tag ${DC[q.difficulty]}">${DL[q.difficulty]}</span></span></div>
+      <div class="card-body">
+        <div class="q-body">${esc(body)}</div>
+        <div>${inputHtml}</div>
+        <hr class="divider">
+        ${p.phase === 'answering'
+          ? `<div style="display:flex;gap:8px"><button class="btn primary" onclick="submitAnswer()">➤ 提交答案</button>${focused ? '' : `<button class="btn" onclick="skipQ()">⏭ 跳过本题</button>`}</div>`
+          : `${feedback}<div style="display:flex;gap:8px"><button class="btn primary" onclick="nextQ()">${p.result ? '✔' : '✖'} ${lastOfFocused ? '查看总结' : '下一题'}</button>${focused ? '' : `<button class="btn" onclick="endPractice()">结束练习</button>`}</div>`}
+      </div></div>
+  </div>`;
+}
+function submitAnswer() {
+  const p = state.practice; if (!p.answer.trim()) { toast('请先作答', 'warning'); return; }
+  const q = QUESTIONS[p.qi % QUESTIONS.length];
+  p.result = p.answer.trim().replace(/\s/g, '') === q.answer.replace(/\s/g, '');
+  p.session[p.result ? 'correct_count' : 'wrong_count']++; p.phase = 'feedback'; route();
+}
+function nextQ() {
+  const p = state.practice, s = p.session;
+  if (s.mode === 'focused' && s.correct_count + s.wrong_count >= s.total_count) { p.phase = 'done'; }
+  else { p.qi++; p.phase = 'answering'; p.answer = ''; p.result = null; p.startedAt = Date.now(); }
+  route();
+}
+function skipQ() { const p = state.practice; p.session.skip_count++; p.qi++; p.answer = ''; p.startedAt = Date.now(); route(); }
+function endPractice() { state.practice.phase = 'done'; route(); }
+
+function PracticeReview(s) {
+  return `
+  <div class="page-container" style="max-width:960px">
+    <div class="result"><div class="ico info">ℹ</div><div class="t">练习回顾 #${s.id}</div><div class="s">共作答 ${s.correct_count + s.wrong_count} 题，正确 ${s.correct_count} 题，跳过 ${s.skip_count} 题。</div></div>
+    <div class="row" style="margin-bottom:24px">${[['正确', s.correct_count, '#52c41a'], ['错误', s.wrong_count, '#ff4d4f'], ['跳过', s.skip_count, ''], ['模式', s.mode, '']]
+      .map(([t, v, c]) => `<div class="col-6 card"><div class="card-body stat"><div class="title">${t}</div><div class="value" style="color:${c}">${v}</div></div></div>`).join('')}</div>
+    ${REVIEW_ITEMS.map((it, i) => { const q = it.question; const st = it.is_skipped ? ['', '⏭ 已跳过', ''] : it.is_correct ? ['ok', '✔ 正确', 'success'] : ['bad', '✖ 错误', 'error'];
+      return `<div class="card small review-item ${st[0]}"><div class="card-head"><span><b>第 ${i + 1} 题</b> &nbsp;<span class="tag">${QT[q.type]}</span><span class="tag ${DC[q.difficulty]}">${DL[q.difficulty]}</span><span class="tag ${st[2]}">${st[1]}</span></span></div>
+        <div class="card-body"><div style="white-space:pre-wrap;margin-bottom:12px">${esc(q.content)}</div>
+          ${it.is_skipped ? '' : `<div style="margin-bottom:8px"><span class="secondary">我的答案：</span>${esc(it.user_answer) || '(空)'}</div>`}
+          <div style="margin-bottom:8px"><span class="secondary">正确答案：</span><b>${esc(q.answer)}</b></div>
+          <div class="analysis"><span class="secondary">解析：</span>${esc(q.analysis)}</div></div></div>`; }).join('')}
+    <div style="margin-top:24px;display:flex;gap:8px"><button class="btn primary" onclick="go('/practice/setup')">再来一组</button><button class="btn" onclick="go('/practice/history')">返回历史</button></div>
+  </div>`;
+}
+
+function PracticeHistory() {
+  return `
+  <div class="page-container" style="max-width:1100px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><h3>练习历史</h3><button class="btn primary" onclick="go('/practice/setup')">＋ 开始新练习</button></div>
+    <div class="card"><div class="card-body" style="padding:0;overflow:auto">
+      <table class="tbl"><thead><tr><th>开始时间</th><th>模式</th><th>知识点数</th><th>总题数</th><th>正确</th><th>错误</th><th>跳过</th><th>状态</th><th>操作</th></tr></thead><tbody>
+      ${PRACTICE_SESSIONS.map(r => `<tr onclick="go('/practice/${r.id}')"><td>${fmtDT(r.started_at)}</td><td><span class="tag ${r.mode === 'focused' ? 'blue' : 'geekblue'}">${r.mode === 'focused' ? 'Focused（专注练习）' : 'General（通用练习）'}</span></td>
+        <td>${r.knowledge_point_ids.length}</td><td>${r.total_count}</td><td style="color:#52c41a">${r.correct_count}</td><td style="color:#ff4d4f">${r.wrong_count}</td><td>${r.skip_count}</td>
+        <td>${r.ended_at ? '<span class="tag success">已完成</span>' : '<span class="tag processing">进行中</span>'}</td><td><a>${r.ended_at ? '查看回顾' : '继续练习'}</a></td></tr>`).join('')}
+      </tbody></table>
+      <div style="text-align:center;padding:16px" class="secondary">已到底部</div>
+    </div></div>
+  </div>`;
+}
+
+/* =========================================================
+   学习报告
+   ========================================================= */
+function Report(tab) {
+  const kps = REPORT.active_knowledge_points;
+  const recent = `
+    <div class="card ni"><div class="card-head">近一周动态（Recent 模式）<span class="tag" style="font-weight:400">待后端</span></div><div class="card-body">
+      <p class="secondary" style="margin:0 0 16px">活跃知识点统计 + 近期情绪明细。待后端接口 GET /students/:id/report?mode=recent 上线后自动生效。</p>
+      <div class="row"><div class="col-14 card small"><div class="card-head">活跃知识点</div><div class="card-body">
+          ${kps.map(k => `<div class="kp"><div class="m"><div class="t">${k.section_title}</div><div class="d">练习 ${k.total_practice_count} 次 · 教学 ${k.total_teaching_count} 次</div></div>
+            <div class="progress"><div class="bar"><i style="width:${k.mastery_level * 100}%"></i></div><span class="txt">${Math.round(k.mastery_level * 100)}%</span></div></div>`).join('')}</div></div>
+        <div class="col-10 card small"><div class="card-head">近期情绪明细</div><div class="card-body">
+          ${REPORT.emotion_logs.map(l => `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--split)"><span class="tag ${l.mode === 'teaching' ? 'purple' : 'cyan'}">${l.mode}</span><span>${l.section_title}</span><span class="tag">${l.emotion}</span><span class="secondary" style="margin-left:auto">${l.ago}</span></div>`).join('')}</div></div></div>
+    </div></div>`;
+  const all = `
+    <div class="card ni"><div class="card-head">学习全景（All 模式）<span class="tag" style="font-weight:400">待后端</span></div><div class="card-body">
+      <p class="secondary" style="margin:0 0 16px">全量知识点聚合 + 历史情绪趋势。待后端接口 GET /students/:id/report?mode=all 上线后自动生效。</p>
+      <div class="row"><div class="col-14 card small"><div class="card-head">已学习知识点</div><div class="card-body">
+          ${kps.map(k => `<div class="kp"><div class="m"><div class="t">${k.section_title}</div><div class="d">正确 ${k.correct_count} / ${k.total_practice_count}</div></div>
+            <div class="progress"><div class="bar"><i style="width:${k.mastery_level * 100}%"></i></div><span class="txt">${Math.round(k.mastery_level * 100)}%</span></div></div>`).join('')}</div></div>
+        <div class="col-10 card small"><div class="card-head">情绪趋势（按知识点）</div><div class="card-body"><div class="empty"><div class="pic"></div>折线图待接入</div></div></div></div>
+    </div></div>`;
+  return `
+  <div class="page-container"><h3 style="margin-bottom:16px">学习报告</h3>
+    <div class="tabs"><div class="tab ${tab === 'recent' ? 'active' : ''}" onclick="go('/report?tab=recent')">近一周动态</div><div class="tab ${tab === 'all' ? 'active' : ''}" onclick="go('/report?tab=all')">学习全景</div></div>
+    ${tab === 'recent' ? recent : all}
+  </div>`;
+}
+
+/* =========================================================
+   渲染后副作用
+   ========================================================= */
+let timerHandle = null;
+function afterRender(path) {
+  const m = document.getElementById('msgs'); if (m) m.scrollTop = m.scrollHeight;
+  if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+  const t = document.getElementById('timer');
+  if (t && state.practice && state.practice.phase === 'answering') {
+    const tick = () => { const s = Math.floor((Date.now() - state.practice.startedAt) / 1000); t.textContent = `🕓 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+    tick(); timerHandle = setInterval(tick, 1000);
+  }
+  if (path === '/practice/setup') renderSelTags();
+}
+document.addEventListener('click', e => { const u = document.getElementById('userDD'); if (u && !u.contains(e.target)) u.classList.remove('open'); });
+route();
+</script>
+</body>
+</html>
