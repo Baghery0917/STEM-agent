@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>STEM Agent · 对话式界面 Demo</title>
+<style>
+  :root {
+    --bg: #f6f6f4;
+    --panel: #ffffff;
+    --panel-2: #fafaf8;
+    --line: #e7e6e2;
+    --line-2: #efeeea;
+    --ink: #1c1c1a;
+    --ink-2: #5b5b57;
+    --ink-3: #8c8c86;
+    --teach: #3b5bdb;
+    --teach-soft: #edf0fc;
+    --practice: #0f8a5f;
+    --practice-soft: #e8f6ef;
+    --warn: #d97706;
+    --warn-soft: #fff4e5;
+    --bad: #d6453d;
+    --bad-soft: #fdecec;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.12);
+    --accent: var(--teach);
+    --accent-soft: var(--teach-soft);
+  }
+  [data-theme="dark"] {
+    --bg: #141413;
+    --panel: #1d1d1b;
+    --panel-2: #232321;
+    --line: #2d2d2a;
+    --line-2: #262624;
+    --ink: #ecebe6;
+    --ink-2: #a8a7a0;
+    --ink-3: #74736d;
+    --teach: #7b93ff;
+    --teach-soft: #1f2440;
+    --practice: #3fcf95;
+    --practice-soft: #16302a;
+    --warn: #f3a33c;
+    --warn-soft: #3a2a12;
+    --bad: #f0665e;
+    --bad-soft: #3a1d1b;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+  [data-mode="practice"] { --accent: var(--practice); --accent-soft: var(--practice-soft); }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, "SF Pro SC", "PingFang SC", "Inter", "Noto Sans SC", "Helvetica Neue", sans-serif;
+    font-size: 14px; color: var(--ink); background: var(--bg);
+    -webkit-font-smoothing: antialiased; line-height: 1.55;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+  kbd {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; color: var(--ink-3);
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; background: var(--panel);
+  }
+  .muted { color: var(--ink-3); }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  /* ---------- shell ---------- */
+  .app { display: grid; grid-template-columns: 264px 1fr auto; height: 100vh; overflow: hidden; }
+
+  /* ---------- left rail ---------- */
+  .rail {
+    display: flex; flex-direction: column; background: var(--panel-2); border-right: 1px solid var(--line);
+    padding: 14px 10px 10px; gap: 8px; min-width: 0;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 10px; }
+  .brand .logo {
+    width: 28px; height: 28px; border-radius: 9px; background: var(--ink); color: var(--bg);
+    display: grid; place-items: center; font-weight: 700; font-size: 13px; letter-spacing: -.5px;
+  }
+  .brand b { font-weight: 600; font-size: 14.5px; letter-spacing: -.2px; }
+  .brand .ver { margin-left: auto; font-size: 11px; color: var(--ink-3); }
+  .new-btn {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 11px;
+    background: var(--panel); border: 1px solid var(--line); box-shadow: 0 1px 1px rgba(0,0,0,.03);
+    font-weight: 500; transition: .15s;
+  }
+  .new-btn:hover { border-color: var(--ink-3); }
+  .new-btn kbd { margin-left: auto; }
+  .search {
+    display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 10px; color: var(--ink-3); font-size: 13px;
+  }
+  .search:hover { background: var(--line-2); color: var(--ink-2); }
+  .search kbd { margin-left: auto; }
+  .sessions { flex: 1; overflow: auto; padding: 4px 0; }
+  .sessions::-webkit-scrollbar { width: 6px; } .sessions::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; }
+  .grp { font-size: 11px; font-weight: 600; letter-spacing: .4px; color: var(--ink-3); padding: 12px 10px 6px; text-transform: uppercase; }
+  .sess {
+    display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; width: 100%; text-align: left;
+    padding: 8px 10px; border-radius: 10px; transition: .12s; position: relative;
+  }
+  .sess:hover { background: var(--line-2); }
+  .sess.on { background: var(--panel); box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(0,0,0,.04); }
+  .sess .glyph {
+    width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-size: 11px; margin-top: 1px;
+    font-weight: 700;
+  }
+  .glyph.t { background: var(--teach-soft); color: var(--teach); }
+  .glyph.p { background: var(--practice-soft); color: var(--practice); }
+  .sess .ttl { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sess .meta { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; white-space: nowrap; overflow: hidden; }
+  .sess .meta .tag { font-size: 10.5px; padding: 0 6px; border-radius: 999px; background: var(--line-2); color: var(--ink-2); }
+  .sess .live { position: absolute; right: 10px; top: 12px; width: 7px; height: 7px; border-radius: 50%; background: var(--practice); box-shadow: 0 0 0 3px var(--practice-soft); }
+  .rail-bottom { border-top: 1px solid var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+  .nav {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: 10px; font-weight: 500; font-size: 13.5px; color: var(--ink-2);
+  }
+  .nav:hover { background: var(--line-2); color: var(--ink); }
+  .nav.on { background: var(--panel); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+  .nav .ico { width: 18px; text-align: center; opacity: .8; }
+  .nav .dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+  .me { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-top: 4px; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #ffb86b, #ff6b8b); color: #fff;
+    display: grid; place-items: center; font-weight: 700; font-size: 12px;
+  }
+  .me .nm { font-weight: 600; font-size: 13.5px; line-height: 1.2; }
+  .me .sub { font-size: 11.5px; color: var(--ink-3); }
+
+  /* ---------- main ---------- */
+  .main { display: flex; flex-direction: column; min-width: 0; position: relative; }
+  .topbar {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 12px 20px; gap: 12px;
+    border-bottom: 1px solid transparent;
+  }
+  .topbar .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .topbar .right { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+  .crumb { font-size: 13px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crumb b { color: var(--ink); font-weight: 500; }
+
+  .seg {
+    position: relative; display: grid; grid-template-columns: 1fr 1fr; background: var(--line-2); border-radius: 999px; padding: 3px; width: 236px;
+  }
+  .seg .thumb {
+    position: absolute; top: 3px; left: 3px; width: calc(50% - 3px); height: calc(100% - 6px); border-radius: 999px;
+    background: var(--panel); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--line); transition: transform .28s cubic-bezier(.2,.8,.2,1);
+  }
+  [data-mode="practice"] .seg .thumb { transform: translateX(100%); }
+  .seg button { position: relative; z-index: 1; padding: 6px 0; border-radius: 999px; font-weight: 500; font-size: 13px; color: var(--ink-3); display: flex; justify-content: center; align-items: center; gap: 6px; transition: color .2s; }
+  .seg button .d { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .45; }
+  [data-mode="teaching"] .seg .b-t, [data-mode="practice"] .seg .b-p { color: var(--accent); }
+
+  .iconbtn {
+    width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: var(--ink-2); font-size: 14px;
+  }
+  .iconbtn:hover { background: var(--line-2); color: var(--ink); }
+  .iconbtn.on { background: var(--accent-soft); color: var(--accent); }
+  .emo {
+    display: flex; align-items: center; gap: 7px; padding: 5px 10px 5px 8px; border-radius: 999px; font-size: 12px; color: var(--ink-2);
+    border: 1px solid var(--line); background: var(--panel);
+  }
+  .emo .cam { width: 8px; height: 8px; border-radius: 50%; background: var(--practice); box-shadow: 0 0 0 3px var(--practice-soft); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px var(--practice-soft);} 50% { box-shadow: 0 0 0 5px transparent;} }
+
+  .stage { flex: 1; overflow: auto; position: relative; }
+  .stage::-webkit-scrollbar { width: 8px; } .stage::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+  .view { display: none; }
+  .view.on { display: block; }
+  .col { max-width: 760px; margin: 0 auto; padding: 24px 24px 160px; }
+
+  /* ---------- empty state ---------- */
+  .hero { max-width: 680px; margin: 0 auto; padding: 96px 24px 0; text-align: left; }
+  .hero .hi { font-size: 30px; font-weight: 600; letter-spacing: -.6px; line-height: 1.25; margin: 0 0 8px; }
+  .hero .hi em { font-style: normal; color: var(--accent); }
+  .hero p { color: var(--ink-2); font-size: 15px; margin: 0 0 28px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px; padding: 9px 13px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line);
+    font-size: 13px; color: var(--ink-2); transition: .15s; text-align: left;
+  }
+  .chip:hover { border-color: var(--ink-3); color: var(--ink); transform: translateY(-1px); box-shadow: var(--shadow); }
+  .chip .k { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .chip .k.warn { background: var(--warn-soft); color: var(--warn); }
+
+  /* ---------- messages ---------- */
+  .msg { display: grid; grid-template-columns: 30px 1fr; gap: 14px; margin: 0 0 26px; }
+  .msg .who {
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none;
+  }
+  .msg.user .who { background: var(--line-2); color: var(--ink-2); }
+  .msg.ai .who { background: var(--ink); color: var(--bg); }
+  .msg .body { min-width: 0; padding-top: 4px; }
+  .msg.user .body { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; }
+  .msg .body p { margin: 0 0 10px; } .msg .body p:last-child { margin: 0; }
+  .msg .body h4 { margin: 14px 0 6px; font-size: 14px; }
+  .msg .body ol, .msg .body ul { margin: 6px 0 10px; padding-left: 20px; }
+  .msg .body li { margin: 3px 0; }
+  .math { font-family: "Times New Roman", "STIX Two Math", serif; font-style: italic; }
+  .attach { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 9px; background: var(--line-2); font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+  .attach .thumb { width: 34px; height: 24px; border-radius: 4px; background: linear-gradient(135deg,#dfe3ea,#b9c0cc); }
+
+  /* agent trace (pipeline as collapsible thinking block) */
+  .trace { border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); margin: 0 0 14px; overflow: hidden; }
+  .trace summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer; font-size: 13px; color: var(--ink-2); user-select: none; }
+  .trace summary::-webkit-details-marker { display: none; }
+  .trace summary .spin { width: 12px; height: 12px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: rot 1s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg);} }
+  .trace summary .ok { width: 14px; height: 14px; border-radius: 50%; background: var(--practice); color: #fff; font-size: 9px; display: grid; place-items: center; }
+  .trace summary .chev { margin-left: auto; transition: .2s; color: var(--ink-3); }
+  .trace[open] summary .chev { transform: rotate(90deg); }
+  .trace .steps { padding: 4px 12px 10px 36px; border-top: 1px solid var(--line-2); }
+  .step { display: grid; grid-template-columns: 16px 110px 1fr; gap: 10px; align-items: baseline; padding: 5px 0; font-size: 12.5px; }
+  .step .st { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--line); position: relative; top: 2px; }
+  .step.done .st { background: var(--practice); border-color: var(--practice); }
+  .step.done .st::after { content: ""; position: absolute; left: 4px; top: 1.5px; width: 3px; height: 6px; border: solid #fff; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+  .step.run .st { border-color: var(--accent); border-top-color: transparent; animation: rot 1s linear infinite; }
+  .step .nm { color: var(--ink); font-weight: 500; }
+  .step .out { color: var(--ink-3); }
+  .step .out .pill { display: inline-block; padding: 0 7px; border-radius: 999px; background: var(--line-2); color: var(--ink-2); font-size: 11px; margin-right: 4px; }
+  .step .out a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted; }
+
+  .cursor { display: inline-block; width: 8px; height: 15px; background: var(--ink); vertical-align: -2px; margin-left: 2px; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .ai-actions { display: flex; gap: 2px; margin-top: 8px; opacity: 0; transition: .15s; }
+  .msg:hover .ai-actions { opacity: 1; }
+  .ai-actions button { font-size: 12px; color: var(--ink-3); padding: 3px 8px; border-radius: 7px; }
+  .ai-actions button:hover { background: var(--line-2); color: var(--ink); }
+
+  .follow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .follow button { font-size: 12.5px; padding: 6px 11px; border-radius: 999px; border: 1px dashed var(--line); color: var(--ink-2); }
+  .follow button:hover { border-style: solid; border-color: var(--accent); color: var(--accent); }
+
+  /* generic card inside chat */
+  .card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+  .card .hd { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line-2); font-weight: 600; font-size: 13.5px; }
+  .card .hd .sp { margin-left: auto; font-weight: 400; color: var(--ink-3); font-size: 12px; }
+  .card .bd { padding: 16px; }
+  .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .badge.t { background: var(--teach-soft); color: var(--teach); }
+  .badge.p { background: var(--practice-soft); color: var(--practice); }
+  .badge.w { background: var(--warn-soft); color: var(--warn); }
+  .badge.g { background: var(--line-2); color: var(--ink-2); }
+
+  /* ---------- practice ---------- */
+  .pbar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); margin-bottom: 20px; font-size: 12.5px; color: var(--ink-2); position: sticky; top: 0; z-index: 2; }
+  .pbar .track { flex: 1; height: 6px; border-radius: 6px; background: var(--line-2); overflow: hidden; display: flex; gap: 2px; }
+  .pbar .track i { flex: 1; background: var(--line); }
+  .pbar .track i.ok { background: var(--practice); } .pbar .track i.no { background: var(--bad); } .pbar .track i.cur { background: var(--accent); opacity: .4; }
+  .pbar .timer { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+  .q { font-size: 15px; line-height: 1.7; }
+  .q .stem { margin-bottom: 14px; }
+  .opts { display: grid; gap: 8px; }
+  .opt {
+    display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: center; padding: 11px 14px; border-radius: 11px; border: 1px solid var(--line); text-align: left; transition: .12s; font-size: 14px;
+  }
+  .opt:hover { border-color: var(--ink-3); background: var(--panel-2); }
+  .opt .l { width: 26px; height: 26px; border-radius: 8px; background: var(--line-2); display: grid; place-items: center; font-weight: 600; font-size: 12.5px; color: var(--ink-2); }
+  .opt.pick { border-color: var(--accent); background: var(--accent-soft); } .opt.pick .l { background: var(--accent); color: #fff; }
+  .opt.right { border-color: var(--practice); background: var(--practice-soft); } .opt.right .l { background: var(--practice); color: #fff; }
+  .opt.wrong { border-color: var(--bad); background: var(--bad-soft); } .opt.wrong .l { background: var(--bad); color: #fff; }
+  .qfoot { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+  .btn { padding: 8px 14px; border-radius: 10px; font-weight: 500; font-size: 13px; border: 1px solid var(--line); background: var(--panel); transition: .12s; }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn.pri { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .btn.pri:hover { opacity: .9; }
+  .btn.acc { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.ghost { border-color: transparent; color: var(--ink-2); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .fb { display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 14px 16px; border-radius: 12px; margin-top: 14px; }
+  .fb.ok { background: var(--practice-soft); } .fb.no { background: var(--bad-soft); }
+  .fb .ic { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #fff; }
+  .fb.ok .ic { background: var(--practice); } .fb.no .ic { background: var(--bad); }
+  .fb b { display: block; margin-bottom: 2px; }
+  .fb .why { color: var(--ink-2); font-size: 13px; }
+
+  /* practice setup (generative form) */
+  .setup .row { display: grid; grid-template-columns: 84px 1fr; gap: 12px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--line-2); }
+  .setup .row:last-child { border: 0; }
+  .setup .lbl { font-size: 12.5px; color: var(--ink-3); padding-top: 6px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tg { padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+  .tg.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+  .tg .m { font-size: 10.5px; opacity: .7; }
+  .tg.add { border-style: dashed; }
+  .radio { display: inline-flex; background: var(--line-2); border-radius: 10px; padding: 3px; }
+  .radio button { padding: 5px 12px; border-radius: 8px; font-size: 12.5px; color: var(--ink-3); }
+  .radio button.on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 500; }
+  .hint { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+
+  /* summary */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .stat { padding: 12px 14px; border-radius: 11px; background: var(--panel-2); border: 1px solid var(--line-2); }
+  .stat .v { font-size: 22px; font-weight: 600; letter-spacing: -.5px; line-height: 1.1; }
+  .stat .k { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+  .stat.ok .v { color: var(--practice); } .stat.no .v { color: var(--bad); }
+
+  /* mastery slider card */
+  .slider { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 6px; background: linear-gradient(90deg, var(--accent) 0 65%, var(--line-2) 65%); outline: none; }
+  .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--panel); border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  .scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); margin-top: 6px; }
+
+  /* ---------- composer ---------- */
+  .composer-wrap { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 24px 18px; pointer-events: none; background: linear-gradient(to top, var(--bg) 60%, transparent); }
+  .composer { max-width: 760px; margin: 0 auto; pointer-events: auto; }
+  .ctx { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .ctx .tg { background: var(--panel); font-size: 12px; }
+  .ctx .tg .x { color: var(--ink-3); }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 12px 12px 10px; transition: .15s; }
+  .box:focus-within { border-color: var(--ink-3); }
+  .box textarea { width: 100%; border: 0; outline: 0; resize: none; font: inherit; font-size: 14.5px; background: transparent; color: var(--ink); min-height: 24px; max-height: 200px; padding: 2px 6px; }
+  .box textarea::placeholder { color: var(--ink-3); }
+  .box .tools { display: flex; align-items: center; gap: 2px; margin-top: 8px; }
+  .box .tools .iconbtn { width: 30px; height: 30px; font-size: 15px; }
+  .box .tools .send { margin-left: auto; width: 32px; height: 32px; border-radius: 10px; background: var(--ink); color: var(--bg); display: grid; place-items: center; }
+  .box .tools .send:disabled { background: var(--line); color: var(--ink-3); }
+  .box .tools .modehint { font-size: 12px; color: var(--ink-3); margin-left: 6px; }
+  .foot { text-align: center; font-size: 11.5px; color: var(--ink-3); margin-top: 8px; }
+
+  /* ---------- right drawer ---------- */
+  .drawer { width: 0; border-left: 1px solid transparent; background: var(--panel-2); overflow: hidden; transition: width .28s cubic-bezier(.2,.8,.2,1), border-color .28s; }
+  .drawer.open { width: 320px; border-color: var(--line); }
+  .drawer .in { width: 320px; height: 100%; display: flex; flex-direction: column; }
+  .drawer .dh { display: flex; align-items: center; padding: 14px 16px 10px; font-weight: 600; font-size: 13.5px; gap: 8px; }
+  .drawer .dh .iconbtn { margin-left: auto; }
+  .dtabs { display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid var(--line); }
+  .dtabs button { padding: 8px 10px; font-size: 12.5px; color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .dtabs button.on { color: var(--ink); border-color: var(--ink); font-weight: 500; }
+  .dbody { flex: 1; overflow: auto; padding: 14px 16px 24px; }
+  .sec { margin-bottom: 18px; }
+  .sec h5 { margin: 0 0 8px; font-size: 11.5px; letter-spacing: .4px; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .kp { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px; background: var(--panel); border: 1px solid var(--line-2); margin-bottom: 6px; font-size: 13px; }
+  .kp .bar { width: 64px; height: 5px; border-radius: 5px; background: var(--line-2); overflow: hidden; margin-left: auto; }
+  .kp .bar i { display: block; height: 100%; background: var(--accent); }
+  .kp .pct { font-size: 11.5px; color: var(--ink-3); width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+  .strat { font-size: 13px; color: var(--ink-2); background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; padding: 10px 12px; }
+  .strat li { margin: 4px 0; }
+  .ref { padding: 10px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line-2); margin-bottom: 8px; font-size: 12.5px; }
+  .ref .t { display: flex; justify-content: space-between; color: var(--ink-3); font-size: 11.5px; margin-bottom: 4px; }
+  .emoline { display: flex; align-items: flex-end; gap: 4px; height: 44px; padding: 4px 0; }
+  .emoline i { flex: 1; border-radius: 3px 3px 0 0; background: var(--accent); opacity: .35; }
+  .emoline i.now { opacity: 1; }
+
+  /* ---------- report view ---------- */
+  .report { max-width: 920px; margin: 0 auto; padding: 24px 28px 120px; }
+  .report h1 { font-size: 22px; font-weight: 600; letter-spacing: -.4px; margin: 0; }
+  .rhead { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 18px; }
+  .rhead .sub { color: var(--ink-3); font-size: 13px; }
+  .rhead .right { margin-left: auto; display: flex; gap: 8px; }
+  .grid2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
+  .insight { padding: 16px 18px; border-radius: var(--radius); background: var(--ink); color: var(--bg); margin-bottom: 14px; display: grid; grid-template-columns: 30px 1fr auto; gap: 14px; align-items: center; }
+  .insight .who { width: 30px; height: 30px; border-radius: 50%; background: var(--bg); color: var(--ink); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+  .insight p { margin: 0; font-size: 14px; line-height: 1.5; }
+  .insight .btn { background: var(--bg); color: var(--ink); border-color: transparent; }
+  .mrow { display: grid; grid-template-columns: 1fr 120px 46px; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-2); font-size: 13.5px; }
+  .mrow:last-child { border: 0; }
+  .mrow .sub { font-size: 11.5px; color: var(--ink-3); }
+  .mrow .bar { height: 6px; border-radius: 6px; background: var(--line-2); overflow: hidden; } .mrow .bar i { display: block; height: 100%; background: var(--accent); }
+  .mrow .bar i.low { background: var(--warn); }
+  .mrow .pct { font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .spark { height: 120px; display: flex; align-items: flex-end; gap: 6px; padding: 8px 0 0; }
+  .spark i { flex: 1; height: 100%; border-radius: 4px 4px 0 0; background: var(--accent-soft); position: relative; }
+  .spark i::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: var(--h); background: var(--accent); border-radius: 4px 4px 0 0; opacity: .8; }
+  .spark i.w::after { background: var(--warn); }
+  .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); margin-top: 6px; }
+  .logs { font-size: 12.5px; } .logs div { display: flex; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line-2); align-items: center; } .logs div:last-child { border: 0; }
+  .logs .tm { margin-left: auto; color: var(--ink-3); font-size: 11.5px; }
+
+  /* ---------- settings ---------- */
+  .settings { max-width: 640px; margin: 0 auto; padding: 24px 28px 120px; }
+  .settings h1 { font-size: 22px; font-weight: 600; letter-spacing: -.4px; margin: 0 0 18px; }
+  .srow { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line-2); }
+  .srow:last-child { border: 0; }
+  .srow .t { font-weight: 500; } .srow .d { font-size: 12.5px; color: var(--ink-3); }
+  .srow .ctl { margin-left: auto; }
+  .toggle { width: 38px; height: 22px; border-radius: 999px; background: var(--line); position: relative; }
+  .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: .2s; }
+  .toggle.on { background: var(--accent); } .toggle.on::after { left: 19px; }
+
+  /* demo guide */
+  .guide { position: fixed; right: 14px; bottom: 14px; z-index: 50; display: flex; gap: 6px; padding: 6px; border-radius: 12px; background: var(--ink); color: var(--bg); box-shadow: var(--shadow); opacity: .9; }
+  .guide span { font-size: 11px; padding: 0 6px; align-self: center; opacity: .6; }
+  .guide button { font-size: 12px; padding: 5px 9px; border-radius: 8px; color: var(--bg); }
+  .guide button:hover { background: rgba(255,255,255,.12); }
+  @media print { .guide { display: none; } }
+</style>
+</head>
+<body data-theme="light" data-mode="teaching">
+<div class="app" id="app">
+
+  <!-- ===================== LEFT RAIL ===================== -->
+  <aside class="rail">
+    <div class="brand"><div class="logo">S</div><b>STEM Agent</b><span class="ver">物理 · 高二</span></div>
+    <button class="new-btn" onclick="go('empty')"><span>＋</span> 新对话 <kbd>⌘N</kbd></button>
+    <div class="search"><span>⌕</span> 搜索会话 <kbd>⌘K</kbd></div>
+
+    <div class="sessions">
+      <div class="grp">今天</div>
+      <button class="sess" id="s-teach" onclick="go('teach')">
+        <span class="glyph t">讲</span>
+        <span><span class="ttl">斜面上的物块受力分析</span><span class="meta"><span class="tag">牛顿第二定律</span>· 进行中</span></span>
+        <span class="live"></span>
+      </button>
+      <button class="sess" id="s-prac" onclick="go('practice')">
+        <span class="glyph p">练</span>
+        <span><span class="ttl">匀变速直线运动 · 专项 10 题</span><span class="meta"><span class="tag">6 / 10</span>· 正确率 83%</span></span>
+      </button>
+      <div class="grp">昨天</div>
+      <button class="sess"><span class="glyph t">讲</span><span><span class="ttl">弹簧振子的周期为什么与振幅无关</span><span class="meta"><span class="tag">简谐运动</span>· 掌握度 +15%</span></span></button>
+      <button class="sess"><span class="glyph p">练</span><span><span class="ttl">动量守恒 · 综合随机</span><span class="meta"><span class="tag">14 题</span>· 正确率 64%</span></span></button>
+      <div class="grp">过去 7 天</div>
+      <button class="sess"><span class="glyph t">讲</span><span><span class="ttl">圆周运动中向心力的来源</span><span class="meta"><span class="tag">圆周运动</span>· 已结束</span></span></button>
+      <button class="sess"><span class="glyph t">讲</span><span><span class="ttl">功率公式 P=Fv 的适用条件</span><span class="meta"><span class="tag">功和能</span>· 已结束</span></span></button>
+      <button class="sess"><span class="glyph p">练</span><span><span class="ttl">机械能守恒 · 专项 20 题</span><span class="meta"><span class="tag">20 题</span>· 正确率 75%</span></span></button>
+    </div>
+
+    <div class="rail-bottom">
+      <button class="nav" id="n-report" onclick="go('report')"><span class="ico">◔</span> 学习报告 <span class="dot" title="本周周报已生成"></span></button>
+      <button class="nav" id="n-settings" onclick="go('settings')"><span class="ico">⚙</span> 设置</button>
+      <div class="me"><div class="avatar">林</div><div><div class="nm">林小雨</div><div class="sub">连续学习 6 天 · 本周 3h 40m</div></div></div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <main class="main">
+    <header class="topbar">
+      <div class="left"><span class="crumb" id="crumb">新对话</span></div>
+      <div class="seg" id="seg">
+        <div class="thumb"></div>
+        <button class="b-t" onclick="setMode('teaching')"><span class="d"></span>教学</button>
+        <button class="b-p" onclick="setMode('practice')"><span class="d"></span>练习</button>
+      </div>
+      <div class="right">
+        <div class="emo" title="情绪识别运行中，仅用于调整讲解方式"><span class="cam"></span>状态：平稳</div>
+        <button class="iconbtn" id="drawerBtn" onclick="toggleDrawer()" title="本轮依据：知识点 / 画像 / 策略 / 参考题">◫</button>
+        <button class="iconbtn" onclick="toggleTheme()" title="切换主题">◐</button>
+      </div>
+    </header>
+
+    <section class="stage" id="stage">
+
+      <!-- ---------- VIEW: empty (teaching) ---------- -->
+      <div class="view" id="v-empty">
+        <div class="hero">
+          <h1 class="hi">下午好，小雨。<br/>把题目发给我，<em>我们一起把它讲透。</em></h1>
+          <p>文字、拍照、截图都可以。我会先看你在这个知识点上的历史，再决定怎么讲。</p>
+          <div class="chips">
+            <button class="chip" onclick="go('teach')"><span class="k warn">薄弱</span>动量守恒上次正确率 64%，补一道典型题</button>
+            <button class="chip" onclick="go('teach')"><span class="k">续</span>接着昨天的弹簧振子，讲讲能量角度</button>
+            <button class="chip" onclick="setMode('practice')"><span class="k">练</span>匀变速直线运动 · 来 10 道</button>
+            <button class="chip"><span class="k">问</span>为什么摩擦力方向有时和运动方向相同？</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- VIEW: teaching session ---------- -->
+      <div class="view" id="v-teach">
+        <div class="col">
+          <div class="msg user">
+            <div class="who">林</div>
+            <div class="body">
+              <p>一个质量 2kg 的物块放在倾角 30° 的斜面上，μ=0.2，受到沿斜面向上 15N 的拉力。求加速度。我算出来是 2.07 但答案是 1.37，不知道哪里错了。</p>
+              <div class="attach"><span class="thumb"></span>IMG_2031.jpg · 题目原图</div>
+            </div>
+          </div>
+
+          <div class="msg ai">
+            <div class="who">S</div>
+            <div class="body">
+              <details class="trace" open>
+                <summary><span class="ok">✓</span>分析完成 · 用时 3.2s<span class="chev">›</span></summary>
+                <div class="steps">
+                  <div class="step done"><span class="st"></span><span class="nm">知识点分析</span><span class="out"><span class="pill">牛顿第二定律</span><span class="pill">摩擦力</span><span class="pill">受力分解</span></span></div>
+                  <div class="step done"><span class="st"></span><span class="nm">读取你的画像</span><span class="out">摩擦力方向判断近 2 周错 3 次 · 上次学习 4 天前</span></div>
+                  <div class="step done"><span class="st"></span><span class="nm">教学策略</span><span class="out">先让你自己找错，不直接给答案 · 语气鼓励</span></div>
+                  <div class="step done"><span class="st"></span><span class="nm">检索参考题</span><span class="out">命中 2 道相似题 <a onclick="openDrawer('ref')">查看</a></span></div>
+                </div>
+              </details>
+
+              <p>你的过程我看了，受力分解和公式都没问题，差在<b>摩擦力的方向</b>。</p>
+              <p>先别急着看答案，想一下：拉力 15N 沿斜面向上，而重力沿斜面向下的分量是 <span class="math">mg sin30° = 10N</span>。物块现在有向上运动的趋势，还是向下？</p>
+              <p>如果它会往上动，摩擦力应该指向哪边？把这一点改掉再算一遍，看看是不是正好 1.37。</p>
+              <div class="follow">
+                <button>摩擦力应该沿斜面向下</button>
+                <button>我还是不确定趋势怎么判断</button>
+                <button>直接给我完整过程</button>
+              </div>
+              <div class="ai-actions"><button>复制</button><button>重新讲</button><button>讲得太快</button><button>讲得太慢</button></div>
+            </div>
+          </div>
+
+          <div class="msg user">
+            <div class="who">林</div>
+            <div class="body"><p>哦，是向上动，所以摩擦力沿斜面向下，我把它当成向上了。重新算：(15 − 10 − 0.2×2×10×cos30°) / 2 ≈ 0.77？还是不对</p></div>
+          </div>
+
+          <div class="msg ai">
+            <div class="who">S</div>
+            <div class="body">
+              <p>方向这次对了，这是最关键的一步。现在只剩一个数值：<span class="math">cos30° ≈ 0.866</span>，所以摩擦力是 <span class="math">0.2 × 20 × 0.866 ≈ 3.46N</span>，不是 2.3N。</p>
+              <p>代进去：<span class="math">(15 − 10 − 3.46) / 2 ≈ 0.77</span>……等等，你这里算得没错，是我要再核一下题干。你的截图里 μ 写的是 0.2，但第二行小字写了 <span class="math">g = 9.8</span>。用 9.8 重算一遍<span class="cursor"></span></p>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:8px">
+            <div class="hd"><span class="badge t">结束会话</span>这道题你感觉掌握到什么程度？<span class="sp">用于更新你的知识点档案</span></div>
+            <div class="bd">
+              <input class="slider" type="range" min="0" max="100" value="65" />
+              <div class="scale"><span>完全没懂</span><span>能看懂讲解</span><span>能独立做</span><span>能讲给别人</span></div>
+              <div class="qfoot" style="margin-top:14px"><button class="btn pri">结束并保存</button><button class="btn ghost">再问一个</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- VIEW: practice ---------- -->
+      <div class="view" id="v-practice">
+        <div class="col">
+          <!-- setup as a generative card in the thread -->
+          <div class="msg ai">
+            <div class="who">S</div>
+            <div class="body">
+              <p>想练什么？我按你最近的薄弱点预选了一组，直接开始或改一下都行。</p>
+              <div class="card setup">
+                <div class="bd" style="padding:6px 16px">
+                  <div class="row"><div class="lbl">知识点</div><div class="tags">
+                    <span class="tg on">匀变速直线运动 <span class="m">72%</span></span>
+                    <span class="tg on">自由落体 <span class="m">80%</span></span>
+                    <span class="tg">动量守恒 <span class="m">64%</span></span>
+                    <span class="tg">牛顿第二定律 <span class="m">58%</span></span>
+                    <span class="tg add">＋ 从知识树选</span>
+                  </div></div>
+                  <div class="row"><div class="lbl">难度</div><div class="tags"><span class="tg on">基础</span><span class="tg on">中等</span><span class="tg">较难</span></div></div>
+                  <div class="row"><div class="lbl">方式</div><div>
+                    <div class="radio"><button class="on">专项 · 固定题数</button><button>综合 · 一题一题来，可跳过</button></div>
+                    <div class="hint">专项模式不能跳过，每题都会计入掌握度。</div>
+                  </div></div>
+                  <div class="row"><div class="lbl">题数</div><div class="radio"><button>5</button><button class="on">10</button><button>20</button></div></div>
+                </div>
+                <div class="bd" style="border-top:1px solid var(--line-2);display:flex;gap:8px;align-items:center">
+                  <button class="btn acc">开始练习</button><span class="muted" style="font-size:12.5px">预计 12 分钟 · 题库中匹配到 37 题</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pbar">
+            <span class="badge p">专项</span>
+            <span>第 <b>7</b> / 10 题</span>
+            <div class="track"><i class="ok"></i><i class="ok"></i><i class="no"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="cur"></i><i></i><i></i><i></i></div>
+            <span class="timer">00:42</span>
+            <button class="btn ghost" style="padding:4px 8px;font-size:12px">结束</button>
+          </div>
+
+          <!-- answered question (collapsed feedback) -->
+          <div class="msg ai">
+            <div class="who">S</div>
+            <div class="body">
+              <div class="card">
+                <div class="hd"><span class="badge g">第 6 题</span>单选 · 中等<span class="sp">匀变速直线运动 · 用时 38s</span></div>
+                <div class="bd q">
+                  <div class="stem">汽车以 20 m/s 的速度匀速行驶，刹车后做匀减速运动，加速度大小为 5 m/s²。刹车后 6s 内汽车的位移是？</div>
+                  <div class="opts">
+                    <div class="opt right"><span class="l">B</span>40 m</div>
+                  </div>
+                  <div class="fb ok"><div class="ic">✓</div><div><b>正确</b><div class="why">刹车 4s 就停了，后 2s 位移为 0。你没掉进"直接套 6s"的坑，这个坑上周踩过一次。</div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- current question -->
+          <div class="msg ai">
+            <div class="who">S</div>
+            <div class="body">
+              <div class="card">
+                <div class="hd"><span class="badge p">第 7 题</span>单选 · 中等<span class="sp">自由落体</span></div>
+                <div class="bd q">
+                  <div class="stem">一物体从高处自由下落，最后 1s 内下落的高度是 25m，取 g=10 m/s²。物体下落的总时间是？</div>
+                  <div class="opts" id="opts">
+                    <button class="opt" onclick="pick(this)"><span class="l">A</span>2 s</button>
+                    <button class="opt" onclick="pick(this)"><span class="l">B</span>2.5 s</button>
+                    <button class="opt pick" onclick="pick(this)"><span class="l">C</span>3 s</button>
+                    <button class="opt" onclick="pick(this)"><span class="l">D</span>3.5 s</button>
+                  </div>
+                  <div class="qfoot"><button class="btn pri">提交</button><button class="btn ghost" disabled title="专项模式不能跳过">跳过</button><span class="muted" style="margin-left:auto;font-size:12px">按 <kbd>A</kbd>–<kbd>D</kbd> 选择，<kbd>↵</kbd> 提交</span></div>
+                </div>
+              </div>
+              <p class="muted" style="font-size:12.5px;margin-top:10px">卡住了可以直接在下面问我，我会给提示但不会直接给答案。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- VIEW: practice summary ---------- -->
+      <div class="view" id="v-summary">
+        <div class="col">
+          <div class="msg ai">
+            <div class="who">S</div>
+            <div class="body">
+              <p>这组做完了。整体不错，有一个点值得专门讲一下。</p>
+              <div class="card">
+                <div class="hd"><span class="badge p">专项</span>匀变速直线运动 · 10 题<span class="sp">共 11 分 20 秒</span></div>
+                <div class="bd">
+                  <div class="stats">
+                    <div class="stat ok"><div class="v">8</div><div class="k">正确</div></div>
+                    <div class="stat no"><div class="v">2</div><div class="k">错误</div></div>
+                    <div class="stat"><div class="v">41s</div><div class="k">平均用时</div></div>
+                    <div class="stat"><div class="v">+6%</div><div class="k">掌握度变化</div></div>
+                  </div>
+                  <h4 style="margin:18px 0 8px;font-size:13.5px">错题 2 道</h4>
+                  <div class="kp"><span class="badge w">第 3 题</span>刹车问题：没判断停止时间 <span class="bar"><i style="width:60%"></i></span></div>
+                  <div class="kp"><span class="badge w">第 9 题</span>逆向思维：末速度为零的匀减速 <span class="bar"><i style="width:30%"></i></span></div>
+                </div>
+                <div class="bd" style="border-top:1px solid var(--line-2);display:flex;gap:8px">
+                  <button class="btn acc" onclick="setMode('teaching');go('teach')">让我讲讲第 9 题</button>
+                  <button class="btn">再来 10 道</button>
+                  <button class="btn ghost">查看全部题目</button>
+                </div>
+              </div>
+              <p style="margin-top:14px">第 9 题你用了 1 分 50 秒，是这组最久的一题。这类"末速度为零"的题，把它倒过来看成初速度为零的匀加速，会快很多。要不要现在就讲？</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- VIEW: report ---------- -->
+      <div class="view" id="v-report">
+        <div class="report">
+          <div class="rhead">
+            <div><h1>学习报告</h1><div class="sub">近 7 天 · 9 月 29 日 – 10 月 6 日</div></div>
+            <div class="right"><div class="radio"><button class="on">近一周</button><button>全部</button></div><button class="btn">导出 PDF</button></div>
+          </div>
+
+          <div class="insight">
+            <div class="who">S</div>
+            <p>这周你练了 54 题、讲了 4 道。<b>匀变速直线运动</b>从 61% 升到 72%，进步最大。<b>牛顿第二定律</b>连续两次在摩擦力方向上出错，情绪记录显示这两次都偏"受挫"，建议下次从一道简单题开始回暖。</p>
+            <button class="btn" onclick="setMode('teaching');go('empty')">和我聊聊这份报告</button>
+          </div>
+
+          <div class="grid2">
+            <div class="card">
+              <div class="hd">知识点掌握度<span class="sp">活跃 6 个</span></div>
+              <div class="bd" style="padding:6px 16px">
+                <div class="mrow"><div>匀变速直线运动<div class="sub">练 24 · 讲 1 · ↑ 11%</div></div><div class="bar"><i style="width:72%"></i></div><div class="pct">72%</div></div>
+                <div class="mrow"><div>自由落体<div class="sub">练 10 · 讲 0</div></div><div class="bar"><i style="width:80%"></i></div><div class="pct">80%</div></div>
+                <div class="mrow"><div>简谐运动<div class="sub">练 0 · 讲 1 · ↑ 15%</div></div><div class="bar"><i style="width:68%"></i></div><div class="pct">68%</div></div>
+                <div class="mrow"><div>动量守恒<div class="sub">练 14 · 讲 0</div></div><div class="bar"><i style="width:64%"></i></div><div class="pct">64%</div></div>
+                <div class="mrow"><div>牛顿第二定律<div class="sub">练 6 · 讲 2 · 错因：摩擦力方向</div></div><div class="bar"><i class="low" style="width:58%"></i></div><div class="pct">58%</div></div>
+                <div class="mrow"><div>圆周运动<div class="sub">练 0 · 讲 1</div></div><div class="bar"><i style="width:70%"></i></div><div class="pct">70%</div></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div class="card">
+                <div class="hd">学习状态<span class="sp">来自情绪识别</span></div>
+                <div class="bd" style="padding-top:8px">
+                  <div class="spark">
+                    <i style="--h:70%"></i><i style="--h:80%"></i><i style="--h:40%" class="w"></i><i style="--h:35%" class="w"></i><i style="--h:65%"></i><i style="--h:85%"></i><i style="--h:78%"></i>
+                  </div>
+                  <div class="axis"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+                  <div class="hint" style="margin-top:8px">周三、周四两次牛顿第二定律讲解时状态偏低，之后恢复。</div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="hd">最近记录</div>
+                <div class="bd logs" style="padding:4px 16px">
+                  <div><span class="badge t">讲</span>斜面受力分析<span class="badge w">受挫</span><span class="tm">2 小时前</span></div>
+                  <div><span class="badge p">练</span>匀变速 · 10 题<span class="badge p">自信</span><span class="tm">今天 14:10</span></div>
+                  <div><span class="badge t">讲</span>弹簧振子周期<span class="badge g">略犹豫</span><span class="tm">昨天</span></div>
+                  <div><span class="badge p">练</span>动量守恒 · 14 题<span class="badge w">受挫</span><span class="tm">昨天</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- VIEW: settings ---------- -->
+      <div class="view" id="v-settings">
+        <div class="settings">
+          <h1>设置</h1>
+          <div class="card"><div class="bd" style="padding:4px 18px">
+            <div class="srow"><div class="avatar" style="width:40px;height:40px;font-size:15px">林</div><div><div class="t">林小雨</div><div class="d">高二 · 物理 · 学号 #1024</div></div><button class="btn ctl">切换学生</button></div>
+            <div class="srow"><div><div class="t">讲解风格</div><div class="d">默认由教学策略模块决定，你可以手动覆盖</div></div><div class="ctl radio"><button>直接给答案</button><button class="on">引导我自己找</button><button>只给提示</button></div></div>
+            <div class="srow"><div><div class="t">情绪识别</div><div class="d">使用摄像头判断学习状态，只用来调整讲解节奏，画面不上传不保存</div></div><button class="toggle on ctl"></button></div>
+            <div class="srow"><div><div class="t">练习计时提醒</div><div class="d">单题超过 2 分钟时轻提示</div></div><button class="toggle on ctl"></button></div>
+            <div class="srow"><div><div class="t">外观</div><div class="d">跟随系统 / 浅色 / 深色</div></div><div class="ctl radio"><button class="on">跟随系统</button><button onclick="document.body.dataset.theme='light'">浅色</button><button onclick="document.body.dataset.theme='dark'">深色</button></div></div>
+            <div class="srow"><div><div class="t">管理后台</div><div class="d">知识树、题库、学生、数据库（仅教师 / 管理员）</div></div><button class="btn ctl">打开 ↗</button></div>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- composer ---------- -->
+    <div class="composer-wrap" id="composerWrap">
+      <div class="composer">
+        <div class="ctx" id="ctx"></div>
+        <div class="box">
+          <textarea rows="1" id="ta" placeholder="输入题目，或粘贴 / 拖入题目截图…"></textarea>
+          <div class="tools">
+            <button class="iconbtn" title="上传图片 / 拍照">⊕</button>
+            <button class="iconbtn" title="从题库选题">▤</button>
+            <button class="iconbtn" title="语音">◉</button>
+            <span class="modehint" id="modehint">教学模式 · 一题一会话，可持续追问</span>
+            <button class="send" title="发送（↵）">↑</button>
+          </div>
+        </div>
+        <div class="foot">讲解由 AI 生成，关键结论请对照课本核实。</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================== RIGHT DRAWER ===================== -->
+  <aside class="drawer" id="drawer">
+    <div class="in">
+      <div class="dh">本轮依据<button class="iconbtn" onclick="toggleDrawer()">×</button></div>
+      <div class="dtabs">
+        <button class="on" onclick="dtab(this,'d-kp')">知识点</button>
+        <button onclick="dtab(this,'d-profile')">我的画像</button>
+        <button onclick="dtab(this,'d-strat')">策略</button>
+        <button onclick="dtab(this,'d-ref')" id="dtab-ref">参考题</button>
+      </div>
+      <div class="dbody">
+        <div class="dsec" id="d-kp">
+          <div class="sec"><h5>本题涉及</h5>
+            <div class="kp">牛顿第二定律<span class="bar"><i style="width:58%"></i></span><span class="pct">58%</span></div>
+            <div class="kp">摩擦力<span class="bar"><i style="width:52%"></i></span><span class="pct">52%</span></div>
+            <div class="kp">受力分解<span class="bar"><i style="width:81%"></i></span><span class="pct">81%</span></div>
+          </div>
+          <div class="sec"><h5>所属章节</h5><div class="muted" style="font-size:12.5px">力学 › 牛顿运动定律 › 牛顿第二定律的应用</div></div>
+        </div>
+        <div class="dsec" id="d-profile" style="display:none">
+          <div class="sec"><h5>牛顿第二定律 · 历史</h5>
+            <div class="kp">累计练题 <b style="margin-left:auto">6</b></div>
+            <div class="kp">历史错误率 <b style="margin-left:auto">50%</b></div>
+            <div class="kp">上次学习 <b style="margin-left:auto">4 天前</b></div>
+          </div>
+          <div class="sec"><h5>常见错因</h5><div class="strat"><ul style="margin:0;padding-left:16px"><li>摩擦力方向与运动趋势相反，判断反了（3 次）</li><li>cos / sin 分量写反（1 次）</li></ul></div></div>
+          <div class="sec"><h5>情绪轨迹（该知识点）</h5><div class="emoline"><i style="height:70%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:30%"></i><i style="height:45%" class="now"></i></div><div class="hint">近两次偏"受挫"，当前轮次已切换为引导式讲解。</div></div>
+        </div>
+        <div class="dsec" id="d-strat" style="display:none">
+          <div class="sec"><h5>教学策略模块返回</h5><div class="strat"><ol style="margin:0;padding-left:16px"><li>不直接给答案，先让学生定位错误步骤</li><li>聚焦"运动趋势 → 摩擦力方向"这一处，不展开其他</li><li>语气：肯定已做对的部分，再指出问题</li><li>如连续两轮仍错，切换为完整示范</li></ol></div></div>
+          <div class="sec"><h5>注入上下文</h5><div class="muted" style="font-size:12.5px">历史情绪图谱 · 相似题 2 道 · 本会话 4 轮对话</div></div>
+        </div>
+        <div class="dsec" id="d-ref" style="display:none">
+          <div class="sec"><h5>相似题（向量检索）</h5>
+            <div class="ref"><div class="t"><span>#2311 · 中等</span><span>相似度 91%</span></div>质量为 m 的物体在倾角 θ 的粗糙斜面上受沿斜面向上的恒力 F 作用，动摩擦因数 μ……</div>
+            <div class="ref"><div class="t"><span>#1876 · 基础</span><span>相似度 84%</span></div>物块静止在斜面上，判断摩擦力方向并求大小……</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="guide">
+  <span>Demo 导览</span>
+  <button onclick="setMode('teaching');go('empty')">空状态</button>
+  <button onclick="setMode('teaching');go('teach')">教学会话</button>
+  <button onclick="setMode('practice');go('practice')">练习中</button>
+  <button onclick="setMode('practice');go('summary')">练习总结</button>
+  <button onclick="go('report')">报告</button>
+  <button onclick="go('settings')">设置</button>
+  <button onclick="toggleDrawer()">右栏</button>
+  <button onclick="toggleTheme()">主题</button>
+</div>
+
+<script>
+  const crumbs = {
+    empty: '新对话',
+    teach: '<b>斜面上的物块受力分析</b> · 第 4 轮 · 牛顿第二定律',
+    practice: '<b>匀变速直线运动 · 专项 10 题</b> · 进行中',
+    summary: '<b>匀变速直线运动 · 专项 10 题</b> · 已完成',
+    report: '学习报告',
+    settings: '设置',
+  };
+  function go(v) {
+    document.querySelectorAll('.view').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
+    document.getElementById('crumb').innerHTML = crumbs[v];
+    document.getElementById('s-teach').classList.toggle('on', v === 'teach');
+    document.getElementById('s-prac').classList.toggle('on', v === 'practice' || v === 'summary');
+    document.getElementById('n-report').classList.toggle('on', v === 'report');
+    document.getElementById('n-settings').classList.toggle('on', v === 'settings');
+    document.getElementById('composerWrap').style.display = (v === 'report' || v === 'settings') ? 'none' : '';
+    document.getElementById('seg').style.visibility = (v === 'report' || v === 'settings') ? 'hidden' : '';
+    if (v === 'teach') { document.body.dataset.mode = 'teaching'; }
+    if (v === 'practice' || v === 'summary') { document.body.dataset.mode = 'practice'; }
+    refreshComposer(v);
+    document.getElementById('stage').scrollTop = 0;
+  }
+  function setMode(m) {
+    document.body.dataset.mode = m;
+    const cur = document.querySelector('.view.on')?.id.slice(2);
+    if (cur === 'report' || cur === 'settings') return;
+    if (m === 'practice' && (cur === 'empty' || cur === 'teach')) go('practice');
+    if (m === 'teaching' && (cur === 'practice' || cur === 'summary')) go('empty');
+    refreshComposer(document.querySelector('.view.on')?.id.slice(2));
+  }
+  function refreshComposer(v) {
+    const m = document.body.dataset.mode;
+    const ta = document.getElementById('ta'), hint = document.getElementById('modehint'), ctx = document.getElementById('ctx');
+    if (m === 'practice') {
+      ta.placeholder = '卡住了？描述一下你的思路，我给提示…';
+      hint.textContent = '练习模式 · 提问不影响计时结果，但会记录';
+      ctx.innerHTML = '';
+    } else {
+      ta.placeholder = v === 'teach' ? '接着问这道题…' : '输入题目，或粘贴 / 拖入题目截图…';
+      hint.textContent = '教学模式 · 一题一会话，可持续追问';
+      ctx.innerHTML = v === 'teach' ? '<span class="tg">牛顿第二定律 <span class="x">×</span></span><span class="tg">IMG_2031.jpg <span class="x">×</span></span>' : '';
+    }
+  }
+  function toggleDrawer() {
+    const d = document.getElementById('drawer'); d.classList.toggle('open');
+    document.getElementById('drawerBtn').classList.toggle('on', d.classList.contains('open'));
+  }
+  function openDrawer(tab) {
+    const d = document.getElementById('drawer'); if (!d.classList.contains('open')) toggleDrawer();
+    if (tab === 'ref') dtab(document.getElementById('dtab-ref'), 'd-ref');
+  }
+  function dtab(btn, id) {
+    document.querySelectorAll('.dtabs button').forEach(b => b.classList.toggle('on', b === btn));
+    document.querySelectorAll('.dsec').forEach(s => s.style.display = s.id === id ? '' : 'none');
+  }
+  function toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
+  function pick(el) { document.querySelectorAll('#opts .opt').forEach(o => o.classList.remove('pick')); el.classList.add('pick'); }
+
+  const init = new URLSearchParams(location.search);
+  if (init.get('theme')) document.body.dataset.theme = init.get('theme');
+  if (init.get('drawer') === '1') toggleDrawer();
+  go(init.get('view') || 'empty');
+  if (init.get('view') === 'practice' || init.get('view') === 'summary') setMode('practice');
+</script>
+</body>
+</html>
