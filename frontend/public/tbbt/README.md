@@ -23,3 +23,16 @@
 - `atom-orbit-portraits.jpg`：加载动画的轨道参考，不直接使用。
 
 重新生成角色切图：见 `docs/design/tbbt-redesign.md` 中的素材一节。
+
+## 第二批素材（新增素材.zip）
+
+| 目录 | 文件 | 用途 |
+|---|---|---|
+| `illustrations/` | `softkitty-phone.png` `softkitty-cushion.png`（已去白底） | 空状态、情绪低落时的安抚插画 |
+| `illustrations/` | `apartment-isometric.jpg`（作者署名 jettodesu，粉丝作品） | 收藏页背景候选、主页空状态 |
+| `apartment/` | `hallway-set-photo.jpg` 真实片场走廊，电梯贴警戒带 | 登录页背景首选，替代之前的沙发合照 |
+| `apartment/` | `hallway-render.jpg` 俯视走廊建模 | 登录页备选、404 |
+| `apartment/` | `floorplan-render-dark.jpg` `floorplan-render-light.jpg` 整层户型 | 收藏页背景：七个卡位可落在户型图的七个房间上 |
+| `apartment/` | `kitchen-render.jpg` `leonard-bedroom-render.jpg` `sheldon-bathroom-render.jpg` | 练习总结、报告页等区块的淡化背景备选 |
+
+注意：等距插画有作者署名，公开使用需联系授权；3D 建模图来源不明，同样按内部演示处理。
