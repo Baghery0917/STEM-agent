@@ -171,7 +171,7 @@
 - `Settings.tsx` 加讲师行
 - 新建 `pages/student/Cards.tsx`、`components/cards/CardFlip.tsx`、`data/personaCopy.ts`
 - `global.css` 重写 token
-- 素材：七张角色插画、七张剪影、门廊背景、Soft Kitty、猫箱
+- 素材：已整理到 `frontend/public/tbbt/`，见该目录 README。仍缺：Soft Kitty 插画、公寓门廊背景（现用沙发合照替代）
 
 ## 分期
 
@@ -179,8 +179,26 @@
 2. 人格层。一个字段、七份 prompt、讲师切换 UI。一周。
 3. 认可卡。两张表、计分钩子、收藏页、获卡动画。两周，含阈值校准。
 
+## 素材与讲师主题色
+
+角色图统一采用 Funko Pop 风格（`frontend/public/tbbt/`），八人一图切分，自动去底、裁头像、生成剪影。切分脚本按行列投影分割，白底泛洪填充去背景，头像取人物宽度为边的方框。
+
+讲师主题色不从 Funko 图取（玩偶衣着与剧中形象不一致），按剧中标志物手定：
+
+| 讲师 | 主色 | 来源 |
+|---|---|---|
+| Leonard | `#8A6D3B` 卡其 | 常穿的卡其外套 |
+| Penny | `#E0457B` 玫红 | 粉色上衣 |
+| Howard | `#C8322B` 砖红 | 红色格子衬衫、高领毛衣 |
+| Raj | `#5B4A9E` 紫 | 紫色开衫 |
+| Bernadette | `#D9A520` 芥末黄 | 黄色开衫 |
+| Amy | `#5F7A3D` 橄榄绿 | 绿色毛衣 |
+| Sheldon | `#1E8C4A` 绿 | Green Lantern T 恤 |
+
+气泡用主色 12% 透明度做底、主色做头像描边；卡面用主色到深 20% 的渐变。
+
 ## 未定项
 
-- 插画谁画。建议原创风格致敬插画，不用剧照。
+- Funko 玩偶形象的版权归 Funko 与华纳，内部演示可用，公开部署需换原创插画。
 - Penny 当讲师是否成立。可解释为"跟那群人住了十二年"，或换成 Stuart / Leslie Winkle。
 - 阈值校准需真实数据，上线头两周按内部配置放宽。
