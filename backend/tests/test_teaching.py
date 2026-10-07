@@ -1632,4 +1632,4 @@ class TestPersona:
         upset = persona_prompt(Persona.SHELDON, soften=True)
         assert "降温规则" not in calm
         assert "降温规则" in upset
-        assert "不说 Bazinga" in upset
+        assert "不说「逗你玩的」" in upset

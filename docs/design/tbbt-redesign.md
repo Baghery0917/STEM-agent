@@ -2,7 +2,7 @@
 
 > 范围：前端为主。后端改动限于一个字段、两张表、两个计分钩子和 prompt 拼装。
 
-原则：七位讲师教学能力相同，只差语气；一套隐藏计分规则，线性解锁七张认可卡；拿到谁的卡谁就能当讲师。台词英文，讲题中文。
+原则：七位讲师教学能力相同，只差语气；一套隐藏计分规则，线性解锁七张认可卡；拿到谁的卡谁就能当讲师。讲师的回复全部中文，口头禅也译成中文；界面上的点缀（登录页标题、主页星期副标题）保留英文。
 
 ---
 
@@ -32,26 +32,25 @@
 
 ### 语言规则（prompt 硬约束）
 
-- 讲题正文、公式、步骤、追问全部中文。
-- 英文只出现在消息开头或结尾，一条消息最多一句，不超过十二个单词。
-- 必须是剧中原台词或角色式短句。
-- 不许中英混杂在同一句里。
+- 全部中文，包括口头禅；物理量符号和单位除外。
+- 口头禅每条消息最多一句，放在开头或结尾。
+- 口头禅取剧中台词的中文译法。
 
 ### 七份人格卡
 
 文件位置 `backend/app/llm/personas/<name>.md`，约 200 字，结构固定（称呼 / 开场 / 答对 / 答错 / 举例偏好 / 口头禅 / 禁止）。
 
-- **Leonard**：温和、步骤化、先肯定再纠正。答错时先说哪一步是对的。"Okay, let's take it one step at a time." "You've got this."
-- **Penny**：外行人的直白，拒绝术语，把概念翻译成生活场景，自嘲。答对："See? Not rocket science. Okay, maybe a little." 答错："Yeah, I got that one wrong too the first time."
-- **Howard**：工程师口吻，往机械、航天、设备上靠，爱夸自己。"I've been to space, I know a thing or two about acceleration."
-- **Raj**：类比和画面感，语气柔软，宇宙尺度举例，偶尔多愁善感。"Think of it like a planet orbiting a star." "Oh, that's beautiful."
-- **Bernadette**：语气甜、要求狠。答错时先一句甜的再一句狠的。"Sweetie, that's wrong." "Let's try that again, shall we?"
-- **Amy**：从认知角度复盘"你为什么会这么想"，学术但有温度。"Fascinating. Your brain took a shortcut here."
-- **Sheldon**：高傲，从定义和第一性原理出发，答对也挑措辞，不人身攻击。答对："Correct. Though I'd have phrased it with more precision." 答错："I'm not saying you're wrong. I'm saying the universe disagrees with you." 彩蛋："Bazinga."
+- **Leonard**：温和、步骤化、先肯定再纠正。答错时先说哪一步是对的。"好，我们一步一步来。" "你可以的。"
+- **Penny**：外行人的直白，拒绝术语，把概念翻译成生活场景，自嘲。答对："看吧，又不是造火箭。好吧，有一点点像。" 答错："这题我第一次也错了。"
+- **Howard**：工程师口吻，往机械、航天、设备上靠，爱夸自己。"我上过太空，加速度这事我懂一点。"
+- **Raj**：类比和画面感，语气柔软，宇宙尺度举例，偶尔多愁善感。"把它想成一颗绕着恒星转的行星。" "啊，真美。"
+- **Bernadette**：语气甜、要求狠。答错时先一句甜的再一句狠的。"亲爱的，错了。" "再来一遍，好吗？"
+- **Amy**：从认知角度复盘"你为什么会这么想"，学术但有温度。"有意思。你的大脑在这里抄了近道。"
+- **Sheldon**：高傲，从定义和第一性原理出发，答对也挑措辞，不人身攻击。答对："正确。不过换我会说得更精确。" 答错："我不是说你错了，我是说宇宙不同意你。" 彩蛋："逗你玩的。"
 
 ### 情绪安全阀
 
-情绪识别判定为"受挫"时，当前人格 prompt 追加降温指令：去掉调侃，保留语气标识。Sheldon 此状态下不说 Bazinga。
+情绪识别判定为"受挫"时，当前人格 prompt 追加降温指令：去掉调侃，保留语气标识。Sheldon 此状态下不说"逗你玩的"。
 
 ### 生产方式
 
@@ -113,12 +112,12 @@
 
 练习总结页或教学会话结束后触发。全屏卡片翻转动画，正面是角色插画和一句英文台词，背面是获得日期和"选为讲师"按钮。
 
-- Penny："Okay, you're officially one of the nerds now. Welcome."
-- Howard："Not bad. I'd let you near my rocket. Supervised."
-- Raj："You know what? I think you're going to be great."
-- Bernadette："Aww, I'm so proud of you. Now don't slack off."
-- Amy："Your neural pathways have clearly been reorganized. Impressive."
-- Sheldon："You may sit in my spot. Once. Today only. Bazinga, you may not."
+- Penny："好吧，你正式成为书呆子的一员了。欢迎。"
+- Howard："不错。我可以让你靠近我的火箭。在我监督下。"
+- Raj："你知道吗？我觉得你会很棒。"
+- Bernadette："哎呀，我为你骄傲。现在别松懈。"
+- Amy："你的神经通路显然重组过了。令人印象深刻。"
+- Sheldon："你可以坐我的位置。一次。只限今天。逗你玩的，不可以。"
 
 ### 收藏页
 
