@@ -33,7 +33,7 @@ export default function ProgressBar({
               i === index ? 'cur' : '',
               starred.has(questionIds[i]) ? 'star' : '',
             ].join(' ');
-            return <button type="button" key={i} className={cls} title={`第 ${i + 1} 题`} onClick={() => onJump(i)} />;
+            return <button type="button" key={i} className={cls} title={`第 ${i + 1} 题`} onClick={() => onJump(i)}><i>{i + 1}F</i></button>;
           })}
         </div>
         {revealed

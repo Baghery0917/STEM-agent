@@ -34,7 +34,8 @@ export const personaFigure = (key: PersonaKey) => `${base()}tbbt/characters/${ke
 
 /** 系统文案由当前讲师配音。英文一句，中文正文。不走 LLM。 */
 interface PersonaCopy {
-  /** 主页空状态：标题强调句 */
+  /** 主页空状态：问候后的整句，em 是强调部分 */
+  heroLead: string;
   heroEm: string;
   /** 主页空状态：副标题 */
   heroSub: string;
@@ -48,6 +49,7 @@ interface PersonaCopy {
 
 export const PERSONA_COPY: Record<PersonaKey, PersonaCopy> = {
   leonard: {
+    heroLead: '把题目发给我，',
     heroEm: '我们一起把它讲透。',
     heroSub: '一步一步来。文字、拍照、截图都可以，我先看你在这个知识点上的历史，再决定怎么讲。',
     overtime: '不急，卡住了就先星标，做完一起问。',
@@ -55,27 +57,31 @@ export const PERSONA_COPY: Record<PersonaKey, PersonaCopy> = {
     modeHint: '教学模式 · Leonard · 一题一会话，可持续追问',
   },
   penny: {
-    heroEm: '用人话讲给你听。',
+    heroLead: '题目丢过来，',
+    heroEm: '我用人话讲给你听。',
     heroSub: '说人话。题目发过来，我不用术语，用你听得懂的方式讲。',
     overtime: '亲爱的，别死磕，星标它，做完再问。',
     summary: { high: '看吧，又不是造火箭。这组全对，像那群书呆子了。', mid: '不错啊亲爱的，错的那几道换个说法就明白了。', low: '这几题我第一次也错了，咱们从头来。' },
     modeHint: '教学模式 · Penny · 不说术语，只说人话',
   },
   howard: {
-    heroEm: '像工程师一样拆开它。',
+    heroLead: '把题发过来，',
+    heroEm: '我们像工程师一样拆开它。',
     heroSub: '我上过太空。把题发给我，我告诉你这玩意儿在真实装置里长什么样。',
     overtime: '休斯顿，我们有麻烦了。超过两分钟了，星标它继续推进。',
     summary: { high: 'NASA 可能会要你。可能。这组很漂亮。', mid: '工程上过得去，错的几道是参数没对上。', low: '卫星就是这么掉下来的。我们回到图纸重来。' },
     modeHint: '教学模式 · Howard · 从装置反推原理',
   },
   raj: {
-    heroEm: '先想象一个画面。',
+    heroLead: '把题发给我，',
+    heroEm: '我们先想象一个画面。',
     heroSub: '把它想成一颗绕着恒星转的行星。把题发给我，我先给你一个画面，再给公式。',
     overtime: '没关系，宇宙也让人困惑。先星标，不急。',
     summary: { high: '啊，真美。这组做得像星图一样整齐。', mid: '好的朋友，错的几道我们换个画面看。', low: '宇宙很有耐心。我们慢慢来，先看一道。' },
     modeHint: '教学模式 · Raj · 先画面后公式',
   },
   bernadette: {
+    heroLead: '题目发过来，',
     heroEm: '做对为止。',
     heroSub: '亲爱的，先说甜的，再说狠的。把题发过来。',
     overtime: '亲爱的，两分钟了。星标，下一题。',
@@ -83,13 +89,15 @@ export const PERSONA_COPY: Record<PersonaKey, PersonaCopy> = {
     modeHint: '教学模式 · Bernadette · 甜一句狠一句',
   },
   amy: {
-    heroEm: '看看你的脑子是怎么想的。',
+    heroLead: '把题和你的想法一起发给我，',
+    heroEm: '我想看看你的脑子是怎么想的。',
     heroSub: '有意思。把题和你的想法一起发给我，我关心的是你为什么会这么想。',
     overtime: '你的大脑在绕圈。停一下，星标它，换下一题。',
     summary: { high: '有意思，你这组的思维路径很干净。', mid: '你的大脑抄了几条近道，我们看看是哪几条。', low: '有趣的模式。错题之间有共同的近道，我们找出来。' },
     modeHint: '教学模式 · Amy · 复盘思维路径',
   },
   sheldon: {
+    heroLead: '题目发过来。',
     heroEm: '从定义开始。',
     heroSub: '我没疯，我妈带我做过检查。把题发给我，先把定义说清楚，再谈解法。',
     overtime: '两分钟。那是我的位置，这是你的上限。星标，继续。',

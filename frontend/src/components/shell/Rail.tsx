@@ -8,9 +8,11 @@ import { useKnowledgeTree } from '@/hooks/useKnowledgeTree';
 import { useDebounced } from '@/hooks/useDebounced';
 import { searchSessions } from '@/api/reports';
 import { groupLabel, shortTime } from '@/utils/time';
-import { IconAtom, IconCouch, IconKey, IconThermostat } from '@/components/theme/Icons';
+import { IconAtom, IconCouch, IconKey, IconThermostat, IconWhiteboard } from '@/components/theme/Icons';
 import { EMPTY } from '@/theme/copy';
 import SoftKitty from '@/components/theme/SoftKitty';
+import PersonaAvatar from '@/components/theme/PersonaAvatar';
+import { personaByKey } from '@/theme/personas';
 
 const GROUP_ORDER = ['今天', '昨天', '过去 7 天', '更早'] as const;
 
@@ -85,7 +87,7 @@ export default function Rail() {
               const path = h.kind === 'teaching' ? `/teaching/${h.id}` : `/practice/${h.id}`;
               return (
                 <button type="button" key={`${h.kind}-${h.id}`} className={`sess ${activeKey === path ? 'on' : ''}`} onClick={() => navigate(path)}>
-                  <span className={`glyph ${h.kind === 'teaching' ? 't' : 'p'}`}>{h.kind === 'teaching' ? '讲' : '练'}</span>
+                  <span className={`glyph ${h.kind === 'teaching' ? 't' : 'p'}`}>{h.kind === 'teaching' ? <IconAtom width={13} height={13} /> : <IconWhiteboard width={13} height={13} />}</span>
                   <span style={{ minWidth: 0 }}>
                     <span className="ttl">{h.title}</span>
                     <span className="meta snippet">{highlight(h.snippet, debounced)}</span>
@@ -109,7 +111,7 @@ export default function Rail() {
                   const live = it.kind === 'teaching' ? it.data.status === 'active' : !it.data.ended_at;
                   return (
                     <button type="button" key={`${it.kind}-${it.id}`} className={`sess ${on ? 'on' : ''}`} onClick={() => navigate(path)}>
-                      <span className={`glyph ${it.kind === 'teaching' ? 't' : 'p'}`}>{it.kind === 'teaching' ? '讲' : '练'}</span>
+                      <span className={`glyph ${it.kind === 'teaching' ? 't' : 'p'}`}>{it.kind === 'teaching' ? <IconAtom width={13} height={13} /> : <IconWhiteboard width={13} height={13} />}</span>
                       <span style={{ minWidth: 0 }}>
                         <span className="ttl">{titleOf(it, tree.data?.sectionById)}</span>
                         <span className="meta">{metaOf(it)}</span>
@@ -140,6 +142,10 @@ export default function Rail() {
             <div className="nm">{student?.name}</div>
             <div className="sub">学号 #{student?.id}</div>
           </div>
+          <button type="button" className="tutor" title="当前讲师 · 点击去换" onClick={() => navigate('/settings')}>
+            <PersonaAvatar persona={student?.persona} size={26} />
+            <span>{personaByKey(student?.persona).name}</span>
+          </button>
         </div>
       </div>
     </aside>

@@ -44,7 +44,8 @@ export default function PracticeSetup() {
     <>
       <TopBar crumb="新练习" />
       <section className="stage">
-        <div className="pempty">
+        <div className="pempty with-art">
+          <img className="art" src={`${import.meta.env.BASE_URL}tbbt/illustrations/apartment-isometric.jpg`} alt="" draggable={false} />
           <h1 className="hi">开始一次练习</h1>
           <p>在下面设置范围和参数，确认后开始出题。做题途中任何一题都可以跳过；不计时时任何一题都可以一键转到教学模式追问。</p>
           {recentList.length > 0 && (

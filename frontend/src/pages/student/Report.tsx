@@ -51,7 +51,7 @@ export default function Report() {
 
           {r && (
             <>
-              <div className="insight">
+              <div className="insight starry" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}tbbt/backgrounds/starfield.jpg)` }}>
                 <div className="who"><IconAtom width={16} height={16} /></div>
                 <p>
                   {r.summary

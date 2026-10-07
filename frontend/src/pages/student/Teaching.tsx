@@ -24,7 +24,7 @@ import Message from '@/components/teaching/Message';
 import SelfRate from '@/components/teaching/SelfRate';
 import HandoffCard from '@/components/teaching/HandoffCard';
 import { WEEKDAY_LINES } from '@/theme/copy';
-import { DEFAULT_PERSONA, PERSONA_COPY, personaByKey, type PersonaKey } from '@/theme/personas';
+import { DEFAULT_PERSONA, PERSONA_COPY, personaByKey, personaFigure, type PersonaKey } from '@/theme/personas';
 import PersonaAvatar from '@/components/theme/PersonaAvatar';
 
 interface HandoffState {
@@ -347,9 +347,10 @@ function EmptyHero({ studentId, studentName, persona }: { studentId: number; stu
   const sectionCount = tree.data?.sections.length ?? 0;
 
   return (
-    <div className="hero">
+    <div className="hero with-figure">
+      <img className="figure" src={personaFigure((persona ?? DEFAULT_PERSONA) as PersonaKey)} alt="" draggable={false} />
       <h1 className="hi">
-        {greet}，{studentName}。<br />把题目发给我，<em>{copy.heroEm}</em>
+        {greet}，{studentName}。<br />{copy.heroLead}<em>{copy.heroEm}</em>
       </h1>
       <div className="weekday">{weekdayLine}</div>
       <p>{copy.heroSub}</p>
