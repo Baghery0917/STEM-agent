@@ -51,7 +51,7 @@ export default function PracticeSetup() {
             <p>选好实验范围和节奏，电梯会带你逐层完成题目。卡住可以先做标记，不计时时还能随时敲开教学房间追问。</p>
             {recentList.length > 0 && (
               <>
-                <div className="grp" style={{ paddingLeft: 0 }}>最近的练习</div>
+                <div className="grp">Recent · 最近的练习</div>
                 <div className="recent col1">
                   {recentList.map((s) => {
                     const names = s.knowledge_point_ids.map((id) => tree.data?.sectionById.get(id)?.title).filter(Boolean) as string[];

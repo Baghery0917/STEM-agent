@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import StudentLayout from '@/layouts/StudentLayout';
 import AdminLayout from '@/layouts/AdminLayout';
 import Login from '@/pages/Login';
+import Landing from '@/pages/Landing';
 import Teaching from '@/pages/student/Teaching';
 import PracticeSetup from '@/pages/student/PracticeSetup';
 import PracticeRunner from '@/pages/student/PracticeRunner';
@@ -17,10 +18,10 @@ import NotFound from '@/pages/NotFound';
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
 
       <Route element={<StudentLayout />}>
-        <Route index element={<Navigate to="/teaching" replace />} />
         <Route path="/home" element={<Navigate to="/teaching" replace />} />
         <Route path="/teaching" element={<Teaching />} />
         <Route path="/teaching/:sessionId" element={<Teaching />} />

@@ -73,7 +73,7 @@ export default function SetupPanel({ studentId, suggested, preselect, loading, o
         <div className={`setup-panel ${inline ? 'with-cover' : ''}`}>
           {inline && <img className="cover" src={`${import.meta.env.BASE_URL}tbbt/backgrounds/four-heads-cream.jpg`} alt="" draggable={false} />}
           <div className="sh">
-            练习参数
+            <b>练习参数</b>
             <span className="sp">范围按薄弱点预选，可改</span>
           </div>
 

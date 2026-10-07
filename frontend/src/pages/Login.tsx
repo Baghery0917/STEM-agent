@@ -94,10 +94,10 @@ export default function Login() {
         <div className="scene" style={sceneStyle}>
           <img className="bg" src={`${base}tbbt/apartment/hallway-set-photo.jpg`} alt="" draggable={false} />
           <div className="veil" />
-          <div className="topline">
+          <button type="button" className="topline" onClick={() => navigate('/')} title="回到首页">
             <BrandMark size={34} />
             <span className="wordmark"><span className="w1">STEM</span><span className="w2">Agent</span></span>
-          </div>
+          </button>
 
           <div className={`door ${knocks ? `k${knocks}` : ''}`} style={doorStyle}>
             {/* 两扇门板：开门时左右滑开 */}

@@ -186,6 +186,13 @@
 
 ---
 
+## 四、落地页与字体（2026-10-08 加）
+
+- 路由 `/` 改为长滚动落地页 `pages/Landing.tsx`，右上角 Login 才进电梯门登录页；已登录的按钮直接回 4A。三个板块：大字墙（九行 STEM AGENT 描边循环滚动，鼠标所在行实心，参考 mimo.xiaomi.com）、物理界的新闻（`theme/landing.ts` 静态列表，手动更新）、生活大爆炸冷知识（横向滑轨，每条带集号或来源）。附七位讲师一排和 Knock, knock, knock 页脚。
+- 字体：展示字体 Fraunces（拉丁）+ 思源宋体（中文），正文 Inter + 苹方，等宽 SF Mono；三者都是 CSS 变量 `--font-display / --font-ui / --font-mono`。Google Fonts 走 `index.html` 的 link。
+- 动画：`hooks/useReveal.ts` 给 `[data-reveal]` 元素做滚动入场（scroll 事件判定，不依赖 IntersectionObserver）；章节页的 hero 与各 section 依次入场；按钮、标签、卡片都有 hover/active 微动；徽章点亮弹一下。
+- 练习参数页重排：标签和分段按钮统一 28px 高，参数行左标签改等宽小字并与控件基线对齐，两栏分隔线只保留竖线，顶图裁成 84px 细条。
+
 ## 后端改动清单
 
 1. `students` 表加 `persona` 字段，枚举七值，可空，空等于 Leonard。
