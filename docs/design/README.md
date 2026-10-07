@@ -27,9 +27,10 @@
 
 直达路由（hash）：
 
-- `#/login` 选择学生
+- `#/login` 选择学生；「教师 / 管理员」页签的预览口令是 `admin`
 - `#/teaching` 新对话 · `#/teaching/12` 进行中的会话
-- `#/practice/new` 练习参数 · `#/practice/7` 做题中 · `#/practice/5` 已完成的练习回顾
+- `#/practice/new` 练习参数 · `#/practice/7` 做题中（计时 · 统一批改） · `#/practice/5` 已完成的练习回顾
+- 左栏搜索框试试「摩擦」；报告页点「让评价处点评」
 - `#/report` 学习报告 · `#/settings` 设置
 
 重新生成：
