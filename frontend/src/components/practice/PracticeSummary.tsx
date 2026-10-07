@@ -4,6 +4,7 @@ import { fmtDuration } from '@/utils/time';
 import { useStudentStore } from '@/stores/studentStore';
 import { DEFAULT_PERSONA, PERSONA_COPY, type PersonaKey } from '@/theme/personas';
 import PersonaAvatar from '@/components/theme/PersonaAvatar';
+import SoftKitty from '@/components/theme/SoftKitty';
 
 interface Props {
   session: PracticeSessionResponse;
@@ -62,7 +63,7 @@ export default function PracticeSummary({ session, questions, items, scope, onRe
           {totalSec != null && <span className="muted">· 共 {fmtDuration(totalSec)}</span>}
         </div>
         <div className="qb">
-          <div className="voice"><PersonaAvatar persona={persona} size={26} /><span>{copy.summary[voice]}</span></div>
+          <div className="voice"><PersonaAvatar persona={persona} size={26} /><span>{copy.summary[voice]}</span>{voice === 'low' && <SoftKitty compact variant="cushion" />}</div>
           <div className="stats">
             <div className="stat ok"><div className="v">{session.correct_count}</div><div className="k">正确{rate != null ? ` · ${rate}%` : ''}</div></div>
             <div className="stat no"><div className="v">{session.wrong_count}</div><div className="k">错误</div></div>

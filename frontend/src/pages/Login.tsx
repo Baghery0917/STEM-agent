@@ -96,7 +96,7 @@ export default function Login() {
           <div className="veil" />
           <div className="topline">
             <BrandMark size={34} />
-            <span className="wordmark">STEM <span>Agent</span></span>
+            <span className="wordmark"><span className="w1">STEM</span><span className="w2">Agent</span></span>
           </div>
 
           <div className={`door ${knocks ? `k${knocks}` : ''}`} style={doorStyle}>

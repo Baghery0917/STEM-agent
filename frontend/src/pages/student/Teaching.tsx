@@ -27,6 +27,7 @@ import { todayTheme } from '@/theme/weekday';
 import WeekdayIcon from '@/components/theme/WeekdayIcon';
 import { DEFAULT_PERSONA, PERSONA_COPY, personaByKey, personaFigure, type PersonaKey } from '@/theme/personas';
 import PersonaAvatar from '@/components/theme/PersonaAvatar';
+import SoftKitty from '@/components/theme/SoftKitty';
 
 interface HandoffState {
   practiceSessionId: number;
@@ -271,6 +272,9 @@ export default function Teaching() {
               />
             </div>
           ))}
+          {isActive && latestEmotion != null && latestEmotion >= 3 && (
+            <div className="comfort"><SoftKitty compact variant="cushion" text="卡住很正常。先停一下，我们一小步一小步来。" /></div>
+          )}
           <div ref={bottomRef} />
         </div>
       </section>

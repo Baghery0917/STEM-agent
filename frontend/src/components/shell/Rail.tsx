@@ -56,7 +56,7 @@ export default function Rail() {
     <aside className="rail">
       <div className="brand">
         <BrandMark size={30} />
-        <b className="wordmark">STEM <span>Agent</span></b>
+        <b className="wordmark"><span className="w1">STEM</span><span className="w2">Agent</span></b>
         <span className="ver">{student?.name ?? ''}</span>
       </div>
       <button type="button" className="new-btn" onClick={newSession}>
@@ -82,7 +82,7 @@ export default function Rail() {
               {search.isFetching ? '搜索中…' : `${search.data?.hits.length ?? 0} 个结果`}
             </div>
             {search.data?.hits.length === 0 && !search.isFetching && (
-              <div className="sess-empty">没有包含「{debounced}」的会话</div>
+              <SoftKitty compact variant="cushion" text={`没有包含「${debounced}」的会话`} />
             )}
             {search.data?.hits.map((h) => {
               const path = h.kind === 'teaching' ? `/teaching/${h.id}` : `/practice/${h.id}`;
