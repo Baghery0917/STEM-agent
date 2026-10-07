@@ -271,21 +271,6 @@ export default function PracticeRunner() {
       <section className="stage">
         <div className="prun">
         <div className="pwrap">
-          <ProgressBar
-            timed={session.timed}
-            index={index}
-            total={questions.length}
-            states={stateList}
-            starred={starred}
-            questionIds={questions.map((q) => q.id)}
-            correct={session.correct_count}
-            wrong={session.wrong_count}
-            skipped={session.skip_count}
-            elapsedSec={elapsed}
-            revealed={session.instant_feedback || ended}
-            onJump={setIndex}
-            onEnd={() => (ended ? setShowSummary(true) : confirmEnd())}
-          />
           {current && (
             <QuestionCard
               index={index}
@@ -311,6 +296,21 @@ export default function PracticeRunner() {
             {ended ? '练习已结束 · 这是回顾' : session.timed ? '计时中 · 做完统一批改，卡住就星标' : session.instant_feedback ? '不计时 · 每题即时反馈，随时可以转去提问' : '不计时 · 做完统一批改，随时可以转去提问'}
           </div>
         </div>
+          <ProgressBar
+            timed={session.timed}
+            index={index}
+            total={questions.length}
+            states={stateList}
+            starred={starred}
+            questionIds={questions.map((q) => q.id)}
+            correct={session.correct_count}
+            wrong={session.wrong_count}
+            skipped={session.skip_count}
+            elapsedSec={elapsed}
+            revealed={session.instant_feedback || ended}
+            onJump={setIndex}
+            onEnd={() => (ended ? setShowSummary(true) : confirmEnd())}
+          />
         </div>
       </section>
       <div className="composer-wrap">

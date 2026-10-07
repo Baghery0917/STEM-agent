@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { fmtClock } from '@/utils/time';
 import type { ItemState } from './QuestionCard';
 import PersonaAvatar from '@/components/theme/PersonaAvatar';
@@ -24,6 +25,10 @@ export default function ProgressBar({
   timed, index, total, states, starred, questionIds, correct, wrong, skipped, elapsedSec, revealed, onJump, onEnd,
 }: Props) {
   const done = states.filter((s) => s.kind !== 'pending').length;
+  const shaftRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    shaftRef.current?.querySelector('.floor.cur')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [index]);
   const floors = states.map((s, i) => ({ s, i })).reverse();
   return (
     <aside className={`elevator ${timed ? 'timed' : ''}`}>
@@ -33,7 +38,7 @@ export default function ProgressBar({
         <span className="lbl">{timed ? '计时中' : '不计时'}</span>
       </div>
 
-      <div className="shaft" role="tablist" aria-label="题目">
+      <div className="shaft" ref={shaftRef} role="tablist" aria-label="题目">
         {floors.map(({ s, i }) => {
           const cls = [
             'floor',

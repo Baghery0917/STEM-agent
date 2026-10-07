@@ -67,7 +67,6 @@ export default function PracticeSetup() {
                 </div>
               </>
             )}
-            <img className="art" src={`${import.meta.env.BASE_URL}tbbt/backgrounds/four-heads-cream.jpg`} alt="" draggable={false} />
           </div>
           <div className="right">
             <SetupPanel
