@@ -68,14 +68,18 @@ export default function Login() {
     <div className="agent">
       <div className="login hallway" style={{ backgroundImage: `url(${base}tbbt/apartment/hallway-set-photo.jpg)` }}>
         <div className="veil" />
-        <div className="glass">
+        <div className="topline">
+          <span className="brandmark"><IconAtom width={18} height={18} /></span>
+          <span>STEM Agent</span>
+        </div>
+        <div className="float">
+          <div className="kicker">{LOGIN.title} · Pasadena</div>
+          <h1>{tab === 'student' ? LOGIN.headline : LOGIN.teacherTab}</h1>
           <div className="knock" aria-live="polite">
             {[1, 2, 3].map((n) => (
               <span key={n} className={knocks >= n ? 'on' : ''}>{name.trim() || '…'}?</span>
             ))}
           </div>
-          <div className="plate"><IconAtom width={16} height={16} /><span>{LOGIN.title}</span></div>
-          <h1>STEM Agent</h1>
           <div className="tabs">
             <button type="button" className={tab === 'student' ? 'on' : ''} onClick={() => setTab('student')}>学生</button>
             <button type="button" className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>教师 / 管理员</button>
@@ -111,7 +115,6 @@ export default function Login() {
             </>
           ) : (
             <>
-              <div className="plate agreement">{LOGIN.teacherTab}</div>
               <div className="sub">{LOGIN.teacherSub}</div>
               <label className="fld">
                 <span>口令</span>

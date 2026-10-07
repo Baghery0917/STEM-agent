@@ -515,69 +515,76 @@ body {
 .kitty.compact { padding: 18px 8px 10px; }
 .kitty.compact img { width: 96px; }
 
-/* ---------- 登录页：公寓走廊 + 毛玻璃 ---------- */
+/* ---------- 登录页：满幅走廊 + 漂浮纸卡 ---------- */
 .login.hallway {
-  position: relative; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  position: relative; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr); align-items: center;
+  padding: 0 0 0 clamp(24px, 8vw, 120px); overflow: hidden;
   background-size: cover; background-position: center 42%; background-color: #2a2118;
 }
 .login.hallway .veil {
   position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(180deg, rgba(20,14,8,.25) 0%, rgba(20,14,8,.10) 45%, rgba(20,14,8,.45) 100%);
+  background:
+    linear-gradient(90deg, rgba(30,20,10,.55) 0%, rgba(30,20,10,.25) 40%, rgba(30,20,10,.05) 70%),
+    linear-gradient(180deg, rgba(30,20,10,.35) 0%, rgba(30,20,10,0) 30%, rgba(30,20,10,.35) 100%);
 }
-.login .glass {
-  position: relative; width: 400px; max-width: 100%; padding: 30px 32px 24px;
-  border-radius: 22px;
-  background: linear-gradient(160deg, rgba(255,250,240,.58), rgba(255,250,240,.38));
-  -webkit-backdrop-filter: blur(22px) saturate(1.35); backdrop-filter: blur(22px) saturate(1.35);
-  border: 1px solid rgba(255,255,255,.55);
-  box-shadow: 0 30px 60px -24px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(120,90,40,.12);
-  color: #2a2118;
+.login .topline {
+  position: absolute; top: 26px; left: clamp(24px, 8vw, 120px); display: flex; align-items: center; gap: 10px;
+  color: #fff3d6; font-weight: 600; font-size: 14px; letter-spacing: .2px; text-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+.login .topline .brandmark { width: 30px; height: 30px; border-radius: 9px; background: var(--lantern); color: #fffdf8; display: grid; place-items: center; box-shadow: 0 6px 16px -6px rgba(0,0,0,.6); }
+.login .float {
+  position: relative; width: 420px; max-width: calc(100vw - 48px); padding: 36px 36px 28px;
+  border-radius: 20px; background: #fbf6ea; color: #2a2118;
+  box-shadow: 0 50px 90px -30px rgba(40,24,8,.65), 0 20px 40px -24px rgba(40,24,8,.45), 0 1px 0 rgba(255,255,255,.6) inset;
+  animation: float-in .6s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes float-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.login .kicker {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 2.2px; text-transform: uppercase;
+  color: #b8860b; margin-bottom: 10px;
+}
+.login h1 {
+  font-family: "Iowan Old Style", "Palatino", "Songti SC", "Noto Serif SC", Georgia, serif;
+  font-size: 34px; font-weight: 500; letter-spacing: -.4px; line-height: 1.1; margin: 0 0 10px; color: #2a2118;
 }
 .login .knock {
-  display: flex; gap: 12px; height: 20px; margin-bottom: 14px;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; font-weight: 600; letter-spacing: .3px;
-  color: #5a4630;
+  display: flex; gap: 12px; height: 18px; margin-bottom: 18px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; font-weight: 600; letter-spacing: .3px; color: #8a7458;
 }
 .login .knock span { opacity: 0; transform: translateY(3px); transition: opacity .18s, transform .18s; }
 .login .knock span.on { opacity: 1; transform: none; }
 .login .knock span::before { content: "·"; margin-right: 6px; color: var(--mustard); }
-.login .plate {
-  display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; margin-bottom: 8px;
-  border-radius: 999px; background: rgba(42,33,24,.08); color: #5a4630; border: 1px solid rgba(42,33,24,.12);
-  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase;
-}
-.login .plate.agreement { margin-top: 4px; }
-.login h1 { font-size: 26px; font-weight: 600; letter-spacing: -.5px; margin: 0 0 14px; color: #2a2118; }
-.login .tabs { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: rgba(42,33,24,.08); margin-bottom: 18px; }
-.login .tabs button { flex: 1; padding: 7px 10px; border-radius: 9px; font-size: 13px; font-weight: 500; color: #5a4630; transition: .15s; }
-.login .tabs button.on { background: rgba(255,253,248,.85); color: #2a2118; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-.login .sub { font-size: 13px; color: #5a4630; margin-bottom: 16px; line-height: 1.5; }
+.login .tabs { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: #efe6d2; margin-bottom: 18px; }
+.login .tabs button { flex: 1; padding: 7px 10px; border-radius: 999px; font-size: 13px; font-weight: 500; color: #6b583f; transition: .15s; }
+.login .tabs button.on { background: #fffdf8; color: #2a2118; box-shadow: 0 1px 2px rgba(60,40,10,.12); }
+.login .sub { font-size: 13.5px; color: #6b583f; margin-bottom: 18px; line-height: 1.55; }
 .login .fld { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.login .fld > span { font-size: 11.5px; font-weight: 500; color: #7a6650; letter-spacing: .2px; }
+.login .fld > span { font-size: 11px; font-weight: 600; color: #8a7458; letter-spacing: 1px; text-transform: uppercase; }
 .login .fld input {
-  width: 100%; padding: 11px 14px; border-radius: 12px; font: inherit; font-size: 15px; color: #2a2118; outline: 0;
-  background: rgba(255,253,248,.72); border: 1px solid rgba(42,33,24,.14);
-  box-shadow: inset 0 1px 2px rgba(0,0,0,.04); transition: .15s;
+  width: 100%; padding: 12px 16px; border-radius: 999px; font: inherit; font-size: 15px; color: #2a2118; outline: 0;
+  background: #fffdf8; border: 1px solid #e3d7bf; transition: .15s;
 }
-.login .fld input::placeholder { color: #a3927f; }
-.login .fld input:focus { background: rgba(255,253,248,.92); border-color: var(--lantern); box-shadow: 0 0 0 3px rgba(30,140,74,.18); }
+.login .fld input::placeholder { color: #ab9a82; }
+.login .fld input:focus { border-color: var(--lantern); box-shadow: 0 0 0 4px rgba(30,140,74,.14); }
 .login .fld input:disabled { opacity: .7; }
-.login .seg3 { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(42,33,24,.08); }
-.login .seg3 button { flex: 1; padding: 6px; border-radius: 8px; font-size: 12.5px; color: #5a4630; }
-.login .seg3 button.on { background: rgba(255,253,248,.85); color: #2a2118; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.login .seg3 { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: #efe6d2; }
+.login .seg3 button { flex: 1; padding: 6px; border-radius: 999px; font-size: 12.5px; color: #6b583f; }
+.login .seg3 button.on { background: #fffdf8; color: #2a2118; box-shadow: 0 1px 2px rgba(60,40,10,.12); }
 .login .enter {
-  width: 100%; padding: 12px; margin-top: 4px; border-radius: 12px; font-size: 14.5px; font-weight: 600; letter-spacing: .2px;
-  color: #fffdf8; background: var(--lantern); box-shadow: 0 8px 20px -8px rgba(30,140,74,.7), inset 0 1px 0 rgba(255,255,255,.25);
-  transition: .15s;
+  width: 100%; padding: 13px; margin-top: 6px; border-radius: 999px; font-size: 14.5px; font-weight: 600; letter-spacing: .3px;
+  color: #fffdf8; background: var(--lantern); box-shadow: 0 14px 28px -12px rgba(30,140,74,.8); transition: .15s;
 }
-.login .enter:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.login .enter:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 18px 32px -12px rgba(30,140,74,.9); }
 .login .enter:disabled { opacity: .5; cursor: default; }
-.login .hint { font-size: 11.5px; color: #7a6650; margin-top: 10px; }
+.login .hint { font-size: 11.5px; color: #8a7458; margin-top: 10px; }
 .login .ooo {
-  margin-top: 20px; padding: 5px 10px; text-align: center; border-radius: 6px;
+  margin-top: 22px; padding: 5px 10px; text-align: center; border-radius: 6px;
   font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.6px;
-  color: #2a2118; background: repeating-linear-gradient(135deg, rgba(242,201,76,.9) 0 12px, rgba(42,33,24,.85) 12px 24px);
+  color: #2a2118; background: repeating-linear-gradient(135deg, #f2c94c 0 12px, #2a2118 12px 24px);
   text-shadow: 0 0 3px #f2c94c, 0 0 3px #f2c94c, 0 0 5px #f2c94c;
+}
+@media (max-width: 720px) {
+  .login.hallway { padding: 80px 24px 24px; align-items: start; }
 }
 
 /* ---------- 404：薛定谔的猫箱 ---------- */
