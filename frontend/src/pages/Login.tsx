@@ -114,7 +114,6 @@ export default function Login() {
               <div className="body">
                 {tab === 'student' ? (
                   <>
-                    <p className="sub">{LOGIN.subtitle}</p>
                     <label className="fld">
                       <span>你的名字</span>
                       <input
