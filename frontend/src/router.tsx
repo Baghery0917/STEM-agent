@@ -7,6 +7,7 @@ import PracticeSetup from '@/pages/student/PracticeSetup';
 import PracticeRunner from '@/pages/student/PracticeRunner';
 import Report from '@/pages/student/Report';
 import Settings from '@/pages/student/Settings';
+import Cards from '@/pages/student/Cards';
 import KnowledgePage from '@/pages/admin/KnowledgePage';
 import QuestionsPage from '@/pages/admin/QuestionsPage';
 import StudentsPage from '@/pages/admin/StudentsPage';
@@ -28,6 +29,7 @@ export default function AppRoutes() {
         <Route path="/practice/:sessionId" element={<PracticeRunner />} />
         <Route path="/report" element={<Report />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/cards" element={<Cards />} />
       </Route>
 
       <Route path="/admin" element={<AdminLayout />}>

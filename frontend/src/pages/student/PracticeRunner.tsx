@@ -130,6 +130,7 @@ export default function PracticeRunner() {
     mutationFn: () => endPractice(sid),
     onSuccess: (s) => {
       updateSession(s);
+      qc.invalidateQueries({ queryKey: ['student-cards', student.id] });
       // 统一批改：结束后清掉本地遮罩状态，用服务端详情重建以显示答案
       if (!s.instant_feedback) setStates({});
       detail.refetch();

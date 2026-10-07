@@ -8,7 +8,7 @@ import { useKnowledgeTree } from '@/hooks/useKnowledgeTree';
 import { useDebounced } from '@/hooks/useDebounced';
 import { searchSessions } from '@/api/reports';
 import { groupLabel, shortTime } from '@/utils/time';
-import { IconAtom, IconCouch, IconThermostat } from '@/components/theme/Icons';
+import { IconAtom, IconCouch, IconKey, IconThermostat } from '@/components/theme/Icons';
 import { EMPTY } from '@/theme/copy';
 import SoftKitty from '@/components/theme/SoftKitty';
 
@@ -44,6 +44,7 @@ export default function Rail() {
   const activeKey = location.pathname;
   const isReport = activeKey.startsWith('/report');
   const isSettings = activeKey.startsWith('/settings');
+  const isCards = activeKey.startsWith('/cards');
   const searching = debounced.length > 0;
 
   const newSession = () => navigate(mode === 'practice' ? '/practice/new' : '/teaching');
@@ -126,6 +127,9 @@ export default function Rail() {
       <div className="rail-bottom">
         <button type="button" className={`nav ${isReport ? 'on' : ''}`} onClick={() => navigate('/report')}>
           <span className="ico"><IconCouch /></span> 学习报告
+        </button>
+        <button type="button" className={`nav ${isCards ? 'on' : ''}`} onClick={() => navigate('/cards')}>
+          <span className="ico"><IconKey /></span> 认可卡
         </button>
         <button type="button" className={`nav ${isSettings ? 'on' : ''}`} onClick={() => navigate('/settings')}>
           <span className="ico"><IconThermostat /></span> 设置

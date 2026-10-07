@@ -8,6 +8,10 @@ const now = () => new Date().toISOString();
 const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
 
 const students: any[] = [{ id: 1, name: '林小雨', gender: 'female', explain_style: null, persona: 'leonard', created_at: now(), updated_at: now() }];
+// 认可卡：预览里已有 Penny，结束一次练习或会话就发下一张
+const CARD_ORDER = ['penny', 'howard', 'raj', 'bernadette', 'amy', 'sheldon'];
+const cards: any[] = [{ card_key: 'penny', acquired_at: ago(48) }];
+const grantNext = () => { const k = CARD_ORDER.find((c) => !cards.some((x) => x.card_key === c)); if (k) cards.push({ card_key: k, acquired_at: now() }); };
 const volumes = [{ id: 1, title: '高二物理 · 必修一', description: null, order: 0 }];
 const chapters = [
   { id: 1, volume_id: 1, title: '第三章 相互作用', order: 0 },
@@ -90,6 +94,7 @@ async function handle(method: string, path: string, search: URLSearchParams, bod
   let m: RegExpMatchArray | null;
   if (path === '/students' && method === 'GET') return json(students);
   if (path === '/students' && method === 'POST') { const s = { id: ++nextId, ...body, explain_style: null, persona: null, created_at: now(), updated_at: now() }; students.push(s); return json(s, 201); }
+  if ((m = path.match(/^\/students\/(\d+)\/cards$/))) return json({ cards, unlocked: ['leonard', ...cards.map((c) => c.card_key)] });
   if ((m = path.match(/^\/students\/(\d+)\/report$/))) { await delay(300); return json(report(search.get('mode') || 'recent')); }
   if ((m = path.match(/^\/students\/(\d+)\/evaluation$/))) {
     await delay(900);
@@ -142,7 +147,7 @@ async function handle(method: string, path: string, search: URLSearchParams, bod
     return json(s, 201);
   }
   if (path === '/teaching/sessions/rate') { const s = teachingSessions.find((x) => x.id === body.session_id); const msg = s.messages.find((x: any) => x.id === body.message_id); msg.self_rating = body.rating; return json(msg); }
-  if (path === '/teaching/sessions/end') { const s = teachingSessions.find((x) => x.id === body.session_id); s.status = 'completed'; s.ended_at = now(); return json(s); }
+  if (path === '/teaching/sessions/end') { const s = teachingSessions.find((x) => x.id === body.session_id); s.status = 'completed'; s.ended_at = now(); grantNext(); return json(s); }
   if (path === '/teaching/sessions/chat/stream') {
     const s = teachingSessions.find((x) => x.id === body.session_id);
     s.messages.push({ id: ++nextId, session_id: s.id, role: 'user', message_type: 'chat', sequence: s.messages.length, content: body.message, emotion_value: 1.8, created_at: now() });
@@ -200,6 +205,7 @@ async function handle(method: string, path: string, search: URLSearchParams, bod
     const s = practiceSessions.find((x) => x.id === Number(m![1])); s.ended_at = now();
     const done = new Set(s.items.map((i: any) => i.question_id));
     for (const qid of s.question_ids) if (!done.has(qid)) { s.items.push({ id: ++nextId, practice_session_id: s.id, student_id: 1, question_id: qid, user_answer: '', sequence: s.items.length, is_correct: false, is_skipped: true, started_at: now(), ended_at: now(), duration_seconds: null }); s.skip_count++; }
+    grantNext();
     return json(sessPublic(s));
   }
   if ((m = path.match(/^\/practice\/sessions\/(\d+)$/))) {

@@ -4,6 +4,8 @@ import { updateStudent } from '@/api/students';
 import type { ExplainStyle, Persona } from '@/api/types';
 import { PERSONAS, DEFAULT_PERSONA } from '@/theme/personas';
 import PersonaAvatar from '@/components/theme/PersonaAvatar';
+import { useCards } from '@/hooks/useCards';
+import { CARD_ORDER, type PersonaKey } from '@/theme/personas';
 import { useStudentStore } from '@/stores/studentStore';
 import { useUiStore } from '@/stores/uiStore';
 import { toast } from '@/stores/toastStore';
@@ -29,6 +31,8 @@ export default function Settings() {
     onError: (e: Error) => toast.error(e.message),
   });
   const currentPersona = student.persona ?? DEFAULT_PERSONA;
+  const cards = useCards(student.id);
+  const unlocked = new Set<string>(cards.data?.unlocked ?? ['leonard']);
 
   const styleMutation = useMutation({
     mutationFn: (explain_style: ExplainStyle | null) => updateStudent(student.id, { explain_style }),
@@ -60,19 +64,23 @@ export default function Settings() {
             <div className="srow persona-row">
               <div><div className="t">讲师</div><div className="d">只换语气，不换教法。切换对新会话生效。</div></div>
               <div className="ctl persona-pick">
-                {PERSONAS.map((p) => (
-                  <button
-                    type="button"
-                    key={p.key}
-                    className={currentPersona === p.key ? 'on' : ''}
-                    title={`${p.name} · ${p.tone}`}
-                    disabled={personaMutation.isPending}
-                    onClick={() => personaMutation.mutate(p.key)}
-                  >
-                    <PersonaAvatar persona={p.key} size={40} />
-                    <span className="nm">{p.name}</span>
-                  </button>
-                ))}
+                {PERSONAS.map((p) => {
+                  const locked = !unlocked.has(p.key);
+                  const idx = CARD_ORDER.indexOf(p.key as PersonaKey) + 1;
+                  return (
+                    <button
+                      type="button"
+                      key={p.key}
+                      className={`${currentPersona === p.key ? 'on' : ''} ${locked ? 'locked' : ''}`}
+                      title={locked ? `第 ${idx} 张认可卡解锁` : `${p.name} · ${p.tone}`}
+                      disabled={personaMutation.isPending || locked}
+                      onClick={() => personaMutation.mutate(p.key)}
+                    >
+                      <PersonaAvatar persona={p.key} size={40} locked={locked} />
+                      <span className="nm">{locked ? `第 ${idx} 张` : p.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="srow persona-desc">

@@ -14,7 +14,9 @@ from app.services.search import SessionSearchService
 from app.schemas.student import StudentCreate, StudentUpdate, StudentResponse
 from app.services.report import ReportService
 from app.services.student import StudentService
-from app.models.student import Gender
+from app.models.student import Gender, Persona
+from app.schemas.recognition import StudentCardResponse, StudentCardsResponse
+from app.services.recognition import RecognitionService
 
 logger = logging.getLogger(__name__)
 
@@ -96,9 +98,24 @@ async def search_sessions(
     return SessionSearchResponse(q=q, hits=[SessionSearchHit(**h) for h in hits])
 
 
+@router.get("/{student_id}/cards", response_model=StudentCardsResponse)
+async def get_student_cards(student_id: int, db: DbSession) -> StudentCardsResponse:
+    if not await StudentService().get(db, student_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    rec = RecognitionService(db)
+    return StudentCardsResponse(
+        cards=[StudentCardResponse.model_validate(c) for c in await rec.cards(student_id)],
+        unlocked=await rec.unlocked_personas(student_id),
+    )
+
+
 @router.put("/{student_id}", response_model=StudentResponse)
 async def update_student(student_id: int, data: StudentUpdate, db: DbSession) -> StudentResponse:
     service = StudentService()
+    if data.persona is not None and data.persona != Persona.LEONARD:
+        unlocked = await RecognitionService(db).unlocked_personas(student_id)
+        if data.persona not in unlocked:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Persona not unlocked")
     student = await service.update(db, student_id, data)
     if not student:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")

@@ -20,6 +20,7 @@ from app.models.practice import (
     PracticeItem,
 )
 from app.models.llm_call_log import LLMCallLog, LLMCallType, LLMCallStatus
+from app.models.recognition import ScoreEvent, StudentCard
 
 __all__ = [
     "Volume", "Chapter", "Section", "Question", "QuestionType", "Difficulty",
@@ -30,4 +31,5 @@ __all__ = [
     "TeachingReference",
     "PracticeSession", "PracticeItem",
     "LLMCallLog", "LLMCallType", "LLMCallStatus",
+    "ScoreEvent", "StudentCard",
 ]

@@ -86,7 +86,7 @@ export default function Teaching() {
 
   const endMutation = useMutation({
     mutationFn: endTeachingSession,
-    onSuccess: () => { toast.info('会话已结束'); setEndOpen(false); sessionQuery.refetch(); invalidateLists(); },
+    onSuccess: () => { toast.info('会话已结束'); setEndOpen(false); sessionQuery.refetch(); invalidateLists(); queryClient.invalidateQueries({ queryKey: ['student-cards', student.id] }); },
     onError: (err: Error) => toast.error(err.message),
   });
 

@@ -212,6 +212,8 @@ class PracticeService:
 
         await self._skip_unanswered(session)
         await self._flow_back_emotion(session)
+        from app.services.recognition import RecognitionService  # 局部导入避免循环
+        await RecognitionService(self.db).on_practice_end(session)
         await self.db.refresh(session)
         return session
 

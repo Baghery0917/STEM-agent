@@ -643,3 +643,64 @@ body {
 .persona-desc { gap: 10px; }
 .persona-desc .d i { font-style: italic; color: var(--ink-2); }
 .qcard .voice { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line-2); font-size: 13.5px; }
+
+/* ---------- 认可卡 ---------- */
+.cards { max-width: 980px; margin: 0 auto; padding: 24px 28px 120px; }
+.chead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.chead h1 { font-size: 22px; font-weight: 600; letter-spacing: -.4px; margin: 0; }
+.chead .sub { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+.chead .hint { font-size: 12px; color: var(--ink-3); font-style: italic; }
+.floor { position: relative; border-radius: 18px; overflow: hidden; background: #d9cdb5; box-shadow: var(--shadow); }
+.floor img { display: block; width: 100%; height: auto; user-select: none; }
+.floor .spot {
+  position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: transform .15s;
+}
+.floor .spot:hover { transform: translate(-50%, -50%) scale(1.08); }
+.floor .spot .pavatar { box-shadow: 0 0 0 3px var(--pc), 0 8px 18px -6px rgba(40,24,8,.6); background: #fffdf8; }
+.floor .spot.no .pavatar { box-shadow: 0 0 0 3px rgba(255,253,248,.9), 0 8px 18px -6px rgba(40,24,8,.5); background: #e8dfcb; filter: grayscale(1); opacity: .85; }
+.floor .spot .lbl {
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255,253,248,.92); color: var(--ink);
+  box-shadow: 0 1px 3px rgba(40,24,8,.25); white-space: nowrap;
+}
+.floor .spot.no .lbl { color: var(--ink-3); }
+.floor .spot.next .pavatar { animation: spot-pulse 2.2s ease-in-out infinite; }
+.floor .spot.cur .lbl { background: var(--pc); color: #fffdf8; }
+@keyframes spot-pulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(255,253,248,.9), 0 8px 18px -6px rgba(40,24,8,.5); } 50% { box-shadow: 0 0 0 6px rgba(217,165,32,.55), 0 8px 18px -6px rgba(40,24,8,.5); } }
+
+.cmodal { position: fixed; inset: 0; z-index: 60; background: rgba(30,20,10,.45); display: grid; place-items: center; padding: 24px; animation: fade .2s; }
+@keyframes fade { from { opacity: 0; } }
+.ccard {
+  display: grid; grid-template-columns: 180px 1fr; width: 520px; max-width: 100%; border-radius: 20px; overflow: hidden;
+  background: var(--panel); box-shadow: 0 40px 80px -30px rgba(40,24,8,.7); animation: float-in .35s cubic-bezier(.2,.8,.2,1);
+}
+.ccard .art { display: grid; place-items: end center; padding: 20px 12px 0; background: linear-gradient(180deg, color-mix(in srgb, var(--pc) 22%, #fffdf8), color-mix(in srgb, var(--pc) 55%, #fffdf8)); }
+.ccard .art img { max-height: 220px; width: auto; filter: drop-shadow(0 10px 14px rgba(40,24,8,.35)); }
+.ccard .art img.sil { filter: grayscale(1) brightness(.4) opacity(.5); }
+.ccard .txt { padding: 22px 22px 18px; display: flex; flex-direction: column; }
+.ccard .kicker { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--pc); font-weight: 700; }
+.ccard h2 { font-size: 24px; margin: 4px 0 10px; letter-spacing: -.3px; }
+.ccard .quote { font-family: "Iowan Old Style", "Palatino", "Songti SC", "Noto Serif SC", Georgia, serif; font-size: 15px; line-height: 1.55; color: var(--ink); margin: 0 0 10px; }
+.ccard .meta { font-size: 12px; color: var(--ink-3); }
+.ccard .acts { margin-top: auto; padding-top: 16px; display: flex; gap: 8px; align-items: center; }
+.ccard .acts .on { font-size: 12.5px; color: var(--pc); font-weight: 600; }
+.ccard.locked .kicker { color: var(--ink-3); }
+
+/* 获卡翻牌 */
+.reveal { position: fixed; inset: 0; z-index: 70; background: radial-gradient(ellipse at center, rgba(60,40,15,.7), rgba(20,12,6,.9)); display: grid; place-items: center; animation: fade .3s; }
+.rwrap { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.rtitle { color: #f6e9cf; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; opacity: .85; }
+.flip { width: 260px; height: 380px; perspective: 1200px; position: relative; }
+.flip .face { position: absolute; inset: 0; border-radius: 20px; backface-visibility: hidden; transition: transform .9s cubic-bezier(.3,.9,.3,1); box-shadow: 0 40px 80px -30px rgba(0,0,0,.8); }
+.flip .back { background: repeating-linear-gradient(135deg, #2a2118 0 10px, #332a20 10px 20px); display: grid; place-items: center; transform: rotateY(0); }
+.flip .back .atom-mark { width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--mustard); box-shadow: inset 0 0 0 10px #2a2118, inset 0 0 0 13px var(--mustard); }
+.flip .front { transform: rotateY(180deg); background: linear-gradient(180deg, color-mix(in srgb, var(--pc) 18%, #fffdf8), color-mix(in srgb, var(--pc) 60%, #fffdf8)); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 18px 18px 20px; text-align: center; color: #2a2118; }
+.flip.on .back { transform: rotateY(-180deg); }
+.flip.on .front { transform: rotateY(0); }
+.flip .front img { max-height: 190px; width: auto; margin-bottom: 8px; filter: drop-shadow(0 10px 14px rgba(40,24,8,.4)); animation: float-in .6s .5s both; }
+.flip .front .kicker { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--pc); font-weight: 700; }
+.flip .front h2 { margin: 2px 0 6px; font-size: 26px; letter-spacing: -.3px; }
+.flip .front p { margin: 0; font-family: "Iowan Old Style", "Palatino", "Songti SC", "Noto Serif SC", Georgia, serif; font-size: 13.5px; line-height: 1.5; }
+.racts { display: flex; gap: 8px; }
+.racts .btn.ghost { color: #f6e9cf; border-color: rgba(246,233,207,.3); }
+.persona-pick button.locked { opacity: .55; cursor: default; }

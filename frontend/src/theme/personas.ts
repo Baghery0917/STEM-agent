@@ -97,3 +97,27 @@ export const PERSONA_COPY: Record<PersonaKey, PersonaCopy> = {
     modeHint: '教学模式 · Sheldon · 定义优先，措辞要严谨',
   },
 };
+
+/** 认可卡：解锁顺序（Leonard 注册即有）与获卡台词 */
+export const CARD_ORDER: PersonaKey[] = ['penny', 'howard', 'raj', 'bernadette', 'amy', 'sheldon'];
+
+export const CARD_QUOTE: Record<PersonaKey, string> = {
+  leonard: '欢迎。门一直是开的。',
+  penny: '好吧，你正式成为书呆子的一员了。欢迎。',
+  howard: '不错。我可以让你靠近我的火箭。在我监督下。',
+  raj: '你知道吗？我觉得你会很棒。',
+  bernadette: '哎呀，我为你骄傲。现在别松懈。',
+  amy: '你的神经通路显然重组过了。令人印象深刻。',
+  sheldon: '你可以坐我的位置。一次。只限今天。逗你玩的，不可以。',
+};
+
+/** 收藏页：每位讲师落在户型图上的房间，百分比坐标 */
+export const CARD_SPOT: Record<PersonaKey, { x: number; y: number; room: string }> = {
+  leonard: { x: 50.8, y: 60.1, room: '4A 客厅沙发' },
+  penny: { x: 25.4, y: 37.1, room: '4B 客厅' },
+  howard: { x: 67.4, y: 65.2, room: '4A 厨房' },
+  raj: { x: 59.6, y: 49.9, room: '4A 书桌' },
+  bernadette: { x: 43.9, y: 25.6, room: '4B 卧室' },
+  amy: { x: 39.1, y: 48.6, room: '4A 走廊' },
+  sheldon: { x: 85.9, y: 69.1, room: 'Sheldon 的卧室' },
+};

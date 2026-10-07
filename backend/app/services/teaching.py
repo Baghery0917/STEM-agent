@@ -432,6 +432,9 @@ class TeachingService:
             end_time=session.ended_at,
         )
 
+        from app.services.recognition import RecognitionService  # 局部导入避免循环
+        await RecognitionService(self.db).on_teaching_end(session, mastery_level_delta)
+
         await self.db.flush()
         await self.db.refresh(session)
         return session
