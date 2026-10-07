@@ -775,3 +775,13 @@ Base URL: `http://localhost:8000/api/v1`
 所有 Response 模型都包含：
 - `created_at`: datetime
 - `updated_at`: datetime
+
+## 物理新闻（落地页）
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/api/v1/news?limit=8` | 公开，只返回 `published=true`，按 `published_on` 倒序 |
+| GET | `/api/v1/admin/news` | 管理台，全部，需 `X-Admin-Token` |
+| POST | `/api/v1/admin/news` | 新建，字段 title / summary / tag / source / url / published_on / published |
+| PUT | `/api/v1/admin/news/{id}` | 部分更新 |
+| DELETE | `/api/v1/admin/news/{id}` | 删除 |

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { listPublicNews } from '@/api/news';
 import dayjs from 'dayjs';
 import BrandMark from '@/components/theme/BrandMark';
 import { PHYSICS_NEWS, TBBT_TRIVIA } from '@/theme/landing';
@@ -22,7 +24,9 @@ export default function Landing() {
   const root = useRef<HTMLDivElement>(null);
   const [hot, setHot] = useState(Math.floor(ROWS / 2));
   const [scrolled, setScrolled] = useState(false);
-  useReveal(root);
+  const newsQuery = useQuery({ queryKey: ['public-news'], queryFn: () => listPublicNews(8), staleTime: 300_000, retry: 0 });
+  const news = newsQuery.data?.length ? newsQuery.data.map((n) => ({ date: n.published_on, tag: n.tag, title: n.title, summary: n.summary, source: n.source, url: n.url })) : PHYSICS_NEWS;
+  useReveal(root, [news.length]);
 
   useEffect(() => {
     const el = root.current;
@@ -91,10 +95,10 @@ export default function Landing() {
               <div className="kicker">What's new in physics</div>
               <h2>物理界的新闻</h2>
             </div>
-            <p className="lede">每周手动更新几条。不求全，只挑能在课上讲清楚的。</p>
+            <p className="lede">在管理台更新。不求全，只挑能在课上讲清楚的。</p>
           </div>
           <ol className="news-list">
-            {PHYSICS_NEWS.map((n, i) => (
+            {news.map((n, i) => (
               <li key={n.title} data-reveal style={{ ['--d' as string]: `${i * 60}ms` }}>
                 <a href={n.url} target="_blank" rel="noreferrer">
                   <div className="meta">

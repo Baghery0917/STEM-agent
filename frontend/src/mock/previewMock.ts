@@ -96,6 +96,13 @@ const report = (mode: string) => ({
 });
 
 let nextId = 1000;
+const newsItems: any[] = [
+  { id: 1, title: '2026 年诺贝尔物理学奖：IceCube 与高能中微子', summary: 'Francis Halzen 因「对 IceCube 中微子天文台的决定性贡献，以及发现天体物理起源的高能中微子」获奖。南极冰层被当成探测器，捕捉穿过地球的「幽灵粒子」。', tag: 'Nobel', source: 'nobelprize.org', url: 'https://www.nobelprize.org/prizes/physics/2026/press-release', published_on: '2026-10-06', published: true, created_at: now(), updated_at: now() },
+  { id: 2, title: '混沌量子行为里找到了反复出现的图案', summary: '许多复杂量子系统在组件相互作用后会迅速丢失初态的可辨特征。新研究在这种「看似混沌」里识别出周期性结构。', tag: 'Quantum', source: 'phys.org', url: 'https://phys.org/physics-news', published_on: '2026-10-06', published: true, created_at: now(), updated_at: now() },
+  { id: 3, title: '激光把空气电离成「光剑」天线，直接发射无线电', summary: '研究者用激光在空气里打出一条等离子细丝，当作天线发出 30 MHz 的甚高频信号。没有金属，没有导线。', tag: 'Plasma', source: 'phys.org', url: 'https://phys.org/physics-news', published_on: '2026-10-05', published: true, created_at: now(), updated_at: now() },
+  { id: 4, title: '（草稿）超导临界温度之上仍有库珀对', summary: '伊利诺伊大学在二碲化铀中观察到对密度波。', tag: 'Superconductivity', source: 'phys.org', url: 'https://phys.org/physics-news', published_on: '2026-10-03', published: false, created_at: now(), updated_at: now() },
+];
+const sortNews = () => [...newsItems].sort((a, b) => (b.published_on + b.id).localeCompare(a.published_on + a.id));
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -125,6 +132,14 @@ async function handle(method: string, path: string, search: URLSearchParams, bod
     }
     hits.sort((a, b) => (b.at > a.at ? 1 : -1));
     return json({ q: kw, hits });
+  }
+  if (path === '/news') return json(sortNews().filter((n) => n.published).slice(0, Number(search.get('limit') || 8)));
+  if (path === '/admin/news' && method === 'GET') return json(sortNews());
+  if (path === '/admin/news' && method === 'POST') { const n = { id: ++nextId, ...body, created_at: now(), updated_at: now() }; newsItems.push(n); return json(n, 201); }
+  if ((m = path.match(/^\/admin\/news\/(\d+)$/))) {
+    const idx = newsItems.findIndex((n) => n.id === Number(m![1])); if (idx < 0) return json({ detail: 'News not found' }, 404);
+    if (method === 'DELETE') { newsItems.splice(idx, 1); return new Response(null, { status: 204 }); }
+    Object.assign(newsItems[idx], body, { updated_at: now() }); return json(newsItems[idx]);
   }
   if (path === '/admin/login') { await delay(300); return body.password === 'admin' ? json({ token: 'preview-admin-token' }) : json({ detail: '口令不正确（预览版口令是 admin）' }, 401); }
   if ((m = path.match(/^\/students\/(\d+)$/)) && method === 'PUT') { const s = students.find((x) => x.id === Number(m![1])); Object.assign(s, body); return json(s); }

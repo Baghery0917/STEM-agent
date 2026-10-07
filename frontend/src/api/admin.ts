@@ -18,7 +18,7 @@ export async function adminLogin(password: string) {
 
 // 管理台请求统一带口令令牌
 apiClient.interceptors.request.use((config) => {
-  if (config.url?.startsWith('/admin/db')) {
+  if (config.url?.startsWith('/admin/db') || config.url?.startsWith('/admin/news')) {
     const token = getAdminToken();
     if (token) config.headers.set('X-Admin-Token', token);
   }

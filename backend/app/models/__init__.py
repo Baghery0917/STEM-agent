@@ -22,6 +22,7 @@ from app.models.practice import (
 from app.models.llm_call_log import LLMCallLog, LLMCallType, LLMCallStatus
 from app.models.recognition import ScoreEvent, StudentCard
 from app.models.badge import StudentBadge, StudentLogin
+from app.models.news import NewsItem
 
 __all__ = [
     "Volume", "Chapter", "Section", "Question", "QuestionType", "Difficulty",
@@ -34,4 +35,5 @@ __all__ = [
     "LLMCallLog", "LLMCallType", "LLMCallStatus",
     "ScoreEvent", "StudentCard",
     "StudentBadge", "StudentLogin",
+    "NewsItem",
 ]

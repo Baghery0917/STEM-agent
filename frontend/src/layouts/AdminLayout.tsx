@@ -4,6 +4,7 @@ import {
   ArrowLeftOutlined,
   DatabaseOutlined,
   FileTextOutlined,
+  NotificationOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
 import { useEffect } from 'react';
@@ -16,6 +17,7 @@ const MENU = [
   { key: '/admin/knowledge', label: '知识结构', icon: <ApartmentOutlined /> },
   { key: '/admin/questions', label: '题库管理', icon: <FileTextOutlined /> },
   { key: '/admin/students', label: '学生管理', icon: <TeamOutlined /> },
+  { key: '/admin/news', label: '物理新闻', icon: <NotificationOutlined /> },
   { key: '/admin/db', label: '数据库浏览', icon: <DatabaseOutlined /> },
 ];
 

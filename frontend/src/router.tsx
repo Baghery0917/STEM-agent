@@ -12,6 +12,7 @@ import Cards from '@/pages/student/Cards';
 import KnowledgePage from '@/pages/admin/KnowledgePage';
 import QuestionsPage from '@/pages/admin/QuestionsPage';
 import StudentsPage from '@/pages/admin/StudentsPage';
+import NewsPage from '@/pages/admin/NewsPage';
 import DatabasePage from '@/pages/admin/DatabasePage';
 import NotFound from '@/pages/NotFound';
 
@@ -38,6 +39,7 @@ export default function AppRoutes() {
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="questions" element={<QuestionsPage />} />
         <Route path="students" element={<StudentsPage />} />
+        <Route path="news" element={<NewsPage />} />
         <Route path="db" element={<DatabasePage />} />
       </Route>
 
