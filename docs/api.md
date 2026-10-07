@@ -561,7 +561,8 @@ Base URL: `http://localhost:8000/api/v1`
   "difficulty_range": "list[str] (min_length=1)",
   "question_types": "list[str] | null",
   "total_count": "integer (1-100, default 10)",
-  "timed": "boolean (default false)"
+  "timed": "boolean (default false)",
+  "instant_feedback": "boolean (default true)  计时模式忽略此项并强制为 false"
 }
 ```
 
@@ -571,6 +572,7 @@ Base URL: `http://localhost:8000/api/v1`
   "session": {
     "id": 1,
     "timed": true,
+    "instant_feedback": false,
     "knowledge_point_ids": [1, 2],
     "difficulty_range": ["easy", "medium"],
     "student_id": 1,
@@ -595,7 +597,7 @@ Base URL: `http://localhost:8000/api/v1`
 **Error:** 400 - No questions match the given criteria / Knowledge point ids not found
 
 #### POST /practice/sessions/{session_id}/submit
-提交答案，即时批改并返回答案与解析。
+提交答案。`instant_feedback=true` 时返回对错、答案与解析；否则 `is_correct` / `correct_answer` / `analysis` 为 null（`item.is_correct` 也固定为 false），做完后从 GET 详情看。后台计数不受影响。
 
 **Request Body:**
 ```json
@@ -636,7 +638,7 @@ Base URL: `http://localhost:8000/api/v1`
 **Response (200):** PracticeSessionResponse（`starred_question_ids` 已更新）
 
 #### POST /practice/sessions/{session_id}/end
-结束练习。作答题的面部情绪均值回流到涉及知识点的历史情绪，并写一行 `mode=practice` 的情绪流水。
+结束练习。未作答的题自动补一条 `is_skipped=true` 记录并计入 `skip_count`；作答题的面部情绪均值回流到涉及知识点的历史情绪，并写一行 `mode=practice` 的情绪流水。
 
 **Response (200):** PracticeSessionResponse
 
@@ -662,6 +664,63 @@ Base URL: `http://localhost:8000/api/v1`
 ```
 
 **Error:** 404 - Session not found
+
+---
+
+## Search（会话搜索）
+
+#### GET /students/{student_id}/sessions/search
+左侧会话栏搜索。教学会话按 user / assistant 消息全文匹配（ILIKE），练习按知识点标题匹配，合并后按时间倒序。
+
+**Query Parameters:** `q` (1-100 字, required), `limit` (1-50, default 20)
+
+**Response (200):**
+```json
+{
+  "q": "摩擦力",
+  "hits": [
+    { "kind": "teaching", "id": 12, "title": "斜面上的摩擦力方向…", "snippet": "…差在摩擦力的方向…", "at": "...", "status": "active" },
+    { "kind": "practice", "id": 7, "title": "摩擦力、牛顿第二定律 · 10 题", "snippet": "摩擦力", "at": "...", "status": "completed" }
+  ]
+}
+```
+
+---
+
+## Evaluation（评价处）
+
+#### GET /students/{student_id}/evaluation
+经 MCP 调外部评价服务，只传 `student_id`，评价服务自行读库。契约见 `docs/design/mcp-evaluation-contract.md`。
+
+**Response (200):**
+```json
+{
+  "student_id": 1,
+  "evaluation": "string | null",
+  "highlights": ["string"],
+  "source": "mcp | unavailable",
+  "detail": "string | null  (unavailable 时的原因)"
+}
+```
+
+未配置 `EVALUATION_MCP_URL`、超时或失败都返回 200 + `source=unavailable`，不抛错。
+
+**Error:** 404 - Student not found
+
+---
+
+## Admin Auth（管理台登录）
+
+#### POST /admin/login
+口令由环境变量 `ADMIN_PASSWORD` 设置；未设置时返回 403。
+
+**Request Body:** `{ "password": "string" }`
+
+**Response (200):** `{ "token": "string" }`
+
+**Error:** 401 - 口令不正确；403 - 未启用
+
+`/admin/db/*` 全部需要请求头 `X-Admin-Token: <token>`，否则 401。
 
 ---
 

@@ -211,6 +211,8 @@ export interface TeachingChatResponse {
 export interface PracticeSessionResponse extends Timestamps {
   id: number;
   timed: boolean;
+  /** 每题即时反馈；计时模式恒为 false */
+  instant_feedback: boolean;
   knowledge_point_ids: number[];
   difficulty_range: Difficulty[];
   student_id: number;
@@ -265,6 +267,7 @@ export interface StartPracticeRequest {
   question_types?: QuestionType[] | null;
   total_count: number;
   timed: boolean;
+  instant_feedback?: boolean;
 }
 
 export interface PracticeMatchRequest {
@@ -291,8 +294,9 @@ export interface SubmitAnswerRequest {
 
 export interface SubmitAnswerResponse {
   item: PracticeItemResponse;
-  is_correct: boolean;
-  correct_answer: string;
+  /** 统一批改模式下为 null */
+  is_correct?: boolean | null;
+  correct_answer?: string | null;
   analysis?: string | null;
   analysis_image?: string | null;
   session: PracticeSessionResponse;
@@ -356,4 +360,26 @@ export interface StudentReport {
   emotion_days: EmotionDay[];
   emotion_logs: EmotionLogEntry[];
   summary?: string | null;
+}
+
+export interface SessionSearchHit {
+  kind: 'teaching' | 'practice';
+  id: number;
+  title: string;
+  snippet: string;
+  at: string;
+  status: string;
+}
+
+export interface SessionSearchResponse {
+  q: string;
+  hits: SessionSearchHit[];
+}
+
+export interface StudentEvaluation {
+  student_id: number;
+  evaluation?: string | null;
+  highlights: string[];
+  source: 'mcp' | 'unavailable';
+  detail?: string | null;
 }

@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { getStudentReport } from '@/api/reports';
+import { getStudentEvaluation, getStudentReport } from '@/api/reports';
 import type { ReportMode } from '@/api/types';
 import { useStudentStore } from '@/stores/studentStore';
 import TopBar from '@/components/shell/TopBar';
@@ -13,13 +12,14 @@ const WEEKDAY = ['日', '一', '二', '三', '四', '五', '六'];
 
 export default function Report() {
   const student = useStudentStore((s) => s.current)!;
-  const navigate = useNavigate();
   const [mode, setMode] = useState<ReportMode>('recent');
   const q = useQuery({
     queryKey: ['student-report', student.id, mode],
     queryFn: () => getStudentReport(student.id, mode, true),
     staleTime: 60_000,
   });
+  const evaluation = useMutation({ mutationFn: () => getStudentEvaluation(student.id) });
+  const ev = evaluation.data;
   const r = q.data;
   const rangeText = r
     ? mode === 'recent'
@@ -58,8 +58,32 @@ export default function Report() {
                       ? '这段时间还没有学习记录。发一道题，或者开始一组练习，报告就会有内容了。'
                       : `这段时间你练了 ${r.answered_count} 题（对 ${r.correct_count}）、讲了 ${r.teaching_count} 道。`)}
                 </p>
-                <button type="button" className="btn" onClick={() => navigate('/teaching', { state: { prefill: '帮我看看最近的学习报告，哪里最需要补？' } })}>和我聊聊这份报告</button>
+                <button type="button" className="btn" disabled={evaluation.isPending} onClick={() => evaluation.mutate()}>
+                  {evaluation.isPending ? '评价处生成中…' : ev ? '再要一份评价' : '让评价处点评'}
+                </button>
               </div>
+
+              {(ev || evaluation.isError) && (
+                <div className="card evaluation">
+                  <div className="hd">评价处的点评<span className="sp">外部评价服务 · 只传学号，数据由评价处自行读取</span></div>
+                  <div className="bd">
+                    {evaluation.isError && <div className="empty-note">请求失败：{(evaluation.error as Error).message}</div>}
+                    {ev?.source === 'unavailable' && (
+                      <div className="empty-note">评价处暂不可用{ev.detail ? `：${ev.detail}` : ''}</div>
+                    )}
+                    {ev?.source === 'mcp' && (
+                      <>
+                        <p style={{ margin: 0, lineHeight: 1.7 }}>{ev.evaluation}</p>
+                        {ev.highlights.length > 0 && (
+                          <div className="tags" style={{ marginTop: 10 }}>
+                            {ev.highlights.map((h) => <span key={h} className="tg on">{h}</span>)}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="grid2">
                 <div className="card">

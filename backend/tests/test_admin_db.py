@@ -1,3 +1,4 @@
+import pytest
 from datetime import datetime
 
 from httpx import AsyncClient
@@ -11,6 +12,16 @@ from app.models.teaching import TeachingSession, TeachingSessionStatus
 
 
 ADMIN_URL = "/api/v1/admin/db"
+
+
+@pytest.fixture(autouse=True)
+def _admin_auth(client: AsyncClient, monkeypatch):
+    """管理台接口需要口令令牌"""
+    from app.api.v1.routers.admin_auth import _expected_token
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "admin_password", "test-admin")
+    client.headers["X-Admin-Token"] = _expected_token()
 
 EXPECTED_TABLES = {
     "volumes",

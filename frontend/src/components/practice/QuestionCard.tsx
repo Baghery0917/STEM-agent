@@ -37,6 +37,8 @@ interface Props {
   onDraft: (v: string) => void;
   starred: boolean;
   timed: boolean;
+  /** 是否显示对错与答案；统一批改模式下结束前为 false */
+  revealed: boolean;
   onStar: () => void;
   onAsk: () => void;
   onPrev?: () => void;
@@ -47,7 +49,7 @@ interface Props {
 }
 
 export default function QuestionCard({
-  index, total, question, sectionTitle, state, draft, onDraft, starred, timed,
+  index, total, question, sectionTitle, state, draft, onDraft, starred, timed, revealed,
   onStar, onAsk, onPrev, onNext, onSubmit, onSkip, busy,
 }: Props) {
   const choices = parseChoices(question.content);
@@ -55,7 +57,8 @@ export default function QuestionCard({
   const locked = state.kind !== 'pending';
   const isSingle = question.type === 'single_choice' && choices.length >= 2;
   const isMulti = question.type === 'multiple_choice' && choices.length >= 2;
-  const correct = state.kind === 'answered' ? state.feedback.correct_answer : '';
+  const graded = state.kind === 'answered' && revealed && state.feedback.is_correct != null;
+  const correct = state.kind === 'answered' ? state.feedback.correct_answer ?? '' : '';
   const correctSet = new Set(correct.toUpperCase().match(/[A-Z]/g) ?? []);
   const selected = new Set((isMulti ? draft : state.kind === 'answered' ? state.answer : draft).toUpperCase().match(/[A-Z]/g) ?? []);
 
@@ -94,7 +97,7 @@ export default function QuestionCard({
           <div className="opts">
             {choices.map((c) => {
               let cls = '';
-              if (state.kind === 'answered') {
+              if (graded) {
                 if (correctSet.has(c.prefix)) cls = 'right';
                 else if (selected.has(c.prefix)) cls = 'wrong';
               } else if (selected.has(c.prefix)) cls = 'pick';
@@ -136,7 +139,15 @@ export default function QuestionCard({
           </div>
         )}
 
-        {state.kind === 'answered' && (
+        {state.kind === 'answered' && !graded && (
+          <div className="fb2">
+            <div className="fb done">
+              <div className="ic">✓</div>
+              <div><b>已提交</b><div className="why">做完统一批改，结束后在这里看答案和解析。</div></div>
+            </div>
+          </div>
+        )}
+        {state.kind === 'answered' && graded && (
           <div className="fb2">
             <div className={`fb ${state.feedback.is_correct ? 'ok' : 'no'}`}>
               <div className="ic">{state.feedback.is_correct ? '✓' : '✕'}</div>

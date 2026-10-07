@@ -6,7 +6,9 @@ import {
   FileTextOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
+import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { clearAdminToken, getAdminToken } from '@/api/admin';
 
 const { Header, Sider, Content } = Layout;
 
@@ -22,6 +24,14 @@ export default function AdminLayout() {
   const location = useLocation();
   const activeKey =
     MENU.find((m) => location.pathname.startsWith(m.key))?.key ?? '/admin/knowledge';
+  const token = getAdminToken();
+
+  // 未登录管理员：回到登录页的管理员入口
+  useEffect(() => {
+    if (!token) navigate('/login?admin=1', { replace: true });
+  }, [token, navigate]);
+
+  if (!token) return null;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -41,9 +51,9 @@ export default function AdminLayout() {
           type="text"
           icon={<ArrowLeftOutlined />}
           style={{ color: '#fff', marginLeft: 'auto' }}
-          onClick={() => navigate('/teaching')}
+          onClick={() => { clearAdminToken(); navigate('/login', { replace: true }); }}
         >
-          返回学生端
+          退出管理台
         </Button>
       </Header>
       <Layout>

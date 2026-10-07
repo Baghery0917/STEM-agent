@@ -52,6 +52,14 @@ class Settings(BaseSettings):
     teaching_strategy_api_key: str = ""
     teaching_strategy_timeout_seconds: float = 5.0
 
+    # 评价处服务（MCP Streamable HTTP，tool: get_student_evaluation；自行读库，只传 student_id）
+    evaluation_mcp_url: str = ""
+    evaluation_api_key: str = ""
+    evaluation_timeout_seconds: float = 15.0
+
+    # 管理台登录口令（空则管理台不可登录）
+    admin_password: str = ""
+
     # 即时情绪加权：综合 = 面部 * w + 文本 * (1 - w)
     emotion_facial_weight: float = 0.6
     # 历史情绪回流：新 = 旧 * (1 - alpha) + 本 session 均值 * alpha
@@ -75,6 +83,8 @@ class Settings(BaseSettings):
     def _require_prod_secrets(self) -> "Settings":
         if self.is_production and not self.llm_api_key:
             raise ValueError("LLM_API_KEY must be set in production")
+        if self.is_production and not self.admin_password:
+            raise ValueError("ADMIN_PASSWORD must be set in production")
         return self
 
 

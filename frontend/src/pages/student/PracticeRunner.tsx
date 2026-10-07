@@ -8,7 +8,6 @@ import type {
   PracticeSessionDetailResponse, PracticeSessionResponse, QuestionPublicResponse, StartSessionResponse,
 } from '@/api/types';
 import { useStudentStore } from '@/stores/studentStore';
-import { useUiStore } from '@/stores/uiStore';
 import { toast } from '@/stores/toastStore';
 import { useCameraFrame } from '@/hooks/useCameraFrame';
 import { useKnowledgeTree } from '@/hooks/useKnowledgeTree';
@@ -25,7 +24,6 @@ export default function PracticeRunner() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const student = useStudentStore((s) => s.current)!;
-  const timerHint = useUiStore((s) => s.practiceTimerHint);
   const camera = useCameraFrame();
   const tree = useKnowledgeTree();
 
@@ -51,7 +49,6 @@ export default function PracticeRunner() {
   const [elapsed, setElapsed] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
   const qStartRef = useRef<number>(Date.now());
-  const hintedRef = useRef<Set<number>>(new Set());
 
   // 从服务端 items 恢复本地状态（刷新页面 / 从历史进入）
   useEffect(() => {
@@ -61,6 +58,7 @@ export default function PracticeRunner() {
       const next = { ...prev };
       for (const it of items) {
         if (next[it.question_id]) continue;
+        const reveal = detail.data!.instant_feedback || !!detail.data!.ended_at;
         next[it.question_id] = it.is_skipped
           ? { kind: 'skipped' }
           : {
@@ -68,10 +66,10 @@ export default function PracticeRunner() {
               answer: it.user_answer,
               feedback: {
                 item: it,
-                is_correct: it.is_correct,
-                correct_answer: it.question?.answer ?? '',
-                analysis: it.question?.analysis ?? null,
-                analysis_image: it.question?.analysis_image ?? null,
+                is_correct: reveal ? it.is_correct : null,
+                correct_answer: reveal ? it.question?.answer ?? '' : null,
+                analysis: reveal ? it.question?.analysis ?? null : null,
+                analysis_image: reveal ? it.question?.analysis_image ?? null : null,
                 session: detail.data!,
               },
             };
@@ -108,19 +106,6 @@ export default function PracticeRunner() {
     qStartRef.current = Date.now();
   }, [current?.id]);
 
-  // 单题超过 2 分钟轻提示
-  useEffect(() => {
-    if (!timerHint || !current || curState.kind !== 'pending') return;
-    const id = current.id;
-    const t = setTimeout(() => {
-      if (!hintedRef.current.has(id)) {
-        hintedRef.current.add(id);
-        toast.info('这题已经 2 分钟了，卡住可以先跳过或星标');
-      }
-    }, 120_000);
-    return () => clearTimeout(t);
-  }, [current, curState.kind, timerHint]);
-
   const updateSession = useCallback((s: PracticeSessionResponse) => {
     qc.setQueryData<PracticeSessionDetailResponse>(['practice-session', sid], (old) => (old ? { ...old, ...s } : old));
     qc.invalidateQueries({ queryKey: ['practice-sessions', student.id] });
@@ -142,7 +127,13 @@ export default function PracticeRunner() {
 
   const end = useMutation({
     mutationFn: () => endPractice(sid),
-    onSuccess: (s) => { updateSession(s); detail.refetch(); setShowSummary(true); },
+    onSuccess: (s) => {
+      updateSession(s);
+      // 统一批改：结束后清掉本地遮罩状态，用服务端详情重建以显示答案
+      if (!s.instant_feedback) setStates({});
+      detail.refetch();
+      setShowSummary(true);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -288,6 +279,7 @@ export default function PracticeRunner() {
             wrong={session.wrong_count}
             skipped={session.skip_count}
             elapsedSec={elapsed}
+            revealed={session.instant_feedback || ended}
             onJump={setIndex}
             onEnd={() => (ended ? setShowSummary(true) : confirmEnd())}
           />
@@ -302,6 +294,7 @@ export default function PracticeRunner() {
               onDraft={(v) => setDrafts((d) => ({ ...d, [current.id]: v }))}
               starred={starred.has(current.id)}
               timed={session.timed && !ended}
+              revealed={session.instant_feedback || ended}
               onStar={() => star.mutate(current)}
               onAsk={() => askThis(current)}
               onPrev={index > 0 ? goPrev : undefined}
@@ -312,7 +305,7 @@ export default function PracticeRunner() {
             />
           )}
           <div className="qfoot-note">
-            {ended ? '练习已结束 · 这是回顾' : session.timed ? '计时中 · 卡住就星标，做完一起问' : '不计时 · 随时可以转去提问'}
+            {ended ? '练习已结束 · 这是回顾' : session.timed ? '计时中 · 做完统一批改，卡住就星标' : session.instant_feedback ? '不计时 · 每题即时反馈，随时可以转去提问' : '不计时 · 做完统一批改，随时可以转去提问'}
           </div>
         </div>
       </section>

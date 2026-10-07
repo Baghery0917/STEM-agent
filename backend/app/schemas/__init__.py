@@ -38,6 +38,8 @@ from app.schemas.practice import (
     SkipQuestionResponse,
 )
 from app.schemas.report import StudentReport
+from app.schemas.search import SessionSearchHit, SessionSearchResponse
+from app.schemas.evaluation import StudentEvaluation
 
 __all__ = [
     "VolumeCreate", "VolumeUpdate", "VolumeResponse",
@@ -56,5 +58,5 @@ __all__ = [
     "StartPracticeRequest", "PracticeMatchRequest", "PracticeMatchResponse",
     "SubmitAnswerRequest", "SkipQuestionRequest", "StarQuestionRequest",
     "StartSessionResponse", "SubmitAnswerResponse", "SkipQuestionResponse",
-    "StudentReport",
+    "StudentReport", "SessionSearchHit", "SessionSearchResponse", "StudentEvaluation",
 ]

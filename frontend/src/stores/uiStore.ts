@@ -8,11 +8,9 @@ interface UiState {
   mode: Mode;
   theme: Theme;
   cameraEnabled: boolean;
-  practiceTimerHint: boolean;
   setMode: (m: Mode) => void;
   setTheme: (t: Theme) => void;
   setCameraEnabled: (v: boolean) => void;
-  setPracticeTimerHint: (v: boolean) => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -21,11 +19,9 @@ export const useUiStore = create<UiState>()(
       mode: 'teaching',
       theme: 'system',
       cameraEnabled: false,
-      practiceTimerHint: true,
       setMode: (mode) => set({ mode }),
       setTheme: (theme) => set({ theme }),
       setCameraEnabled: (cameraEnabled) => set({ cameraEnabled }),
-      setPracticeTimerHint: (practiceTimerHint) => set({ practiceTimerHint }),
     }),
     { name: 'stem:ui' },
   ),

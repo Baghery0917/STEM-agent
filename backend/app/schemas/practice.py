@@ -9,6 +9,7 @@ from app.schemas.question import QuestionPublicResponse, QuestionResponse
 
 class PracticeSessionBase(BaseSchema):
     timed: bool
+    instant_feedback: bool
     knowledge_point_ids: list[int]
     difficulty_range: list[Difficulty]
     student_id: int
@@ -60,6 +61,8 @@ class StartPracticeRequest(BaseModel):
     question_types: list[QuestionType] | None = None
     total_count: int = Field(10, ge=1, le=100)
     timed: bool = False
+    # 计时模式下忽略此项并强制为 False
+    instant_feedback: bool = True
 
 
 class PracticeMatchRequest(BaseModel):
@@ -98,11 +101,11 @@ class StartSessionResponse(BaseModel):
 
 
 class SubmitAnswerResponse(BaseModel):
-    """提交后立即反馈：含正确答案与解析（即时批改）"""
+    """提交结果。instant_feedback=False 时 is_correct / correct_answer / analysis 为空，做完统一看"""
 
     item: PracticeItemResponse
-    is_correct: bool
-    correct_answer: str
+    is_correct: bool | None = None
+    correct_answer: str | None = None
     analysis: str | None = None
     analysis_image: str | None = None
     session: PracticeSessionResponse

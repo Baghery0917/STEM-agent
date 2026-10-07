@@ -26,6 +26,10 @@ def upgrade() -> None:
     )
     op.add_column(
         'practice_sessions',
+        sa.Column('instant_feedback', sa.Boolean(), nullable=False, server_default='true'),
+    )
+    op.add_column(
+        'practice_sessions',
         sa.Column('question_ids', postgresql.ARRAY(sa.Integer()), nullable=False, server_default='{}'),
     )
     op.add_column(
@@ -94,4 +98,5 @@ def downgrade() -> None:
     )
     op.drop_column('practice_sessions', 'starred_question_ids')
     op.drop_column('practice_sessions', 'question_ids')
+    op.drop_column('practice_sessions', 'instant_feedback')
     op.drop_column('practice_sessions', 'timed')

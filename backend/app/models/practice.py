@@ -26,6 +26,8 @@ class PracticeSession(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True)
     # 是否计时：计时中不能中途转去提问，只能先星标；不计时随时可转
     timed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
+    # 每题即时反馈；计时模式强制为 False（做完统一批改）
+    instant_feedback: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
     knowledge_point_ids: Mapped[list[int]] = mapped_column(
         ARRAY(Integer), nullable=False,
     )

@@ -59,6 +59,7 @@ async def start_session(data: StartPracticeRequest, db: DbSession) -> StartSessi
             total_count=data.total_count,
             timed=data.timed,
             question_types=data.question_types,
+            instant_feedback=data.instant_feedback,
         )
     except ValueError as e:
         raise _bad_request(e)
@@ -83,8 +84,15 @@ async def submit_answer(
         )
     except ValueError as e:
         raise _bad_request(e)
+    item_resp = PracticeItemResponse.model_validate(item)
+    if not session.instant_feedback:
+        # 统一批改：提交阶段不透露对错与答案
+        item_resp.is_correct = False
+        return SubmitAnswerResponse(
+            item=item_resp, session=PracticeSessionResponse.model_validate(session),
+        )
     return SubmitAnswerResponse(
-        item=PracticeItemResponse.model_validate(item),
+        item=item_resp,
         is_correct=is_correct,
         correct_answer=question.answer,
         analysis=question.analysis,

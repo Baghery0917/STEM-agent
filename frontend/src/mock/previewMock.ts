@@ -47,12 +47,12 @@ const teachingSessions: any[] = [
   ] },
 ];
 const practiceSessions: any[] = [
-  { id: 7, student_id: 1, timed: true, knowledge_point_ids: [3, 4], difficulty_range: ['easy', 'medium'], total_count: 4, question_ids: [101, 102, 103, 104], starred_question_ids: [103], started_at: ago(0.3), ended_at: null, skip_count: 1, correct_count: 1, wrong_count: 0, created_at: ago(0.3), updated_at: ago(0.3),
+  { id: 7, student_id: 1, timed: true, instant_feedback: false, knowledge_point_ids: [3, 4], difficulty_range: ['easy', 'medium'], total_count: 4, question_ids: [101, 102, 103, 104], starred_question_ids: [103], started_at: ago(0.3), ended_at: null, skip_count: 1, correct_count: 1, wrong_count: 0, created_at: ago(0.3), updated_at: ago(0.3),
     items: [
       { id: 1, practice_session_id: 7, student_id: 1, question_id: 101, user_answer: 'C', sequence: 0, is_correct: true, is_skipped: false, started_at: ago(0.3), ended_at: ago(0.29), duration_seconds: 42, emotion: '自信', emotion_value: 1 },
       { id: 2, practice_session_id: 7, student_id: 1, question_id: 102, user_answer: '', sequence: 1, is_correct: false, is_skipped: true, started_at: ago(0.29), ended_at: ago(0.28), duration_seconds: 12 },
     ] },
-  { id: 5, student_id: 1, timed: false, knowledge_point_ids: [1, 2], difficulty_range: ['medium'], total_count: 4, question_ids: [104, 101, 102, 103], starred_question_ids: [], started_at: ago(30), ended_at: ago(29.7), skip_count: 1, correct_count: 2, wrong_count: 1, created_at: ago(30), updated_at: ago(29.7),
+  { id: 5, student_id: 1, timed: false, instant_feedback: true, knowledge_point_ids: [1, 2], difficulty_range: ['medium'], total_count: 4, question_ids: [104, 101, 102, 103], starred_question_ids: [], started_at: ago(30), ended_at: ago(29.7), skip_count: 1, correct_count: 2, wrong_count: 1, created_at: ago(30), updated_at: ago(29.7),
     items: [
       { id: 3, practice_session_id: 5, student_id: 1, question_id: 104, user_answer: 'BC', sequence: 0, is_correct: true, is_skipped: false, started_at: ago(30), ended_at: ago(30), duration_seconds: 58 },
       { id: 4, practice_session_id: 5, student_id: 1, question_id: 101, user_answer: 'B', sequence: 1, is_correct: false, is_skipped: false, started_at: ago(30), ended_at: ago(30), duration_seconds: 110 },
@@ -91,6 +91,26 @@ async function handle(method: string, path: string, search: URLSearchParams, bod
   if (path === '/students' && method === 'GET') return json(students);
   if (path === '/students' && method === 'POST') { const s = { id: ++nextId, ...body, explain_style: null, created_at: now(), updated_at: now() }; students.push(s); return json(s, 201); }
   if ((m = path.match(/^\/students\/(\d+)\/report$/))) { await delay(300); return json(report(search.get('mode') || 'recent')); }
+  if ((m = path.match(/^\/students\/(\d+)\/evaluation$/))) {
+    await delay(900);
+    return json({ student_id: 1, source: 'mcp', highlights: ['匀变速直线运动 ↑', '摩擦力方向需巩固', '受挫时放慢节奏'], evaluation: '这周练习量稳定，匀变速直线运动进步明显；牛顿第二定律连续两次在摩擦力方向上出错且情绪偏受挫，建议下次从一道基础题回暖后再推进。' });
+  }
+  if ((m = path.match(/^\/students\/(\d+)\/sessions\/search$/))) {
+    const kw = (search.get('q') || '').toLowerCase();
+    const hits: any[] = [];
+    for (const t of teachingSessions) {
+      const hit = t.messages.find((x: any) => (x.role === 'user' || x.role === 'assistant') && x.content.toLowerCase().includes(kw));
+      if (hit) { const i = hit.content.toLowerCase().indexOf(kw); hits.push({ kind: 'teaching', id: t.id, title: t.messages[0].content.slice(0, 60), snippet: (i > 20 ? '…' : '') + hit.content.replace(/\n/g, ' ').slice(Math.max(0, i - 20), i + 40) + '…', at: t.created_at, status: t.status }); }
+    }
+    for (const p of practiceSessions) {
+      const names = p.knowledge_point_ids.map((id: number) => sections.find((x) => x.id === id)?.title ?? '');
+      const matched = names.filter((n: string) => n.toLowerCase().includes(kw));
+      if (matched.length) hits.push({ kind: 'practice', id: p.id, title: `${names.slice(0, 2).join('、')} · ${p.total_count} 题`, snippet: matched.join('、'), at: p.started_at, status: p.ended_at ? 'completed' : 'active' });
+    }
+    hits.sort((a, b) => (b.at > a.at ? 1 : -1));
+    return json({ q: kw, hits });
+  }
+  if (path === '/admin/login') { await delay(300); return body.password === 'admin' ? json({ token: 'preview-admin-token' }) : json({ detail: '口令不正确（预览版口令是 admin）' }, 401); }
   if ((m = path.match(/^\/students\/(\d+)$/)) && method === 'PUT') { const s = students.find((x) => x.id === Number(m![1])); Object.assign(s, body); return json(s); }
   if (path === '/volumes') return json(volumes);
   if (path === '/chapters') return json(chapters);
@@ -152,7 +172,7 @@ async function handle(method: string, path: string, search: URLSearchParams, bod
   if (path === '/practice/sessions' && method === 'POST') {
     await delay(400);
     const qs = questions.slice(0, Math.min(body.total_count, questions.length));
-    const s: any = { id: ++nextId, student_id: 1, timed: body.timed, knowledge_point_ids: body.knowledge_point_ids, difficulty_range: body.difficulty_range, total_count: qs.length, question_ids: qs.map((q) => q.id), starred_question_ids: [], started_at: now(), ended_at: null, skip_count: 0, correct_count: 0, wrong_count: 0, created_at: now(), updated_at: now(), items: [] };
+    const s: any = { id: ++nextId, student_id: 1, timed: body.timed, instant_feedback: body.timed ? false : body.instant_feedback !== false, knowledge_point_ids: body.knowledge_point_ids, difficulty_range: body.difficulty_range, total_count: qs.length, question_ids: qs.map((q) => q.id), starred_question_ids: [], started_at: now(), ended_at: null, skip_count: 0, correct_count: 0, wrong_count: 0, created_at: now(), updated_at: now(), items: [] };
     practiceSessions.unshift(s);
     return json({ session: sessPublic(s), questions: qs.map(pub) }, 201);
   }
@@ -162,6 +182,7 @@ async function handle(method: string, path: string, search: URLSearchParams, bod
     const ok = q.type === 'multiple_choice' ? [...norm(body.user_answer)].sort().join('') === [...norm(q.answer)].sort().join('') : norm(body.user_answer) === norm(q.answer);
     const item = { id: ++nextId, practice_session_id: s.id, student_id: 1, question_id: q.id, user_answer: body.user_answer, sequence: s.items.length, is_correct: ok, is_skipped: false, started_at: now(), ended_at: now(), duration_seconds: body.duration_seconds ?? null };
     s.items.push(item); if (ok) s.correct_count++; else s.wrong_count++;
+    if (!s.instant_feedback) return json({ item: { ...item, is_correct: false }, session: sessPublic(s) });
     return json({ item, is_correct: ok, correct_answer: q.answer, analysis: q.analysis, analysis_image: null, session: sessPublic(s) });
   }
   if ((m = path.match(/^\/practice\/sessions\/(\d+)\/skip$/))) {
@@ -175,7 +196,12 @@ async function handle(method: string, path: string, search: URLSearchParams, bod
     s.starred_question_ids = body.starred ? [...new Set([...s.starred_question_ids, body.question_id])] : s.starred_question_ids.filter((x: number) => x !== body.question_id);
     return json(sessPublic(s));
   }
-  if ((m = path.match(/^\/practice\/sessions\/(\d+)\/end$/))) { const s = practiceSessions.find((x) => x.id === Number(m![1])); s.ended_at = now(); return json(sessPublic(s)); }
+  if ((m = path.match(/^\/practice\/sessions\/(\d+)\/end$/))) {
+    const s = practiceSessions.find((x) => x.id === Number(m![1])); s.ended_at = now();
+    const done = new Set(s.items.map((i: any) => i.question_id));
+    for (const qid of s.question_ids) if (!done.has(qid)) { s.items.push({ id: ++nextId, practice_session_id: s.id, student_id: 1, question_id: qid, user_answer: '', sequence: s.items.length, is_correct: false, is_skipped: true, started_at: now(), ended_at: now(), duration_seconds: null }); s.skip_count++; }
+    return json(sessPublic(s));
+  }
   if ((m = path.match(/^\/practice\/sessions\/(\d+)$/))) {
     const s = practiceSessions.find((x) => x.id === Number(m![1]));
     return s ? json({ ...sessPublic(s), questions: s.question_ids.map((id: number) => pub(questions.find((q) => q.id === id))), items: s.items.map(withQ) }) : json({ detail: 'Session not found' }, 404);

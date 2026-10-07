@@ -267,6 +267,59 @@ class TestSubmitAndSkip:
             await service.submit_answer(session_id=session.id, question_id=questions[0].id, user_answer="A")
 
 
+class TestInstantFeedback:
+    @pytest.mark.asyncio
+    async def test_timed_forces_batch_grading(self, db_session: AsyncSession):
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        await create_test_question(db_session, section, content="Q1", answer="A")
+        service = PracticeService(db_session, emotion=FakeEmotion())
+        session, _ = await service.start_session(
+            student_id=student.id, knowledge_point_ids=[section.id], difficulty_range=["easy"],
+            total_count=1, timed=True, instant_feedback=True,
+        )
+        assert session.instant_feedback is False
+
+    @pytest.mark.asyncio
+    async def test_untimed_keeps_choice(self, db_session: AsyncSession):
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        await create_test_question(db_session, section, content="Q1", answer="A")
+        service = PracticeService(db_session, emotion=FakeEmotion())
+        s1, _ = await service.start_session(
+            student_id=student.id, knowledge_point_ids=[section.id], difficulty_range=["easy"],
+            total_count=1, timed=False, instant_feedback=False,
+        )
+        s2, _ = await service.start_session(
+            student_id=student.id, knowledge_point_ids=[section.id], difficulty_range=["easy"],
+            total_count=1, timed=False, instant_feedback=True,
+        )
+        assert s1.instant_feedback is False and s2.instant_feedback is True
+
+    @pytest.mark.asyncio
+    async def test_batch_grading_hides_answer_until_detail(self, client, db_session: AsyncSession, monkeypatch):
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        await create_test_question(db_session, section, content="Q1", answer="A", analysis="why")
+        monkeypatch.setattr(EmotionService, "detect_facial", FakeEmotion().detect_facial)
+
+        resp = await client.post("/api/v1/practice/sessions", json={
+            "student_id": student.id, "knowledge_point_ids": [section.id],
+            "difficulty_range": ["easy"], "total_count": 1, "timed": True,
+        })
+        sid = resp.json()["session"]["id"]; qid = resp.json()["questions"][0]["id"]
+        sub = await client.post(f"/api/v1/practice/sessions/{sid}/submit", json={"question_id": qid, "user_answer": "A"})
+        body = sub.json()
+        assert body["is_correct"] is None and body["correct_answer"] is None and body["analysis"] is None
+        assert body["item"]["is_correct"] is False
+        # 后台仍按真实对错计数
+        assert body["session"]["correct_count"] == 1
+        await client.post(f"/api/v1/practice/sessions/{sid}/end")
+        detail = (await client.get(f"/api/v1/practice/sessions/{sid}")).json()
+        assert detail["items"][0]["is_correct"] is True
+        assert detail["items"][0]["question"]["answer"] == "A"
+
+
 class TestStarAndEnd:
     @pytest.mark.asyncio
     async def test_star_toggle(self, db_session: AsyncSession):
@@ -294,6 +347,22 @@ class TestStarAndEnd:
         assert ended.ended_at is not None
         with pytest.raises(ValueError, match="Session already ended"):
             await service.end_session(session.id)
+
+    @pytest.mark.asyncio
+    async def test_end_session_marks_unanswered_as_skipped(self, db_session: AsyncSession):
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        for i in range(3):
+            await create_test_question(db_session, section, content=f"Q{i}", answer="A")
+
+        service, session, questions = await start(db_session, student, section, n=3)
+        await service.submit_answer(session_id=session.id, question_id=questions[0].id, user_answer="A")
+        ended = await service.end_session(session.id)
+
+        assert ended.skip_count == 2
+        detail = await service.get_session(session.id)
+        assert len(detail.items) == 3
+        assert sum(1 for it in detail.items if it.is_skipped) == 2
 
     @pytest.mark.asyncio
     async def test_end_session_flows_practice_emotion_back(self, db_session: AsyncSession):

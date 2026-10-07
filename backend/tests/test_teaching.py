@@ -1478,3 +1478,105 @@ class TestReportService:
     async def test_report_endpoint_404_for_unknown_student(self, client):
         resp = await client.get("/api/v1/students/9999/report", params={"summary": "false"})
         assert resp.status_code == 404
+
+
+class TestSessionSearch:
+    async def test_search_hits_teaching_messages_and_practice_sections(self, client, db_session: AsyncSession):
+        from app.models.practice import PracticeSession
+        from app.models.question import Difficulty
+
+        student = await create_test_student(db_session)
+        other = await create_test_student(db_session, name="Other")
+        _, _, section = await create_knowledge_chain(db_session, section_title="摩擦力")
+
+        s1 = TeachingSession(student_id=student.id, status=TeachingSessionStatus.ACTIVE)
+        s2 = TeachingSession(student_id=student.id, status=TeachingSessionStatus.COMPLETED)
+        s3 = TeachingSession(student_id=other.id, status=TeachingSessionStatus.ACTIVE)
+        db_session.add_all([s1, s2, s3])
+        await db_session.flush()
+        db_session.add_all([
+            TeachingMessage(session_id=s1.id, role=MessageRole.USER, content="斜面上的摩擦力方向怎么判断", message_type=MessageType.QUESTION_SUBMIT, sequence=0),
+            TeachingMessage(session_id=s1.id, role=MessageRole.SYSTEM, content="摩擦力 strategy", message_type=MessageType.STRATEGY, sequence=1),
+            TeachingMessage(session_id=s2.id, role=MessageRole.USER, content="弹簧振子周期", message_type=MessageType.QUESTION_SUBMIT, sequence=0),
+            TeachingMessage(session_id=s2.id, role=MessageRole.ASSISTANT, content="这和摩擦力无关", message_type=MessageType.CHAT, sequence=1),
+            TeachingMessage(session_id=s3.id, role=MessageRole.USER, content="摩擦力", message_type=MessageType.QUESTION_SUBMIT, sequence=0),
+        ])
+        db_session.add(PracticeSession(
+            timed=False, instant_feedback=True, knowledge_point_ids=[section.id], difficulty_range=[Difficulty.EASY],
+            question_ids=[], starred_question_ids=[], student_id=student.id, total_count=3, started_at=_utcnow(),
+        ))
+        await db_session.flush()
+
+        resp = await client.get(f"/api/v1/students/{student.id}/sessions/search", params={"q": "摩擦力"})
+        assert resp.status_code == 200
+        hits = resp.json()["hits"]
+        kinds = {(h["kind"], h["id"]) for h in hits}
+        assert ("teaching", s1.id) in kinds
+        assert ("teaching", s2.id) in kinds          # assistant 消息命中
+        assert ("teaching", s3.id) not in kinds      # 别人的会话
+        practice_hits = [h for h in hits if h["kind"] == "practice"]
+        assert len(practice_hits) == 1 and "摩擦力" in practice_hits[0]["title"]
+        teach_hit = next(h for h in hits if h["id"] == s2.id and h["kind"] == "teaching")
+        assert "摩擦力" in teach_hit["snippet"]
+
+        empty = await client.get(f"/api/v1/students/{student.id}/sessions/search", params={"q": "不存在的词"})
+        assert empty.json()["hits"] == []
+
+
+class TestEvaluationEndpoint:
+    async def test_unavailable_when_not_configured(self, client, db_session: AsyncSession, monkeypatch):
+        from app.config import settings
+
+        student = await create_test_student(db_session)
+        monkeypatch.setattr(settings, "evaluation_mcp_url", "")
+        resp = await client.get(f"/api/v1/students/{student.id}/evaluation")
+        assert resp.status_code == 200
+        assert resp.json()["source"] == "unavailable"
+
+    async def test_returns_mcp_result(self, client, db_session: AsyncSession, monkeypatch):
+        from app.config import settings
+        from app.external.evaluation import EvaluationClient, EvaluationResult
+
+        student = await create_test_student(db_session)
+        monkeypatch.setattr(settings, "evaluation_mcp_url", "http://fake/mcp")
+        monkeypatch.setattr(
+            EvaluationClient, "get_evaluation",
+            AsyncMock(return_value=EvaluationResult("练得不错", ["要点一"])),
+        )
+        resp = await client.get(f"/api/v1/students/{student.id}/evaluation")
+        body = resp.json()
+        assert body["source"] == "mcp" and body["evaluation"] == "练得不错" and body["highlights"] == ["要点一"]
+
+    async def test_mcp_failure_degrades(self, client, db_session: AsyncSession, monkeypatch):
+        from app.config import settings
+        from app.external.evaluation import EvaluationClient
+
+        student = await create_test_student(db_session)
+        monkeypatch.setattr(settings, "evaluation_mcp_url", "http://fake/mcp")
+        monkeypatch.setattr(EvaluationClient, "get_evaluation", AsyncMock(side_effect=TimeoutError("slow")))
+        resp = await client.get(f"/api/v1/students/{student.id}/evaluation")
+        assert resp.json()["source"] == "unavailable"
+
+
+class TestAdminLogin:
+    async def test_login_and_token_gate(self, client, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "admin_password", "s3cret")
+        bad = await client.post("/api/v1/admin/login", json={"password": "nope"})
+        assert bad.status_code == 401
+        ok = await client.post("/api/v1/admin/login", json={"password": "s3cret"})
+        assert ok.status_code == 200
+        token = ok.json()["token"]
+
+        denied = await client.get("/api/v1/admin/db/tables")
+        assert denied.status_code == 401
+        allowed = await client.get("/api/v1/admin/db/tables", headers={"X-Admin-Token": token})
+        assert allowed.status_code == 200
+
+    async def test_login_disabled_without_password(self, client, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "admin_password", "")
+        resp = await client.post("/api/v1/admin/login", json={"password": "x"})
+        assert resp.status_code == 403

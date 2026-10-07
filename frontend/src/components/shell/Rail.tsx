@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStudentStore } from '@/stores/studentStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useRailItems, type RailItem } from '@/hooks/useSessionLists';
 import { useKnowledgeTree } from '@/hooks/useKnowledgeTree';
+import { useDebounced } from '@/hooks/useDebounced';
+import { searchSessions } from '@/api/reports';
 import { groupLabel, shortTime } from '@/utils/time';
 
 const GROUP_ORDER = ['今天', '昨天', '过去 7 天', '更早'] as const;
@@ -16,25 +19,29 @@ export default function Rail() {
   const { items } = useRailItems(student?.id);
   const tree = useKnowledgeTree();
   const [q, setQ] = useState('');
+  const debounced = useDebounced(q.trim(), 250);
 
-  const filtered = useMemo(() => {
-    const kw = q.trim().toLowerCase();
-    if (!kw) return items;
-    return items.filter((it) => titleOf(it, tree.data?.sectionById).toLowerCase().includes(kw));
-  }, [items, q, tree.data]);
+  // 搜索走后端：教学按消息全文，练习按知识点名
+  const search = useQuery({
+    queryKey: ['session-search', student?.id, debounced],
+    queryFn: () => searchSessions(student!.id, debounced),
+    enabled: !!student && debounced.length > 0,
+    staleTime: 10_000,
+  });
 
   const groups = useMemo(() => {
     const map = new Map<string, RailItem[]>();
-    for (const it of filtered) {
+    for (const it of items) {
       const g = groupLabel(it.at);
       map.set(g, [...(map.get(g) ?? []), it]);
     }
     return GROUP_ORDER.filter((g) => map.has(g)).map((g) => [g, map.get(g)!] as const);
-  }, [filtered]);
+  }, [items]);
 
   const activeKey = location.pathname;
   const isReport = activeKey.startsWith('/report');
   const isSettings = activeKey.startsWith('/settings');
+  const searching = debounced.length > 0;
 
   const newSession = () => navigate(mode === 'practice' ? '/practice/new' : '/teaching');
 
@@ -52,41 +59,65 @@ export default function Rail() {
       </button>
       <div className="search">
         <span>⌕</span>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索会话" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="搜索会话内容、知识点"
+          onKeyDown={(e) => e.key === 'Escape' && setQ('')}
+        />
+        {q && <button type="button" className="x" onClick={() => setQ('')} aria-label="清空">×</button>}
       </div>
 
       <div className="sessions">
-        {groups.length === 0 && (
-          <div className="sess-empty">{q ? '没有匹配的会话' : '还没有会话，先发一道题或开始练习'}</div>
-        )}
-        {groups.map(([g, list]) => (
-          <div key={g}>
-            <div className="grp">{g}</div>
-            {list.map((it) => {
-              const path = it.kind === 'teaching' ? `/teaching/${it.id}` : `/practice/${it.id}`;
-              const on = activeKey === path;
-              const live =
-                it.kind === 'teaching' ? it.data.status === 'active' : !it.data.ended_at;
+        {searching ? (
+          <>
+            <div className="grp">
+              {search.isFetching ? '搜索中…' : `${search.data?.hits.length ?? 0} 个结果`}
+            </div>
+            {search.data?.hits.length === 0 && !search.isFetching && (
+              <div className="sess-empty">没有包含「{debounced}」的会话</div>
+            )}
+            {search.data?.hits.map((h) => {
+              const path = h.kind === 'teaching' ? `/teaching/${h.id}` : `/practice/${h.id}`;
               return (
-                <button
-                  type="button"
-                  key={`${it.kind}-${it.id}`}
-                  className={`sess ${on ? 'on' : ''}`}
-                  onClick={() => navigate(path)}
-                >
-                  <span className={`glyph ${it.kind === 'teaching' ? 't' : 'p'}`}>
-                    {it.kind === 'teaching' ? '讲' : '练'}
-                  </span>
+                <button type="button" key={`${h.kind}-${h.id}`} className={`sess ${activeKey === path ? 'on' : ''}`} onClick={() => navigate(path)}>
+                  <span className={`glyph ${h.kind === 'teaching' ? 't' : 'p'}`}>{h.kind === 'teaching' ? '讲' : '练'}</span>
                   <span style={{ minWidth: 0 }}>
-                    <span className="ttl">{titleOf(it, tree.data?.sectionById)}</span>
-                    <span className="meta">{metaOf(it)}</span>
+                    <span className="ttl">{h.title}</span>
+                    <span className="meta snippet">{highlight(h.snippet, debounced)}</span>
+                    <span className="meta">{h.status === 'active' ? '进行中' : '已结束'} · {shortTime(h.at)}</span>
                   </span>
-                  {live && <span className="live" />}
                 </button>
               );
             })}
-          </div>
-        ))}
+          </>
+        ) : (
+          <>
+            {groups.length === 0 && (
+              <div className="sess-empty">还没有会话，先发一道题或开始练习</div>
+            )}
+            {groups.map(([g, list]) => (
+              <div key={g}>
+                <div className="grp">{g}</div>
+                {list.map((it) => {
+                  const path = it.kind === 'teaching' ? `/teaching/${it.id}` : `/practice/${it.id}`;
+                  const on = activeKey === path;
+                  const live = it.kind === 'teaching' ? it.data.status === 'active' : !it.data.ended_at;
+                  return (
+                    <button type="button" key={`${it.kind}-${it.id}`} className={`sess ${on ? 'on' : ''}`} onClick={() => navigate(path)}>
+                      <span className={`glyph ${it.kind === 'teaching' ? 't' : 'p'}`}>{it.kind === 'teaching' ? '讲' : '练'}</span>
+                      <span style={{ minWidth: 0 }}>
+                        <span className="ttl">{titleOf(it, tree.data?.sectionById)}</span>
+                        <span className="meta">{metaOf(it)}</span>
+                      </span>
+                      {live && <span className="live" />}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       <div className="rail-bottom">
@@ -105,6 +136,17 @@ export default function Rail() {
         </div>
       </div>
     </aside>
+  );
+}
+
+function highlight(text: string, kw: string) {
+  if (!kw) return text;
+  const idx = text.toLowerCase().indexOf(kw.toLowerCase());
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}<mark>{text.slice(idx, idx + kw.length)}</mark>{text.slice(idx + kw.length)}
+    </>
   );
 }
 
@@ -140,7 +182,7 @@ function metaOf(it: RailItem) {
   return (
     <>
       <span className="tag">{d.timed ? '计时' : '不计时'}</span>
-      · {d.ended_at ? `正确率 ${rate}` : `${done} / ${d.total_count} · 对 ${d.correct_count}`}
+      · {d.ended_at ? `正确率 ${rate}` : `${done} / ${d.total_count}`}
     </>
   );
 }

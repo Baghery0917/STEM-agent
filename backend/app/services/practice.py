@@ -60,6 +60,7 @@ class PracticeService:
         total_count: int,
         timed: bool = False,
         question_types: list[str] | None = None,
+        instant_feedback: bool = True,
     ) -> tuple[PracticeSession, list[Question]]:
         await self._validate_knowledge_points(knowledge_point_ids)
         questions = await self._draw_questions(
@@ -70,6 +71,8 @@ class PracticeService:
 
         session = PracticeSession(
             timed=timed,
+            # 计时练习不做逐题反馈，避免看答案打断节奏
+            instant_feedback=False if timed else instant_feedback,
             knowledge_point_ids=knowledge_point_ids,
             difficulty_range=difficulty_range,
             question_ids=[q.id for q in questions],
@@ -207,6 +210,7 @@ class PracticeService:
         session.ended_at = _utcnow()
         await self.db.flush()
 
+        await self._skip_unanswered(session)
         await self._flow_back_emotion(session)
         await self.db.refresh(session)
         return session
@@ -404,6 +408,30 @@ class PracticeService:
                 )
 
         await self.db.flush()
+
+    async def _skip_unanswered(self, session: PracticeSession) -> None:
+        """结束时把没做的题补成跳过记录，总结页与 skip_count 才一致"""
+        done = set((await self.db.execute(
+            select(PracticeItem.question_id).where(PracticeItem.practice_session_id == session.id)
+        )).scalars().all())
+        remaining = [qid for qid in session.question_ids if qid not in done]
+        if not remaining:
+            return
+        seq = await self._get_next_sequence(session.id)
+        now = session.ended_at or _utcnow()
+        for i, qid in enumerate(remaining):
+            self.db.add(PracticeItem(
+                practice_session_id=session.id, student_id=session.student_id, question_id=qid,
+                user_answer="", sequence=seq + i, is_correct=False, is_skipped=True,
+                started_at=now, ended_at=now,
+            ))
+        await self.db.execute(
+            update(PracticeSession)
+            .where(PracticeSession.id == session.id)
+            .values(skip_count=PracticeSession.skip_count + len(remaining))
+        )
+        await self.db.flush()
+        await self.db.refresh(session)
 
     async def _flow_back_emotion(self, session: PracticeSession) -> None:
         """练习结束：作答题的面部情绪均值回流到涉及的知识点"""
