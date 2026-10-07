@@ -11,11 +11,10 @@ export const WEEKDAY_LINES: Record<number, string> = {
   6: 'Saturday is laundry night, 8:15 sharp. Be punctual.',
 };
 
-export const KNOCK_NAME_FALLBACK = 'Penny';
 
 export const LOGIN = {
   title: 'Apartment 4A',
-  subtitle: '选一个名牌进门，或者在门口登记一个新名字',
+  subtitle: '报上名字敲门。登记过的直接进，第一次来会先登记。',
   teacherTab: 'Roommate Agreement',
   teacherSub: '签署室友协议进入管理台：知识树、题库、学生、数据库',
   passwordPlaceholder: 'Section 7, Clause B',

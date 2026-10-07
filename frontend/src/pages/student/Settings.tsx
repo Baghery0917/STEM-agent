@@ -52,16 +52,6 @@ export default function Settings() {
               <div><div className="t">情绪识别</div><div className="d">使用摄像头判断学习状态，只用来调整讲解节奏，画面不上传不保存</div></div>
               <button type="button" className={`toggle ctl ${ui.cameraEnabled ? 'on' : ''}`} onClick={() => ui.setCameraEnabled(!ui.cameraEnabled)} aria-label="情绪识别" />
             </div>
-            <div className="srow">
-              <div><div className="t">外观</div><div className="d">跟随系统 / 浅色 / 深色 · 恒温 71°F</div></div>
-              <div className="ctl radio">
-                {(['system', 'light', 'dark'] as const).map((t) => (
-                  <button type="button" key={t} className={ui.theme === t ? 'on' : ''} onClick={() => ui.setTheme(t)}>
-                    {t === 'system' ? '跟随系统' : t === 'light' ? '浅色' : '深色'}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div></div>
         </div>
       </section>

@@ -3,13 +3,12 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Rail from '@/components/shell/Rail';
 import Toasts from '@/components/shell/Toasts';
 import { useRequireStudent } from '@/hooks/useRequireStudent';
-import { resolveTheme, useUiStore } from '@/stores/uiStore';
+import { useUiStore } from '@/stores/uiStore';
 
 /** 学生端壳子：左侧会话栏 + 右侧主区。顶栏由各页面自己渲染（需要页面级上下文） */
 export default function StudentLayout() {
   const student = useRequireStudent();
   const mode = useUiStore((s) => s.mode);
-  const theme = useUiStore((s) => s.theme);
   const setMode = useUiStore((s) => s.setMode);
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,16 +18,6 @@ export default function StudentLayout() {
     if (location.pathname.startsWith('/practice')) setMode('practice');
     else if (location.pathname.startsWith('/teaching')) setMode('teaching');
   }, [location.pathname, setMode]);
-
-  useEffect(() => {
-    const apply = () => {
-      document.body.dataset.theme = resolveTheme(theme);
-    };
-    apply();
-    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
-    mq?.addEventListener('change', apply);
-    return () => mq?.removeEventListener('change', apply);
-  }, [theme]);
 
   useEffect(() => {
     document.body.dataset.mode = mode;

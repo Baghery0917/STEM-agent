@@ -11,8 +11,6 @@ interface Props {
 
 export default function TopBar({ crumb, showSeg = true, right }: Props) {
   const mode = useUiStore((s) => s.mode);
-  const theme = useUiStore((s) => s.theme);
-  const setTheme = useUiStore((s) => s.setTheme);
   const navigate = useNavigate();
 
   const switchMode = (m: 'teaching' | 'practice') => {
@@ -30,13 +28,6 @@ export default function TopBar({ crumb, showSeg = true, right }: Props) {
       </div>
       <div className="right">
         {right}
-        <button
-          type="button"
-          className="iconbtn"
-          title="切换主题"
-          onClick={() => setTheme(document.body.dataset.theme === 'dark' ? 'light' : 'dark')}
-          aria-label={`当前主题 ${theme}`}
-        >◐</button>
       </div>
     </header>
   );
