@@ -1,0 +1,44 @@
+{"key": "openstax-v1-ch01", "volume_key": "openstax-v1", "title": "第1章 单位与测量", "description": "单元：力学；OpenStax University Physics Vol.1 — Units and Measurement", "order": 1}
+{"key": "openstax-v1-ch02", "volume_key": "openstax-v1", "title": "第2章 矢量", "description": "单元：力学；OpenStax University Physics Vol.1 — Vectors", "order": 2}
+{"key": "openstax-v1-ch03", "volume_key": "openstax-v1", "title": "第3章 直线运动", "description": "单元：力学；OpenStax University Physics Vol.1 — Motion Along a Straight Line", "order": 3}
+{"key": "openstax-v1-ch04", "volume_key": "openstax-v1", "title": "第4章 二维和三维运动", "description": "单元：力学；OpenStax University Physics Vol.1 — Motion in Two and Three Dimensions", "order": 4}
+{"key": "openstax-v1-ch05", "volume_key": "openstax-v1", "title": "第5章 牛顿运动定律", "description": "单元：力学；OpenStax University Physics Vol.1 — Newton's Laws of Motion", "order": 5}
+{"key": "openstax-v1-ch06", "volume_key": "openstax-v1", "title": "第6章 牛顿运动定律的应用", "description": "单元：力学；OpenStax University Physics Vol.1 — Applications of Newton's Laws", "order": 6}
+{"key": "openstax-v1-ch07", "volume_key": "openstax-v1", "title": "第7章 功与动能", "description": "单元：力学；OpenStax University Physics Vol.1 — Work and Kinetic Energy", "order": 7}
+{"key": "openstax-v1-ch08", "volume_key": "openstax-v1", "title": "第8章 势能与能量守恒", "description": "单元：力学；OpenStax University Physics Vol.1 — Potential Energy and Conservation of Energy", "order": 8}
+{"key": "openstax-v1-ch09", "volume_key": "openstax-v1", "title": "第9章 动量与碰撞", "description": "单元：力学；OpenStax University Physics Vol.1 — Linear Momentum and Collisions", "order": 9}
+{"key": "openstax-v1-ch10", "volume_key": "openstax-v1", "title": "第10章 定轴转动", "description": "单元：力学；OpenStax University Physics Vol.1 — Fixed-Axis Rotation", "order": 10}
+{"key": "openstax-v1-ch11", "volume_key": "openstax-v1", "title": "第11章 角动量", "description": "单元：力学；OpenStax University Physics Vol.1 — Angular Momentum", "order": 11}
+{"key": "openstax-v1-ch12", "volume_key": "openstax-v1", "title": "第12章 静平衡与弹性", "description": "单元：力学；OpenStax University Physics Vol.1 — Static Equilibrium and Elasticity", "order": 12}
+{"key": "openstax-v1-ch13", "volume_key": "openstax-v1", "title": "第13章 万有引力", "description": "单元：力学；OpenStax University Physics Vol.1 — Gravitation", "order": 13}
+{"key": "openstax-v1-ch14", "volume_key": "openstax-v1", "title": "第14章 流体力学", "description": "单元：力学；OpenStax University Physics Vol.1 — Fluid Mechanics", "order": 14}
+{"key": "openstax-v1-ch15", "volume_key": "openstax-v1", "title": "第15章 振动", "description": "单元：波与声学；OpenStax University Physics Vol.1 — Oscillations", "order": 15}
+{"key": "openstax-v1-ch16", "volume_key": "openstax-v1", "title": "第16章 波", "description": "单元：波与声学；OpenStax University Physics Vol.1 — Waves", "order": 16}
+{"key": "openstax-v1-ch17", "volume_key": "openstax-v1", "title": "第17章 声", "description": "单元：波与声学；OpenStax University Physics Vol.1 — Sound", "order": 17}
+{"key": "openstax-v2-ch01", "volume_key": "openstax-v2", "title": "第1章 温度与热量", "description": "单元：热力学；OpenStax University Physics Vol.2 — Temperature and Heat", "order": 1}
+{"key": "openstax-v2-ch02", "volume_key": "openstax-v2", "title": "第2章 气体动理论", "description": "单元：热力学；OpenStax University Physics Vol.2 — The Kinetic Theory of Gases", "order": 2}
+{"key": "openstax-v2-ch03", "volume_key": "openstax-v2", "title": "第3章 热力学第一定律", "description": "单元：热力学；OpenStax University Physics Vol.2 — The First Law of Thermodynamics", "order": 3}
+{"key": "openstax-v2-ch04", "volume_key": "openstax-v2", "title": "第4章 热力学第二定律", "description": "单元：热力学；OpenStax University Physics Vol.2 — The Second Law of Thermodynamics", "order": 4}
+{"key": "openstax-v2-ch05", "volume_key": "openstax-v2", "title": "第5章 电荷与电场", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Electric Charges and Fields", "order": 5}
+{"key": "openstax-v2-ch06", "volume_key": "openstax-v2", "title": "第6章 高斯定理", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Gauss's Law", "order": 6}
+{"key": "openstax-v2-ch07", "volume_key": "openstax-v2", "title": "第7章 电势", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Electric Potential", "order": 7}
+{"key": "openstax-v2-ch08", "volume_key": "openstax-v2", "title": "第8章 电容", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Capacitance", "order": 8}
+{"key": "openstax-v2-ch09", "volume_key": "openstax-v2", "title": "第9章 电流与电阻", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Current and Resistance", "order": 9}
+{"key": "openstax-v2-ch10", "volume_key": "openstax-v2", "title": "第10章 直流电路", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Direct-Current Circuits", "order": 10}
+{"key": "openstax-v2-ch11", "volume_key": "openstax-v2", "title": "第11章 磁力与磁场", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Magnetic Forces and Fields", "order": 11}
+{"key": "openstax-v2-ch12", "volume_key": "openstax-v2", "title": "第12章 磁场的源", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Sources of Magnetic Fields", "order": 12}
+{"key": "openstax-v2-ch13", "volume_key": "openstax-v2", "title": "第13章 电磁感应", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Electromagnetic Induction", "order": 13}
+{"key": "openstax-v2-ch14", "volume_key": "openstax-v2", "title": "第14章 电感", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Inductance", "order": 14}
+{"key": "openstax-v2-ch15", "volume_key": "openstax-v2", "title": "第15章 交流电路", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Alternating-Current Circuits", "order": 15}
+{"key": "openstax-v2-ch16", "volume_key": "openstax-v2", "title": "第16章 电磁波", "description": "单元：电磁学；OpenStax University Physics Vol.2 — Electromagnetic Waves", "order": 16}
+{"key": "openstax-v3-ch01", "volume_key": "openstax-v3", "title": "第1章 光的本性", "description": "单元：光学；OpenStax University Physics Vol.3 — The Nature of Light", "order": 1}
+{"key": "openstax-v3-ch02", "volume_key": "openstax-v3", "title": "第2章 几何光学与成像", "description": "单元：光学；OpenStax University Physics Vol.3 — Geometric Optics and Image Formation", "order": 2}
+{"key": "openstax-v3-ch03", "volume_key": "openstax-v3", "title": "第3章 干涉", "description": "单元：光学；OpenStax University Physics Vol.3 — Interference", "order": 3}
+{"key": "openstax-v3-ch04", "volume_key": "openstax-v3", "title": "第4章 衍射", "description": "单元：光学；OpenStax University Physics Vol.3 — Diffraction", "order": 4}
+{"key": "openstax-v3-ch05", "volume_key": "openstax-v3", "title": "第5章 相对论", "description": "单元：近代物理；OpenStax University Physics Vol.3 — Relativity", "order": 5}
+{"key": "openstax-v3-ch06", "volume_key": "openstax-v3", "title": "第6章 光子与物质波", "description": "单元：近代物理；OpenStax University Physics Vol.3 — Photons and Matter Waves", "order": 6}
+{"key": "openstax-v3-ch07", "volume_key": "openstax-v3", "title": "第7章 量子力学", "description": "单元：近代物理；OpenStax University Physics Vol.3 — Quantum Mechanics", "order": 7}
+{"key": "openstax-v3-ch08", "volume_key": "openstax-v3", "title": "第8章 原子结构", "description": "单元：近代物理；OpenStax University Physics Vol.3 — Atomic Structure", "order": 8}
+{"key": "openstax-v3-ch09", "volume_key": "openstax-v3", "title": "第9章 凝聚态物理", "description": "单元：近代物理；OpenStax University Physics Vol.3 — Condensed Matter Physics", "order": 9}
+{"key": "openstax-v3-ch10", "volume_key": "openstax-v3", "title": "第10章 核物理", "description": "单元：近代物理；OpenStax University Physics Vol.3 — Nuclear Physics", "order": 10}
+{"key": "openstax-v3-ch11", "volume_key": "openstax-v3", "title": "第11章 粒子物理与宇宙学", "description": "单元：近代物理；OpenStax University Physics Vol.3 — Particle Physics and Cosmology", "order": 11}

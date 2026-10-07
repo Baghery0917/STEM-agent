@@ -135,7 +135,16 @@ make db-seed
 - 多套练习题（含单选、多选、填空、解答题）
 - 题目与知识点的关联
 
-### 方式二：通过前端管理界面
+### 方式二：导入大学物理知识树与题库（正式数据）
+
+```bash
+make db-import-physics          # 只导知识树和题目
+make db-import-physics EMBED=1  # 同时算题目 embedding（需 backend/.env 配好 LLM_API_KEY，约 10 分钟）
+```
+
+数据在 `backend/data/physics/`（3 册 44 章 314 节、3106 题），来源是 OpenStax《University Physics》中文译本、清华大学物理题库与两套中文笔记，制作流程见 `tools/physics-pipeline/README.md`。题目与节内容里的图片放在 `frontend/public/physics-media/`，前端构建后随静态文件一起发布，路径为 `/physics-media/...`。脚本幂等，重复执行只更新不重复插入。
+
+### 方式三：通过前端管理界面
 
 启动前后端后，访问 http://localhost，在管理端页面手动录入数据。
 

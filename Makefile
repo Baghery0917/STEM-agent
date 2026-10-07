@@ -96,6 +96,10 @@ migrate-create:
 db-seed:
 	cd backend && python seed_data.py
 
+# 导入大学物理知识树与题库（3 册 44 章 314 节，3106 题）；加 EMBED=1 同时计算题目向量（需 backend/.env 的 LLM_API_KEY）
+db-import-physics:
+	cd backend && python scripts/import_physics.py $(if $(EMBED),--embed,)
+
 # Clean
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
