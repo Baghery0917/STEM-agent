@@ -285,6 +285,7 @@ body {
 .fb.ok .ic { background: var(--practice); } .fb.no .ic { background: var(--bad); } .fb.skip .ic { background: var(--warn); }
 .fb b { display: block; margin-bottom: 2px; }
 .fb .why { color: var(--ink-2); font-size: 13px; }
+.fb .why b { display: inline; }
 .fb2 .sol { margin-top: 10px; padding: 12px 14px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line-2); font-size: 13.5px; color: var(--ink-2); line-height: 1.7; white-space: pre-wrap; }
 .fb2 .sol b { color: var(--ink); }
 .qfoot-note { text-align: center; margin-top: 14px; font-size: 12px; color: var(--ink-3); }
