@@ -15,6 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
+from app.models.student import Persona
 
 
 class TeachingSessionStatus(str, enum.Enum):
@@ -64,6 +65,8 @@ class TeachingSession(BaseModel):
         Enum(PipelineStatus), nullable=False, default=PipelineStatus.PENDING,
     )
     strategy: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 会话创建时的讲师快照；学生之后切换讲师不影响已有会话
+    persona: Mapped[Persona | None] = mapped_column(Enum(Persona), nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True,
     )

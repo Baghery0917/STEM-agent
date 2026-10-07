@@ -17,7 +17,8 @@ from app.models.student_knowledge_summary import StudentKnowledgeSummary
 from app.models.emotion import StudentKpEmotion
 from app.models.practice import PracticeItem, PracticeSession
 from app.models.question import Question
-from app.models.student import ExplainStyle, Student
+from app.models.student import ExplainStyle, Persona, Student
+from app.llm.personas import is_frustrated, persona_prompt
 from app.models.teaching import (
     MessageRole,
     MessageType,
@@ -89,10 +90,14 @@ class TeachingService:
                 question_ids=source_question_ids or [],
                 student_note=question_content,
             )
+        persona = (
+            await self.db.execute(select(Student.persona).where(Student.id == student_id))
+        ).scalar_one_or_none()
         session = TeachingSession(
             student_id=student_id,
             status=TeachingSessionStatus.ACTIVE,
             pipeline_status=PipelineStatus.PENDING,
+            persona=persona,
             source_practice_session_id=source_practice_session_id,
             source_question_ids=source_question_ids or None,
         )
@@ -927,6 +932,7 @@ Reason: <one sentence reason>
             instant_emotion=instant_emotion,
             references=references,
             explain_style=await self._student_explain_style(session.student_id),
+            persona=session.persona,
         )
 
         messages = [
@@ -1001,6 +1007,13 @@ Reason: <one sentence reason>
         style_guidance = await self._explain_style_guidance(session_id)
         if style_guidance:
             system_parts.append(style_guidance)
+        persona = (
+            await self.db.execute(select(TeachingSession.persona).where(TeachingSession.id == session_id))
+        ).scalar_one_or_none()
+        system_parts.append(persona_prompt(
+            persona,
+            soften=is_frustrated(latest_user.emotion_value if latest_user else None),
+        ))
 
         llm_messages = [{"role": "system", "content": "\n".join(system_parts)}]
         for msg in messages:
@@ -1020,6 +1033,7 @@ Reason: <one sentence reason>
         instant_emotion: InstantEmotion | None = None,
         references: list[tuple] | None = None,
         explain_style: ExplainStyle | None = None,
+        persona: Persona | None = None,
     ) -> str:
         prompt_parts = [
             "You are an expert STEM tutor. Your goal is to help the student understand concepts through guided inquiry.",
@@ -1065,6 +1079,10 @@ Reason: <one sentence reason>
         prompt_parts.append(_EMOTION_GUIDANCE)
         if explain_style is not None:
             prompt_parts.append(_EXPLAIN_STYLE_GUIDANCE[explain_style])
+        prompt_parts.append(persona_prompt(
+            persona,
+            soften=is_frustrated(instant_emotion.value if instant_emotion else None),
+        ))
 
         return "\n".join(prompt_parts)
 

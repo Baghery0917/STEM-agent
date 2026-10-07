@@ -1580,3 +1580,56 @@ class TestAdminLogin:
         monkeypatch.setattr(settings, "admin_password", "")
         resp = await client.post("/api/v1/admin/login", json={"password": "x"})
         assert resp.status_code == 403
+
+
+class TestPersona:
+    async def test_session_snapshots_student_persona(self, db_session: AsyncSession):
+        from app.models.student import Persona
+
+        student = await create_test_student(db_session)
+        student.persona = Persona.SHELDON
+        await db_session.flush()
+
+        session = await TeachingService(db_session).create_session_shell(
+            student_id=student.id, question_content="为什么摩擦力方向有时和运动方向相同？",
+        )
+        assert session.persona == Persona.SHELDON
+
+        # 学生之后切换讲师，已有会话不受影响
+        student.persona = Persona.PENNY
+        await db_session.flush()
+        await db_session.refresh(session)
+        assert session.persona == Persona.SHELDON
+
+    async def test_persona_prompt_injected_into_chat_prompt(self, db_session: AsyncSession):
+        from app.models.student import Persona
+
+        student = await create_test_student(db_session)
+        student.persona = Persona.HOWARD
+        _, _, section = await create_knowledge_chain(db_session)
+        service, session = await TestTeachingService._start(self, db_session, student, section)
+
+        messages = await service._build_chat_messages(session.id)
+        system = messages[0]["content"]
+        assert "Howard Wolowitz" in system
+        assert "语言规则" in system
+        assert "降温规则" not in system
+
+    async def test_default_persona_is_leonard_when_unset(self, db_session: AsyncSession):
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        service, session = await TestTeachingService._start(self, db_session, student, section)
+        assert session.persona is None
+
+        messages = await service._build_chat_messages(session.id)
+        assert "Leonard Hofstadter" in messages[0]["content"]
+
+    def test_soften_rule_added_when_frustrated(self):
+        from app.llm.personas import persona_prompt
+        from app.models.student import Persona
+
+        calm = persona_prompt(Persona.SHELDON, soften=False)
+        upset = persona_prompt(Persona.SHELDON, soften=True)
+        assert "降温规则" not in calm
+        assert "降温规则" in upset
+        assert "不说 Bazinga" in upset

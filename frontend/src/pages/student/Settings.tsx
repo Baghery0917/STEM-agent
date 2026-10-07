@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { updateStudent } from '@/api/students';
-import type { ExplainStyle } from '@/api/types';
+import type { ExplainStyle, Persona } from '@/api/types';
+import { PERSONAS, DEFAULT_PERSONA } from '@/theme/personas';
+import PersonaAvatar from '@/components/theme/PersonaAvatar';
 import { useStudentStore } from '@/stores/studentStore';
 import { useUiStore } from '@/stores/uiStore';
 import { toast } from '@/stores/toastStore';
@@ -20,6 +22,13 @@ export default function Settings() {
   const ui = useUiStore();
   const navigate = useNavigate();
   const qc = useQueryClient();
+
+  const personaMutation = useMutation({
+    mutationFn: (persona: Persona) => updateStudent(student.id, { persona }),
+    onSuccess: (s) => { setCurrent(s); qc.invalidateQueries({ queryKey: ['students'] }); toast.info('讲师已切换，对新会话生效'); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const currentPersona = student.persona ?? DEFAULT_PERSONA;
 
   const styleMutation = useMutation({
     mutationFn: (explain_style: ExplainStyle | null) => updateStudent(student.id, { explain_style }),
@@ -46,6 +55,31 @@ export default function Settings() {
                 {STYLES.map((s) => (
                   <button type="button" key={s.label} className={student.explain_style === s.value ? 'on' : ''} onClick={() => styleMutation.mutate(s.value)}>{s.label}</button>
                 ))}
+              </div>
+            </div>
+            <div className="srow persona-row">
+              <div><div className="t">讲师</div><div className="d">只换语气，不换教法。切换对新会话生效。</div></div>
+              <div className="ctl persona-pick">
+                {PERSONAS.map((p) => (
+                  <button
+                    type="button"
+                    key={p.key}
+                    className={currentPersona === p.key ? 'on' : ''}
+                    title={`${p.name} · ${p.tone}`}
+                    disabled={personaMutation.isPending}
+                    onClick={() => personaMutation.mutate(p.key)}
+                  >
+                    <PersonaAvatar persona={p.key} size={40} />
+                    <span className="nm">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="srow persona-desc">
+              <PersonaAvatar persona={currentPersona} size={28} />
+              <div>
+                <div className="t">{PERSONAS.find((p) => p.key === currentPersona)!.name}</div>
+                <div className="d">{PERSONAS.find((p) => p.key === currentPersona)!.tone} · <i>{PERSONAS.find((p) => p.key === currentPersona)!.tagline}</i></div>
               </div>
             </div>
             <div className="srow">

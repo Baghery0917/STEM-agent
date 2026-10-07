@@ -7,7 +7,7 @@
 const now = () => new Date().toISOString();
 const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
 
-const students: any[] = [{ id: 1, name: '林小雨', gender: 'female', explain_style: null, created_at: now(), updated_at: now() }];
+const students: any[] = [{ id: 1, name: '林小雨', gender: 'female', explain_style: null, persona: 'leonard', created_at: now(), updated_at: now() }];
 const volumes = [{ id: 1, title: '高二物理 · 必修一', description: null, order: 0 }];
 const chapters = [
   { id: 1, volume_id: 1, title: '第三章 相互作用', order: 0 },
@@ -29,7 +29,7 @@ const questions: any[] = [
 const pub = (q: any) => ({ id: q.id, type: q.type, difficulty: q.difficulty, knowledge_point_ids: q.knowledge_point_ids, content: q.content, content_image: null });
 
 const teachingSessions: any[] = [
-  { id: 12, student_id: 1, status: 'active', pipeline_status: 'done', strategy: '先让你自己找错，不直接给答案 · 语气鼓励', ended_at: null, created_at: ago(1), updated_at: ago(1), source_practice_session_id: null, source_question_ids: null, messages: [
+  { id: 12, student_id: 1, status: 'active', pipeline_status: 'done', strategy: '先让你自己找错，不直接给答案 · 语气鼓励', persona: 'sheldon', ended_at: null, created_at: ago(1), updated_at: ago(1), source_practice_session_id: null, source_question_ids: null, messages: [
     { id: 1, session_id: 12, role: 'user', message_type: 'question_submit', sequence: 0, content: '一个质量 2kg 的物块放在倾角 30° 的斜面上，μ=0.2，受到沿斜面向上 15N 的拉力。求加速度。我算出来是 2.07 但答案是 1.37，不知道哪里错了。', emotion_value: 3.6, created_at: ago(1) },
     { id: 2, session_id: 12, role: 'system', message_type: 'llm_analysis', sequence: 1, content: 'Identified knowledge points:\n- 1: 牛顿第二定律\n- 2: 摩擦力', created_at: ago(1) },
     { id: 3, session_id: 12, role: 'system', message_type: 'student_data', sequence: 2, content: '摩擦力方向判断近 2 周错 3 次 · 上次学习 4 天前\nSection 1: mastery=0.58', created_at: ago(1) },
@@ -89,7 +89,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function handle(method: string, path: string, search: URLSearchParams, body: any): Promise<Response> {
   let m: RegExpMatchArray | null;
   if (path === '/students' && method === 'GET') return json(students);
-  if (path === '/students' && method === 'POST') { const s = { id: ++nextId, ...body, explain_style: null, created_at: now(), updated_at: now() }; students.push(s); return json(s, 201); }
+  if (path === '/students' && method === 'POST') { const s = { id: ++nextId, ...body, explain_style: null, persona: null, created_at: now(), updated_at: now() }; students.push(s); return json(s, 201); }
   if ((m = path.match(/^\/students\/(\d+)\/report$/))) { await delay(300); return json(report(search.get('mode') || 'recent')); }
   if ((m = path.match(/^\/students\/(\d+)\/evaluation$/))) {
     await delay(900);
@@ -124,7 +124,7 @@ async function handle(method: string, path: string, search: URLSearchParams, bod
     const content = body.source_practice_session_id
       ? `（来自练习 #${body.source_practice_session_id}）\n\n${(body.source_question_ids ?? [103]).map((qid: number) => { const q = questions.find((x) => x.id === qid) ?? questions[2]; const ps = practiceSessions.find((p) => p.id === body.source_practice_session_id); const pos = ps ? ps.question_ids.indexOf(q.id) + 1 : 1; const it = ps?.items.find((i: any) => i.question_id === q.id); const outcome = !it ? '未作答' : it.is_skipped ? '跳过' : `我的答案：${it.user_answer}（${it.is_correct ? '答对' : '答错'}）`; return `【练习第 ${pos || 1} 题】\n${q.content}\n${outcome}\n正确答案：${q.answer}`; }).join('\n\n')}\n\n${body.question_content}`
       : body.question_content;
-    const s: any = { id, student_id: 1, status: 'active', pipeline_status: 'running', strategy: null, ended_at: null, created_at: now(), updated_at: now(), source_practice_session_id: body.source_practice_session_id ?? null, source_question_ids: body.source_question_ids ?? null, messages: [{ id: ++nextId, session_id: id, role: 'user', message_type: 'question_submit', sequence: 0, content, emotion_value: 2.4, created_at: now() }] };
+    const s: any = { id, student_id: 1, status: 'active', pipeline_status: 'running', strategy: null, persona: students[0].persona, ended_at: null, created_at: now(), updated_at: now(), source_practice_session_id: body.source_practice_session_id ?? null, source_question_ids: body.source_question_ids ?? null, messages: [{ id: ++nextId, session_id: id, role: 'user', message_type: 'question_submit', sequence: 0, content, emotion_value: 2.4, created_at: now() }] };
     teachingSessions.unshift(s);
     const steps: [string, string][] = [
       ['llm_analysis', 'Identified knowledge points:\n- 3: 匀变速直线运动'],

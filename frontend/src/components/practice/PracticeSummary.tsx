@@ -1,6 +1,9 @@
 import type { PracticeItemWithQuestionResponse, PracticeSessionResponse, QuestionPublicResponse } from '@/api/types';
 import { parseBody } from './QuestionCard';
 import { fmtDuration } from '@/utils/time';
+import { useStudentStore } from '@/stores/studentStore';
+import { DEFAULT_PERSONA, PERSONA_COPY, type PersonaKey } from '@/theme/personas';
+import PersonaAvatar from '@/components/theme/PersonaAvatar';
 
 interface Props {
   session: PracticeSessionResponse;
@@ -23,6 +26,9 @@ export default function PracticeSummary({ session, questions, items, scope, onRe
   const starredIds = session.starred_question_ids;
   const wrongIds = items.filter((i) => !i.is_skipped && !i.is_correct).map((i) => i.question_id);
   const askIds = [...new Set([...starredIds, ...wrongIds])];
+  const persona = useStudentStore((s) => s.current?.persona) ?? DEFAULT_PERSONA;
+  const copy = PERSONA_COPY[persona as PersonaKey];
+  const voice = rateTier(session.correct_count, session.wrong_count);
   const rate = session.correct_count + session.wrong_count > 0
     ? Math.round((session.correct_count / (session.correct_count + session.wrong_count)) * 100)
     : null;
@@ -56,6 +62,7 @@ export default function PracticeSummary({ session, questions, items, scope, onRe
           {totalSec != null && <span className="muted">· 共 {fmtDuration(totalSec)}</span>}
         </div>
         <div className="qb">
+          <div className="voice"><PersonaAvatar persona={persona} size={26} /><span>{copy.summary[voice]}</span></div>
           <div className="stats">
             <div className="stat ok"><div className="v">{session.correct_count}</div><div className="k">正确{rate != null ? ` · ${rate}%` : ''}</div></div>
             <div className="stat no"><div className="v">{session.wrong_count}</div><div className="k">错误</div></div>
@@ -90,4 +97,11 @@ export default function PracticeSummary({ session, questions, items, scope, onRe
       </div>
     </div>
   );
+}
+
+function rateTier(correct: number, wrong: number): 'high' | 'mid' | 'low' {
+  const n = correct + wrong;
+  if (!n) return 'mid';
+  const r = correct / n;
+  return r >= 0.8 ? 'high' : r >= 0.5 ? 'mid' : 'low';
 }

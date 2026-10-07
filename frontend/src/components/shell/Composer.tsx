@@ -11,11 +11,13 @@ interface Props {
   onSend: (text: string, image?: string | null) => void;
   allowImage?: boolean;
   autoFocus?: boolean;
+  /** 工具栏最左侧：当前讲师头像 */
+  leading?: ReactNode;
 }
 
 /** 底部悬浮输入框。Enter 发送，Shift+Enter 换行，支持粘贴图片 URL / 文件 */
 export default function Composer({
-  placeholder, disabled, loading, modeHint, context, onSend, allowImage = true, autoFocus,
+  placeholder, disabled, loading, modeHint, context, onSend, allowImage = true, autoFocus, leading,
 }: Props) {
   const [text, setText] = useState('');
   const [image, setImage] = useState<string | null>(null);
@@ -88,6 +90,7 @@ export default function Composer({
             onDragOver={(e) => e.preventDefault()}
           />
           <div className="tools">
+            {leading}
             {allowImage && (
               <>
                 <button type="button" className="iconbtn" title="上传图片 / 拍照" onClick={() => fileRef.current?.click()} disabled={disabled}>⊕</button>

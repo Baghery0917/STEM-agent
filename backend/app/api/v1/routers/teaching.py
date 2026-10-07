@@ -197,6 +197,7 @@ async def list_sessions(
             status=session.status,
             pipeline_status=session.pipeline_status,
             strategy=session.strategy,
+            persona=session.persona,
             ended_at=session.ended_at,
             source_practice_session_id=session.source_practice_session_id,
             source_question_ids=session.source_question_ids,

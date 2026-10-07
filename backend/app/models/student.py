@@ -20,6 +20,18 @@ class ExplainStyle(str, enum.Enum):
     HINT = "hint"          # 只给提示
 
 
+class Persona(str, enum.Enum):
+    """讲师人格：只改变语气，不改变教学决策"""
+
+    LEONARD = "leonard"
+    PENNY = "penny"
+    HOWARD = "howard"
+    RAJ = "raj"
+    BERNADETTE = "bernadette"
+    AMY = "amy"
+    SHELDON = "sheldon"
+
+
 class Student(BaseModel):
     __tablename__ = "students"
 
@@ -29,3 +41,5 @@ class Student(BaseModel):
     explain_style: Mapped[ExplainStyle | None] = mapped_column(
         Enum(ExplainStyle), nullable=True,
     )
+    # 为空等于 Leonard
+    persona: Mapped[Persona | None] = mapped_column(Enum(Persona), nullable=True)

@@ -9,6 +9,7 @@ from app.models.teaching import (
     SessionEndReason,
     TeachingSessionStatus,
 )
+from app.models.student import Persona
 from app.schemas.base import BaseSchema, TimestampSchema
 
 
@@ -17,6 +18,7 @@ class TeachingSessionBase(BaseSchema):
     status: TeachingSessionStatus = TeachingSessionStatus.ACTIVE
     pipeline_status: PipelineStatus = PipelineStatus.PENDING
     strategy: str | None = None
+    persona: Persona | None = None
     ended_at: datetime | None = None
     end_reason: SessionEndReason | None = None
     # 从练习转来时的来源，前端据此渲染「来自练习第 N 题」卡片

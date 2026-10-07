@@ -112,12 +112,14 @@ export interface QuestionListParams {
 }
 
 export type ExplainStyle = 'direct' | 'guided' | 'hint';
+export type Persona = 'leonard' | 'penny' | 'howard' | 'raj' | 'bernadette' | 'amy' | 'sheldon';
 
 export interface StudentResponse extends Timestamps {
   id: number;
   name: string;
   gender: Gender;
   explain_style?: ExplainStyle | null;
+  persona?: Persona | null;
 }
 
 export interface StudentCreate {
@@ -125,7 +127,7 @@ export interface StudentCreate {
   gender: Gender;
 }
 
-export type StudentUpdate = Partial<StudentCreate> & { explain_style?: ExplainStyle | null };
+export type StudentUpdate = Partial<StudentCreate> & { explain_style?: ExplainStyle | null; persona?: Persona | null };
 
 export interface TeachingReferenceResponse extends Timestamps {
   id: number;
@@ -156,6 +158,7 @@ export interface TeachingSessionDetailResponse extends Timestamps {
   status: TeachingSessionStatus;
   pipeline_status: PipelineStatus;
   strategy?: string | null;
+  persona?: Persona | null;
   ended_at?: string | null;
   source_practice_session_id?: number | null;
   source_question_ids?: number[] | null;
@@ -168,6 +171,7 @@ export interface TeachingSessionSummaryResponse extends Timestamps {
   status: TeachingSessionStatus;
   pipeline_status: PipelineStatus;
   strategy?: string | null;
+  persona?: Persona | null;
   ended_at?: string | null;
   source_practice_session_id?: number | null;
   source_question_ids?: number[] | null;

@@ -20,10 +20,12 @@ interface Props {
   firstRound: boolean;
   startedAt?: string | null;
   finishedAt?: string | null;
+  /** 策略一步显示为「X 决定」 */
+  personaName?: string;
 }
 
 /** 流水线进度以可折叠"思考块"的形式放在 AI 回复里 */
-export default function AgentTrace({ pipelineStatus, messages, firstRound, startedAt, finishedAt }: Props) {
+export default function AgentTrace({ pipelineStatus, messages, firstRound, startedAt, finishedAt, personaName }: Props) {
   const stages = firstRound ? STAGES : STAGES.filter((s) => s.key === 'strategy');
   const byType = new Map(messages.map((m) => [m.message_type, m] as const));
   const running = firstRound && (pipelineStatus === 'pending' || pipelineStatus === 'running');
@@ -52,7 +54,7 @@ export default function AgentTrace({ pipelineStatus, messages, firstRound, start
           return (
             <div key={s.key} className={`step ${cls}`}>
               <span className="st" />
-              <span className="nm">{s.label}</span>
+              <span className="nm">{s.key === 'strategy' && personaName ? `${personaName} 决定` : s.label}</span>
               <span className="out">{msg ? renderOut(s.key, msg.content) : cls === 'run' ? '请求中…' : ''}</span>
             </div>
           );

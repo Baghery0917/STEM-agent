@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import MarkdownContent from '@/components/common/MarkdownContent';
-import { IconAtom } from '@/components/theme/Icons';
+import PersonaAvatar from '@/components/theme/PersonaAvatar';
+import { personaByKey } from '@/theme/personas';
 
 interface Props {
   role: 'user' | 'ai';
@@ -11,12 +12,15 @@ interface Props {
   after?: ReactNode;
   /** user 消息：题目图片 */
   image?: string | null;
+  /** ai 消息：讲师 */
+  persona?: string | null;
 }
 
-export default function Message({ role, who, content, streaming, before, after, image }: Props) {
+export default function Message({ role, who, content, streaming, before, after, image, persona }: Props) {
+  const p = role === 'ai' ? personaByKey(persona) : null;
   return (
-    <div className={`msg ${role}`}>
-      <div className="who">{role === 'ai' && who === 'S' ? <IconAtom width={16} height={16} /> : who}</div>
+    <div className={`msg ${role}`} style={p ? { ['--pc' as string]: p.color } : undefined}>
+      {role === 'ai' ? <PersonaAvatar persona={persona} size={30} className="who" /> : <div className="who">{who}</div>}
       <div className="body">
         {before}
         {content != null && (role === 'ai'

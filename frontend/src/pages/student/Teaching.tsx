@@ -24,6 +24,8 @@ import Message from '@/components/teaching/Message';
 import SelfRate from '@/components/teaching/SelfRate';
 import HandoffCard from '@/components/teaching/HandoffCard';
 import { WEEKDAY_LINES } from '@/theme/copy';
+import { DEFAULT_PERSONA, PERSONA_COPY, personaByKey, type PersonaKey } from '@/theme/personas';
+import PersonaAvatar from '@/components/theme/PersonaAvatar';
 
 interface HandoffState {
   practiceSessionId: number;
@@ -158,13 +160,14 @@ export default function Teaching() {
       <>
         <TopBar crumb={handoff ? <><b>{handoff.label}</b> · 新会话</> : '新对话'} right={emotionBadge} />
         <section className="stage">
-          <EmptyHero studentId={student.id} studentName={student.name} />
+          <EmptyHero studentId={student.id} studentName={student.name} persona={student.persona} />
         </section>
         <Composer
           autoFocus
           loading={startMutation.isPending}
           placeholder={handoff ? '想问这道题的什么？直接写…' : undefined}
-          modeHint="教学模式 · 一题一会话，可持续追问"
+          modeHint={PERSONA_COPY[(student.persona ?? DEFAULT_PERSONA) as PersonaKey].modeHint}
+          leading={<PersonaAvatar persona={student.persona} size={26} title={`当前讲师 ${personaByKey(student.persona).name} · 在设置里切换`} />}
           context={handoff && (
             <span className="tg">
               {handoff.label} <span className="x" onClick={() => setHandoff(null)}>×</span>
@@ -228,6 +231,7 @@ export default function Teaching() {
               <Message
                 role="ai"
                 who="S"
+                persona={session.persona}
                 content={g.assistant?.content ?? (gi === groups.length - 1 && sending ? streamingText : undefined)}
                 streaming={!g.assistant && gi === groups.length - 1 && sending}
                 before={
@@ -236,6 +240,7 @@ export default function Teaching() {
                       pipelineStatus={gi === 0 ? session.pipeline_status : 'done'}
                       messages={g.system}
                       firstRound={gi === 0}
+                      personaName={personaByKey(session.persona).name}
                       startedAt={g.user.created_at}
                       finishedAt={g.assistant?.created_at}
                     />
@@ -272,7 +277,8 @@ export default function Teaching() {
         disabled={!isActive || !pipelineDone}
         loading={sending}
         placeholder={!pipelineDone ? '讲解生成中，稍候即可追问…' : isActive ? '接着问这道题…' : '会话已结束'}
-        modeHint="教学模式 · 可持续追问"
+        modeHint={PERSONA_COPY[(session.persona ?? DEFAULT_PERSONA) as PersonaKey].modeHint}
+        leading={<PersonaAvatar persona={session.persona} size={26} title={`本会话讲师 ${personaByKey(session.persona).name}`} />}
         allowImage={false}
         onSend={handleSend}
       />
@@ -323,7 +329,8 @@ function groupMessages(messages: TeachingMessageResponse[]): Group[] {
   return groups;
 }
 
-function EmptyHero({ studentId, studentName }: { studentId: number; studentName: string }) {
+function EmptyHero({ studentId, studentName, persona }: { studentId: number; studentName: string; persona?: string | null }) {
+  const copy = PERSONA_COPY[(persona ?? DEFAULT_PERSONA) as PersonaKey];
   const navigate = useNavigate();
   const tree = useKnowledgeTree();
   const report = useQuery({
@@ -342,10 +349,10 @@ function EmptyHero({ studentId, studentName }: { studentId: number; studentName:
   return (
     <div className="hero">
       <h1 className="hi">
-        {greet}，{studentName}。<br />把题目发给我，<em>我们一起把它讲透。</em>
+        {greet}，{studentName}。<br />把题目发给我，<em>{copy.heroEm}</em>
       </h1>
       <div className="weekday">{weekdayLine}</div>
-      <p>文字、拍照、截图都可以。我会先看你在这个知识点上的历史，再决定怎么讲。</p>
+      <p>{copy.heroSub}</p>
       <div className="chips">
         {weak && (
           <button type="button" className="chip" onClick={() => navigate('/practice/new', { state: { preselect: [weak.section_id] } })}>
