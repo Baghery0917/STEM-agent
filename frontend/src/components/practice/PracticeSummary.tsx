@@ -53,7 +53,14 @@ export default function PracticeSummary({ session, questions, items, scope, onRe
   };
 
   return (
-    <div className="pwrap">
+    <div className="pwrap summary-wrap">
+      <div
+        className="summary-scene"
+        style={{ backgroundImage: `url(${import.meta.env.BASE_URL}tbbt/apartment/kitchen-render.jpg)` }}
+      >
+        <span>Apartment 4A · Mission complete</span>
+        <strong>{voice === 'high' ? 'Bazinga. 这次实验成立。' : '白板已归档，下一轮会更准。'}</strong>
+      </div>
       <div className="qcard">
         <div className="qh">
           <span className="num">练习完成</span>

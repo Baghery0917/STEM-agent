@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateStudent } from '@/api/students';
 import type { Persona } from '@/api/types';
@@ -17,11 +17,23 @@ export default function Cards() {
   const qc = useQueryClient();
   const cards = useCards(student.id);
   const [open, setOpen] = useState<PersonaKey | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [celebrate, setCelebrate] = useState(false);
   const base = import.meta.env.BASE_URL;
 
   const owned = new Map((cards.data?.cards ?? []).map((c) => [c.card_key, c.acquired_at]));
   const unlocked = new Set<string>(cards.data?.unlocked ?? ['leonard']);
-  const nextKey = CARD_ORDER.find((k) => !owned.has(k));
+  const nextKey = CARD_ORDER.find((k) => k !== 'leonard' && !owned.has(k));
+  const collected = Math.min(7, owned.size + (owned.has('leonard') ? 0 : 1));
+  const complete = collected === 7;
+
+  useEffect(() => {
+    if (!complete) return;
+    const key = `stem:cards-complete:${student.id}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, '1');
+    setCelebrate(true);
+  }, [complete, student.id]);
 
   const pick = useMutation({
     mutationFn: (persona: Persona) => updateStudent(student.id, { persona }),
@@ -34,21 +46,33 @@ export default function Cards() {
 
   return (
     <>
-      <TopBar crumb="认可卡" showSeg={false} />
+      <TopBar crumb="认可卡" showSeg={false} back />
       <section className="stage">
         <div className="cards">
           <div className="chead">
             <div>
               <h1>认可卡</h1>
               <div className="sub">
-                已集齐 {owned.size + 1} / 7 · {nextKey ? `下一张：${personaByKey(nextKey).name}` : '全部集齐'}
+                已集齐 {collected} / 7 · {nextKey ? `下一张：${personaByKey(nextKey).name}` : '全部集齐'}
               </div>
             </div>
-            <div className="hint">卡怎么来的不公开。越努力，越快。</div>
+            <div className="map-tools">
+              <button type="button" className="iconbtn" onClick={() => setZoom((z) => Math.max(1, z - .15))} aria-label="缩小户型图">−</button>
+              <span className="hint">Apartment 4A · {Math.round(zoom * 100)}%</span>
+              <button type="button" className="iconbtn" onClick={() => setZoom((z) => Math.min(1.6, z + .15))} aria-label="放大户型图">＋</button>
+            </div>
           </div>
 
-          <div className="floor">
-            <img src={`${base}tbbt/apartment/floorplan-render-light.jpg`} alt="" draggable={false} />
+          {complete && (
+            <div className={`collection-complete ${celebrate ? 'celebrate' : ''}`}>
+              <img src={`${base}tbbt/backgrounds/group-orange.jpg`} alt="" />
+              <div><span>All seven collected</span><strong>Bazinga. 4A 的门为你打开了。</strong></div>
+            </div>
+          )}
+
+          <div className="floor" aria-label="Apartment 4A 认可卡地图">
+            <div className="floor-canvas" style={{ transform: `scale(${zoom})` }}>
+              <img src={`${base}tbbt/apartment/floorplan-render-light.jpg`} alt="Apartment 4A 户型图" draggable={false} />
             {PERSONAS.map((p) => {
               const key = p.key as PersonaKey;
               const spot = CARD_SPOT[key];
@@ -63,11 +87,12 @@ export default function Cards() {
                   onClick={() => setOpen(key)}
                   title={has ? `${p.name} · ${spot.room}` : `第 ${CARD_ORDER.indexOf(key) + 1} 张认可卡`}
                 >
-                  <PersonaAvatar persona={key} size={44} locked={!has} />
+                  <PersonaAvatar persona={key} size={34} locked={!has} />
                   <span className="lbl">{has ? p.name : '?'}</span>
                 </button>
               );
             })}
+            </div>
           </div>
         </div>
       </section>

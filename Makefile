@@ -1,16 +1,16 @@
-.PHONY: help up down build \
+.PHONY: help up down build network \
         backend-install backend-run backend-test backend-lint backend-clean \
         frontend-install frontend-dev frontend-build \
-        db-up db-down db-reset migrate migrate-create clean
+        db-up db-down db-reset db-grant-reader migrate migrate-create db-seed clean
 
-# 外部服务共享网络（教学策略服务等通过它直连 stem-db）
+# 外部服务共享网络（教学策略 / 评价等通过它直连 stem-db）
 network:
 	docker network inspect stem-net >/dev/null 2>&1 || docker network create stem-net
 
 # 帮助信息
 help:
 	@echo "Available commands:"
-	@echo "  make up                - 启动所有服务（docker compose）"
+	@echo "  make up                - 启动所有服务（docker compose，自动 ensure stem-net）"
 	@echo "  make down              - 停止所有服务"
 	@echo "  make build             - 重建所有镜像"
 	@echo ""
@@ -23,10 +23,11 @@ help:
 	@echo "  make frontend-dev      - 启动前端开发服务器"
 	@echo "  make frontend-build    - 构建前端"
 	@echo ""
-	@echo "  make network           - 创建 stem-net 共享网络（首次 make up 前执行一次）"
+	@echo "  make network           - 创建 stem-net 共享网络（供同机外部服务连库）"
 	@echo "  make db-up             - 启动数据库容器"
 	@echo "  make db-down           - 停止数据库容器"
 	@echo "  make db-reset          - 重置数据库（删除数据卷并重建）"
+	@echo "  make db-grant-reader   - 补建/刷新 strategy_reader 只读权限"
 	@echo "  make migrate           - 运行数据库迁移"
 	@echo "  make migrate-create    - 创建新迁移（需传 msg 参数）"
 	@echo "  make db-seed           - 运行种子数据脚本"
@@ -34,7 +35,7 @@ help:
 	@echo "  make clean             - 清理所有缓存文件"
 
 # Docker Compose
-up:
+up: network
 	docker compose up -d
 
 down:
@@ -67,15 +68,20 @@ frontend-build:
 	cd frontend && npm run build
 
 # Database
-db-up:
+db-up: network
 	docker compose up -d db
 
 db-down:
 	docker compose down db
 
-db-reset:
+db-reset: network
 	docker compose down -v
 	docker compose up -d db
+
+# 旧数据卷或迁移后新表缺 SELECT 时重跑（幂等）
+db-grant-reader:
+	@docker exec -i stem-db psql -U postgres -d stem_db < db/init/01-strategy-reader.sql
+	@echo "strategy_reader grants applied"
 
 migrate:
 	cd backend && alembic upgrade head

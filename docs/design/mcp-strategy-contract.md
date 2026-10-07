@@ -41,7 +41,7 @@ MCP 未配置、连接失败、超时、返回异常：后端用自己的 LLM �
 
 ## 策略服务可读的数据
 
-策略服务加入 docker 网络 `stem-net` 后可直连 `stem-db:5432`，使用只读角色 `strategy_reader`。相关表：
+策略服务加入 docker 网络 `stem-net` 后可直连 `stem-db:5432`，使用只读角色 `strategy_reader`（接入步骤见 [`db-external-access.md`](./db-external-access.md)）。相关表：
 
 - `students`、`student_knowledge_summaries`：学生档案与知识点掌握度
 - `student_kp_emotions`：学生对每个知识点的历史总体情绪（1 自信 … 5 非常受挫），每次会话结束后指数平滑更新

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { getStudentEvaluation, getStudentReport } from '@/api/reports';
 import type { ReportMode } from '@/api/types';
@@ -7,12 +8,15 @@ import { useStudentStore } from '@/stores/studentStore';
 import TopBar from '@/components/shell/TopBar';
 import { emotionBarHeight, emotionTone } from '@/utils/emotion';
 import { shortTime } from '@/utils/time';
-import PersonaAvatar from '@/components/theme/PersonaAvatar';
+import ChapterHero from '@/components/theme/ChapterHero';
+import SceneSection from '@/components/theme/SceneSection';
+import PersonaCallout from '@/components/theme/PersonaCallout';
 
 const WEEKDAY = ['日', '一', '二', '三', '四', '五', '六'];
 
 export default function Report() {
   const student = useStudentStore((s) => s.current)!;
+  const navigate = useNavigate();
   const [mode, setMode] = useState<ReportMode>('recent');
   const q = useQuery({
     queryKey: ['student-report', student.id, mode],
@@ -35,39 +39,50 @@ export default function Report() {
       <TopBar crumb="学习报告" showSeg={false} />
       <section className="stage">
         <div className="report">
-          <div className="rhead">
-            <div><h1>学习报告</h1><div className="sub">{rangeText}</div></div>
-            <div className="right">
+          <ChapterHero
+            chapter="03"
+            eyebrow="Apartment weekly log"
+            title={<>这周在 4A，<br />你留下了什么？</>}
+            description={rangeText || '正在翻阅这段时间的学习记录…'}
+            showToday
+            art={`${import.meta.env.BASE_URL}tbbt/apartment/leonard-bedroom-render.jpg`}
+            artAlt="Apartment 4A 房间场景"
+            actions={
+              <>
               <div className="radio">
                 <button type="button" className={mode === 'recent' ? 'on' : ''} onClick={() => setMode('recent')}>近一周</button>
                 <button type="button" className={mode === 'all' ? 'on' : ''} onClick={() => setMode('all')}>全部</button>
               </div>
               <button type="button" className="btn" onClick={() => window.print()}>导出 PDF</button>
-            </div>
-          </div>
+              </>
+            }
+          />
 
           {q.isLoading && <div className="empty-note">正在生成报告…</div>}
           {q.isError && <div className="empty-note">报告加载失败：{(q.error as Error).message}</div>}
 
           {r && (
             <>
-              <div className="insight starry" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}tbbt/backgrounds/starfield.jpg)` }}>
-                <PersonaAvatar persona={student.persona} size={30} className="who" />
-                <p>
+              <div className="report-dispatch" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}tbbt/backgrounds/starfield.jpg)` }}>
+                <PersonaCallout
+                  persona={student.persona}
+                  dark
+                  label="Tonight's transmission"
+                  action={(
+                    <button type="button" className="btn" disabled={evaluation.isPending} onClick={() => evaluation.mutate()}>
+                      {evaluation.isPending ? '评价处生成中…' : ev ? '再要一份评价' : '让评价处点评'}
+                    </button>
+                  )}
+                >
                   {r.summary
                     ?? (r.practice_count + r.teaching_count === 0
                       ? '这段时间还没有学习记录。发一道题，或者开始一组练习，报告就会有内容了。'
                       : `这段时间你练了 ${r.answered_count} 题（对 ${r.correct_count}）、讲了 ${r.teaching_count} 道。`)}
-                </p>
-                <button type="button" className="btn" disabled={evaluation.isPending} onClick={() => evaluation.mutate()}>
-                  {evaluation.isPending ? '评价处生成中…' : ev ? '再要一份评价' : '让评价处点评'}
-                </button>
+                </PersonaCallout>
               </div>
 
               {(ev || evaluation.isError) && (
-                <div className="card evaluation">
-                  <div className="hd">评价处的点评<span className="sp">外部评价服务 · 只传学号，数据由评价处自行读取</span></div>
-                  <div className="bd">
+                <SceneSection number="03.A" eyebrow="The review office" title="评价处来信" aside="外部评价服务 · 只传学号">
                     {evaluation.isError && <div className="empty-note">请求失败：{(evaluation.error as Error).message}</div>}
                     {ev?.source === 'unavailable' && (
                       <div className="empty-note">评价处暂不可用{ev.detail ? `：${ev.detail}` : ''}</div>
@@ -82,20 +97,23 @@ export default function Report() {
                         )}
                       </>
                     )}
-                  </div>
-                </div>
+                </SceneSection>
               )}
 
-              <div className="grid2">
-                <div className="card">
-                  <div className="hd">知识点掌握度<span className="sp">活跃 {active} 个</span></div>
-                  <div className="bd" style={{ padding: '6px 16px' }}>
+              <div className="report-flow">
+                <SceneSection number="03.1" eyebrow="Whiteboard evidence" title="知识点掌握度" aside={`活跃 ${active} 个 · 点薄弱项直接练习`}>
                     {r.knowledge_points.length === 0 && <div className="empty-note">还没有知识点数据</div>}
                     {r.knowledge_points.map((k) => {
                       const pct = Math.round(k.mastery_level * 100);
                       const low = pct < 60;
                       return (
-                        <div className="mrow" key={k.section_id}>
+                        <button
+                          type="button"
+                          className="mrow"
+                          key={k.section_id}
+                          onClick={() => navigate('/practice/new', { state: { preselect: [k.section_id] } })}
+                          title={`练习 ${k.section_title}`}
+                        >
                           <div>
                             {k.section_title}
                             <div className="sub">
@@ -105,16 +123,13 @@ export default function Report() {
                           </div>
                           <div className="bar"><i className={low ? 'low' : ''} style={{ width: `${pct}%` }} /></div>
                           <div className="pct">{pct}%</div>
-                        </div>
+                        </button>
                       );
                     })}
-                  </div>
-                </div>
+                </SceneSection>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div className="card">
-                    <div className="hd">学习状态<span className="sp">来自情绪识别 · 近 7 天</span></div>
-                    <div className="bd" style={{ paddingTop: 8 }}>
+                <div className="report-side">
+                  <SceneSection number="03.2" eyebrow="Room temperature" title="学习状态" aside="来自情绪识别 · 近 7 天">
                       <div className="spark">
                         {r.emotion_days.map((d) => (
                           <i
@@ -133,11 +148,9 @@ export default function Report() {
                             ? `${lowDays.map((d) => `周${WEEKDAY[dayjs(d.date).day()]}`).join('、')}状态偏低，其余时间平稳。`
                             : '这段时间状态整体平稳。'}
                       </div>
-                    </div>
-                  </div>
-                  <div className="card">
-                    <div className="hd">最近记录</div>
-                    <div className="bd logs" style={{ padding: '4px 16px' }}>
+                  </SceneSection>
+                  <SceneSection number="03.3" eyebrow="Door log" title="最近记录">
+                    <div className="logs">
                       {r.emotion_logs.length === 0 && <div className="empty-note">暂无记录</div>}
                       {r.emotion_logs.slice(0, 8).map((l, i) => (
                         <div key={i}>
@@ -148,7 +161,7 @@ export default function Report() {
                         </div>
                       ))}
                     </div>
-                  </div>
+                  </SceneSection>
                 </div>
               </div>
             </>

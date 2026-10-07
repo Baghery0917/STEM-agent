@@ -42,7 +42,6 @@ def upgrade() -> None:
     )
 
     emotion_mode_enum = sa.Enum('TEACHING', 'PRACTICE', name='emotionmode')
-    emotion_mode_enum.create(op.get_bind(), checkfirst=True)
     op.create_table(
         'emotion_logs',
         sa.Column('id', sa.Integer(), primary_key=True),

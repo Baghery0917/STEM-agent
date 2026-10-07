@@ -46,9 +46,9 @@ export default function PracticeSetup() {
       <section className="stage">
         <div className="psetup">
           <div className="left">
-            <div className="kicker">Whiteboard session</div>
-            <h1 className="hi">开始一次练习</h1>
-            <p>在右边设置范围和参数，确认后开始出题。做题途中任何一题都可以跳过；不计时时任何一题都可以一键转到教学模式追问。</p>
+            <div className="kicker">Chapter 02 · Whiteboard session</div>
+            <h1 className="hi">今晚，白板归你。</h1>
+            <p>选好实验范围和节奏，电梯会带你逐层完成题目。卡住可以先做标记，不计时时还能随时敲开教学房间追问。</p>
             {recentList.length > 0 && (
               <>
                 <div className="grp" style={{ paddingLeft: 0 }}>最近的练习</div>
@@ -67,6 +67,11 @@ export default function PracticeSetup() {
                 </div>
               </>
             )}
+            <img
+              className="art"
+              src={`${import.meta.env.BASE_URL}tbbt/apartment/kitchen-render.jpg`}
+              alt="Apartment 4A 厨房练习场景"
+            />
           </div>
           <div className="right">
             <SetupPanel

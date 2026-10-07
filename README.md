@@ -47,9 +47,11 @@ cd stem
 cp backend/.env.example backend/.env
 # 编辑 backend/.env，填入你的 LLM 配置
 
-# 3. 一键启动所有服务
+# 3. 一键启动所有服务（会自动创建 stem-net，供同机外部服务连库）
 make up
 ```
+
+同机外部服务（策略 / 评价）只读连库说明：[`docs/design/db-external-access.md`](./docs/design/db-external-access.md)。
 
 启动完成后访问：
 

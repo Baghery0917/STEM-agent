@@ -54,15 +54,21 @@ export default function StudentLayout() {
   }, [mode]);
 
   useEffect(() => {
+    const page = location.pathname.split('/')[1] || 'teaching';
+    document.body.dataset.page = page;
+    return () => { delete document.body.dataset.page; };
+  }, [location.pathname]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
         e.preventDefault();
-        navigate(useUiStore.getState().mode === 'practice' ? '/practice/new' : '/teaching');
+        navigate(location.pathname.startsWith('/practice') ? '/practice/new' : '/teaching');
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [navigate]);
+  }, [location.pathname, navigate]);
 
   if (!student) return null;
 
@@ -71,7 +77,9 @@ export default function StudentLayout() {
       <div className="app">
         <Rail />
         <main className="main">
-          <Outlet />
+          <div className="page-transition" key={location.pathname}>
+            <Outlet />
+          </div>
         </main>
       </div>
       {reveal && <CardReveal cardKey={reveal} onClose={closeReveal} />}

@@ -49,6 +49,13 @@ export const IconKey = (p: P) => (
   </svg>
 );
 
+/** 返回 */
+export const IconBack = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M15 6l-6 6 6 6" />
+  </svg>
+);
+
 /** 坐垫：星标（Sheldon 的座位） */
 export const IconCushion = (p: P) => (
   <svg {...base(p)}>

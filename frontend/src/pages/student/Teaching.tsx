@@ -46,6 +46,7 @@ export default function Teaching() {
   const [streamingText, setStreamingText] = useState('');
   const [sending, setSending] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
   const [handoff, setHandoff] = useState<HandoffState | null>(
     (location.state as { handoff?: HandoffState } | null)?.handoff ?? null,
   );
@@ -94,7 +95,7 @@ export default function Teaching() {
 
   const cancelMutation = useMutation({
     mutationFn: cancelTeachingSession,
-    onSuccess: () => { toast.info('会话已取消'); invalidateLists(); navigate('/teaching'); },
+    onSuccess: () => { toast.info('会话已取消'); setCancelOpen(false); invalidateLists(); navigate('/teaching'); },
     onError: (err: Error) => toast.error(err.message),
   });
 
@@ -211,7 +212,7 @@ export default function Teaching() {
             {isActive && (
               <>
                 <button type="button" className="btn ghost sm" onClick={() => setEndOpen(true)}>结束会话</button>
-                <button type="button" className="btn ghost sm danger" onClick={() => { if (confirm('取消后该会话不保存摘要，确定？')) cancelMutation.mutate(session.id); }}>取消</button>
+                <button type="button" className="btn ghost sm danger" onClick={() => setCancelOpen(true)}>取消</button>
               </>
             )}
             {emotionBadge}
@@ -299,6 +300,19 @@ export default function Teaching() {
         }
       >
         <p>结束后会把这次的掌握度自评和情绪记录归档到你的学习画像。没有自评也可以结束，掌握度保持不变。</p>
+      </Modal>
+      <Modal
+        open={cancelOpen}
+        title="把这块白板擦掉？"
+        onClose={() => setCancelOpen(false)}
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setCancelOpen(false)}>保留会话</button>
+            <button type="button" className="btn danger" disabled={cancelMutation.isPending} onClick={() => cancelMutation.mutate(session.id)}>确认取消</button>
+          </>
+        }
+      >
+        <p>取消后不会保存这次会话的摘要。按照室友协议，这个动作不能撤销。</p>
       </Modal>
     </>
   );

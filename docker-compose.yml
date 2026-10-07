@@ -9,6 +9,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
+    # 仅本机联调；生产建议改成 "127.0.0.1:5432:5432" 或去掉 ports、只走 stem-net
     ports:
       - "5432:5432"
     networks:

@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStudentStore } from '@/stores/studentStore';
-import { useUiStore } from '@/stores/uiStore';
 import { useRailItems, type RailItem } from '@/hooks/useSessionLists';
 import { useKnowledgeTree } from '@/hooks/useKnowledgeTree';
 import { useDebounced } from '@/hooks/useDebounced';
@@ -19,7 +18,6 @@ const GROUP_ORDER = ['今天', '昨天', '过去 7 天', '更早'] as const;
 
 export default function Rail() {
   const student = useStudentStore((s) => s.current);
-  const mode = useUiStore((s) => s.mode);
   const navigate = useNavigate();
   const location = useLocation();
   const { items } = useRailItems(student?.id);
@@ -49,8 +47,9 @@ export default function Rail() {
   const isSettings = activeKey.startsWith('/settings');
   const isCards = activeKey.startsWith('/cards');
   const searching = debounced.length > 0;
+  const newSessionMode = activeKey.startsWith('/practice') ? 'practice' : activeKey.startsWith('/teaching') ? 'teaching' : 'teaching';
 
-  const newSession = () => navigate(mode === 'practice' ? '/practice/new' : '/teaching');
+  const newSession = () => navigate(newSessionMode === 'practice' ? '/practice/new' : '/teaching');
 
   return (
     <aside className="rail">
@@ -61,7 +60,7 @@ export default function Rail() {
       </div>
       <button type="button" className="new-btn" onClick={newSession}>
         <span>＋</span>
-        <span>{mode === 'practice' ? '新练习' : '新对话'}</span>
+        <span>{newSessionMode === 'practice' ? '新练习' : '新对话'}</span>
         <kbd>⌘N</kbd>
       </button>
       <div className="search">
@@ -129,13 +128,16 @@ export default function Rail() {
 
       <div className="rail-bottom">
         <button type="button" className={`nav ${isReport ? 'on' : ''}`} onClick={() => navigate('/report')}>
-          <span className="ico"><IconCouch /></span> 学习报告
+          <span className="ico"><IconCouch /></span>
+          <span className="nav-copy"><b>沙发周报</b><small>Couch log</small></span>
         </button>
         <button type="button" className={`nav ${isCards ? 'on' : ''}`} onClick={() => navigate('/cards')}>
-          <span className="ico"><IconKey /></span> 认可卡
+          <span className="ico"><IconKey /></span>
+          <span className="nav-copy"><b>公寓钥匙</b><small>Recognition cards</small></span>
         </button>
         <button type="button" className={`nav ${isSettings ? 'on' : ''}`} onClick={() => navigate('/settings')}>
-          <span className="ico"><IconThermostat /></span> 设置
+          <span className="ico"><IconThermostat /></span>
+          <span className="nav-copy"><b>室友协议</b><small>71°F · Settings</small></span>
         </button>
         <div className="me">
           <div className="avatar">{student?.name?.slice(0, 1) ?? '?'}</div>

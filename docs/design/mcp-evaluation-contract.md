@@ -42,7 +42,7 @@ MCP 未配置、连接失败、超时、返回异常：`GET /students/{id}/evalu
 
 ## 评价服务可读的数据
 
-与教学策略服务相同，加入 docker 网络 `stem-net` 后直连 `stem-db:5432`，只读角色 `strategy_reader`。推荐读取：
+与教学策略服务相同，加入 docker 网络 `stem-net` 后直连 `stem-db:5432`，只读角色 `strategy_reader`（接入步骤见 [`db-external-access.md`](./db-external-access.md)）。推荐读取：
 
 - `student_knowledge_summaries`：知识点掌握度、练习 / 教学次数
 - `practice_sessions`、`practice_items`：练习记录（`is_skipped` 的题不计入档案；`duration_seconds` 为用时）

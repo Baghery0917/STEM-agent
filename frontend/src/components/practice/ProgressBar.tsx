@@ -34,8 +34,8 @@ export default function ProgressBar({
     <aside className={`elevator ${timed ? 'timed' : ''}`}>
       <div className="clock" title={timed ? 'Bernadette is watching' : '不计时'}>
         {timed && <PersonaAvatar persona="bernadette" size={24} />}
-        <span className="digits">{timed ? fmtClock(elapsedSec) : '--:--'}</span>
-        <span className="lbl">{timed ? '计时中' : '不计时'}</span>
+        <span className="digits">{timed ? fmtClock(elapsedSec) : '4A'}</span>
+        <span className="lbl">{timed ? '计时中' : '自由节奏'}</span>
       </div>
 
       <div className="shaft" ref={shaftRef} role="tablist" aria-label="题目">

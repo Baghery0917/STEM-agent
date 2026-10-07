@@ -1,0 +1,22 @@
+# 外部团队（策略 / 评价等）可复制此片段到自己的 docker-compose.yml。
+# 前提：本机已执行 make network && make db-up（或 make up），stem-db 在跑。
+#
+# 用法示例：
+#   docker compose -f examples/external-service.compose.yml up -d
+#
+# 说明：下面用 alpine 仅演示能 ping 通库；请换成你们自己的服务镜像与命令。
+
+services:
+  example-external:
+    image: postgres:16-alpine
+    container_name: stem-external-example
+    environment:
+      DATABASE_URL: postgresql://strategy_reader:strategy_reader@stem-db:5432/stem_db
+    networks:
+      - stem-net
+    # 进容器验证：psql "$DATABASE_URL" -c 'select 1'
+    entrypoint: ["sleep", "infinity"]
+
+networks:
+  stem-net:
+    external: true

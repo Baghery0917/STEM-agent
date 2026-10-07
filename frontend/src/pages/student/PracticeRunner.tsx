@@ -17,6 +17,7 @@ import QuestionCard, { type ItemState } from '@/components/practice/QuestionCard
 import ProgressBar from '@/components/practice/ProgressBar';
 import PracticeSummary from '@/components/practice/PracticeSummary';
 import AtomSpinner from '@/components/theme/AtomSpinner';
+import Modal from '@/components/shell/Modal';
 
 export default function PracticeRunner() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -49,6 +50,7 @@ export default function PracticeRunner() {
   const [index, setIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
   const qStartRef = useRef<number>(Date.now());
 
   // 从服务端 items 恢复本地状态（刷新页面 / 从历史进入）
@@ -129,6 +131,7 @@ export default function PracticeRunner() {
   const end = useMutation({
     mutationFn: () => endPractice(sid),
     onSuccess: (s) => {
+      setEndOpen(false);
       updateSession(s);
       qc.invalidateQueries({ queryKey: ['student-cards', student.id] });
       // 统一批改：结束后清掉本地遮罩状态，用服务端详情重建以显示答案
@@ -227,10 +230,6 @@ export default function PracticeRunner() {
     .filter(Boolean) as string[];
   const scope = scopeNames.slice(0, 2).join('、') || '练习';
   const ended = !!session.ended_at;
-  const confirmEnd = () => {
-    if (confirm('未作答的题会按跳过处理，确定结束？')) end.mutate();
-  };
-
   if (ended && (showSummary || !current)) {
     return (
       <>
@@ -309,7 +308,7 @@ export default function PracticeRunner() {
             elapsedSec={elapsed}
             revealed={session.instant_feedback || ended}
             onJump={setIndex}
-            onEnd={() => (ended ? setShowSummary(true) : confirmEnd())}
+            onEnd={() => (ended ? setShowSummary(true) : setEndOpen(true))}
           />
         </div>
       </section>
@@ -326,10 +325,23 @@ export default function PracticeRunner() {
             <span className="sp" />
             {ended
               ? <button type="button" className="btn ghost sm" onClick={() => setShowSummary(true)}>查看总结</button>
-              : <button type="button" className="btn ghost sm" onClick={confirmEnd}>结束练习</button>}
+              : <button type="button" className="btn ghost sm" onClick={() => setEndOpen(true)}>结束练习</button>}
           </div>
         </div>
       </div>
+      <Modal
+        open={endOpen}
+        title="让电梯停在这一层？"
+        onClose={() => setEndOpen(false)}
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setEndOpen(false)}>继续上楼</button>
+            <button type="button" className="btn pri" disabled={end.isPending} onClick={() => end.mutate()}>结束并查看报告</button>
+          </>
+        }
+      >
+        <p>未作答的题会按跳过处理并计 0 分，已完成的题仍会正常归档。</p>
+      </Modal>
     </>
   );
 }
