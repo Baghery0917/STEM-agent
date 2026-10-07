@@ -11,6 +11,7 @@ import KnowledgePage from '@/pages/admin/KnowledgePage';
 import QuestionsPage from '@/pages/admin/QuestionsPage';
 import StudentsPage from '@/pages/admin/StudentsPage';
 import DatabasePage from '@/pages/admin/DatabasePage';
+import NotFound from '@/pages/NotFound';
 
 export default function AppRoutes() {
   return (
@@ -37,7 +38,7 @@ export default function AppRoutes() {
         <Route path="db" element={<DatabasePage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/teaching" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

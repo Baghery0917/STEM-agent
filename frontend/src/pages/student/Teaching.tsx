@@ -23,6 +23,7 @@ import AgentTrace from '@/components/teaching/AgentTrace';
 import Message from '@/components/teaching/Message';
 import SelfRate from '@/components/teaching/SelfRate';
 import HandoffCard from '@/components/teaching/HandoffCard';
+import { WEEKDAY_LINES } from '@/theme/copy';
 
 interface HandoffState {
   practiceSessionId: number;
@@ -332,6 +333,7 @@ function EmptyHero({ studentId, studentName }: { studentId: number; studentName:
   });
   const hour = new Date().getHours();
   const greet = hour < 6 ? '夜深了' : hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
+  const weekdayLine = WEEKDAY_LINES[new Date().getDay()];
   const weak = [...(report.data?.knowledge_points ?? [])]
     .filter((k) => k.total_practice_count > 0)
     .sort((a, b) => a.mastery_level - b.mastery_level)[0];
@@ -342,6 +344,7 @@ function EmptyHero({ studentId, studentName }: { studentId: number; studentName:
       <h1 className="hi">
         {greet}，{studentName}。<br />把题目发给我，<em>我们一起把它讲透。</em>
       </h1>
+      <div className="weekday">{weekdayLine}</div>
       <p>文字、拍照、截图都可以。我会先看你在这个知识点上的历史，再决定怎么讲。</p>
       <div className="chips">
         {weak && (

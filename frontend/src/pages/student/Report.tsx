@@ -7,6 +7,7 @@ import { useStudentStore } from '@/stores/studentStore';
 import TopBar from '@/components/shell/TopBar';
 import { emotionBarHeight, emotionTone } from '@/utils/emotion';
 import { shortTime } from '@/utils/time';
+import { IconAtom } from '@/components/theme/Icons';
 
 const WEEKDAY = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -51,7 +52,7 @@ export default function Report() {
           {r && (
             <>
               <div className="insight">
-                <div className="who">S</div>
+                <div className="who"><IconAtom width={16} height={16} /></div>
                 <p>
                   {r.summary
                     ?? (r.practice_count + r.teaching_count === 0

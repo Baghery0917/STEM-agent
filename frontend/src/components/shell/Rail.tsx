@@ -8,6 +8,9 @@ import { useKnowledgeTree } from '@/hooks/useKnowledgeTree';
 import { useDebounced } from '@/hooks/useDebounced';
 import { searchSessions } from '@/api/reports';
 import { groupLabel, shortTime } from '@/utils/time';
+import { IconAtom, IconCouch, IconThermostat } from '@/components/theme/Icons';
+import { EMPTY } from '@/theme/copy';
+import SoftKitty from '@/components/theme/SoftKitty';
 
 const GROUP_ORDER = ['今天', '昨天', '过去 7 天', '更早'] as const;
 
@@ -48,7 +51,7 @@ export default function Rail() {
   return (
     <aside className="rail">
       <div className="brand">
-        <div className="logo">S</div>
+        <div className="logo"><IconAtom width={18} height={18} /></div>
         <b>STEM Agent</b>
         <span className="ver">{student?.name ?? ''}</span>
       </div>
@@ -94,7 +97,7 @@ export default function Rail() {
         ) : (
           <>
             {groups.length === 0 && (
-              <div className="sess-empty">还没有会话，先发一道题或开始练习</div>
+              <SoftKitty compact text={EMPTY.sessions} />
             )}
             {groups.map(([g, list]) => (
               <div key={g}>
@@ -122,10 +125,10 @@ export default function Rail() {
 
       <div className="rail-bottom">
         <button type="button" className={`nav ${isReport ? 'on' : ''}`} onClick={() => navigate('/report')}>
-          <span className="ico">◔</span> 学习报告
+          <span className="ico"><IconCouch /></span> 学习报告
         </button>
         <button type="button" className={`nav ${isSettings ? 'on' : ''}`} onClick={() => navigate('/settings')}>
-          <span className="ico">⚙</span> 设置
+          <span className="ico"><IconThermostat /></span> 设置
         </button>
         <div className="me">
           <div className="avatar">{student?.name?.slice(0, 1) ?? '?'}</div>

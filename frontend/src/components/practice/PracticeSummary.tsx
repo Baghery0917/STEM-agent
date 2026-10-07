@@ -50,6 +50,7 @@ export default function PracticeSummary({ session, questions, items, scope, onRe
       <div className="qcard">
         <div className="qh">
           <span className="num">练习完成</span>
+          <span className="mono muted" style={{ fontSize: 11.5, letterSpacing: .5 }}>MISSION REPORT</span>
           <span className={`badge ${session.timed ? 'p' : 'g'}`}>{session.timed ? '计时' : '不计时'}</span>
           <span>{scope} · {session.total_count} 题</span>
           {totalSec != null && <span className="muted">· 共 {fmtDuration(totalSec)}</span>}

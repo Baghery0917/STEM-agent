@@ -53,7 +53,7 @@ export default function Settings() {
               <button type="button" className={`toggle ctl ${ui.cameraEnabled ? 'on' : ''}`} onClick={() => ui.setCameraEnabled(!ui.cameraEnabled)} aria-label="情绪识别" />
             </div>
             <div className="srow">
-              <div><div className="t">外观</div><div className="d">跟随系统 / 浅色 / 深色</div></div>
+              <div><div className="t">外观</div><div className="d">跟随系统 / 浅色 / 深色 · 恒温 71°F</div></div>
               <div className="ctl radio">
                 {(['system', 'light', 'dark'] as const).map((t) => (
                   <button type="button" key={t} className={ui.theme === t ? 'on' : ''} onClick={() => ui.setTheme(t)}>

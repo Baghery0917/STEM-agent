@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { PipelineStatus, TeachingMessageResponse } from '@/api/types';
+import AtomSpinner from '@/components/theme/AtomSpinner';
+import { TRACE } from '@/theme/copy';
 
 type StageKey = 'llm_analysis' | 'student_data' | 'strategy' | 'reference_search';
 
@@ -28,6 +30,7 @@ export default function AgentTrace({ pipelineStatus, messages, firstRound, start
   const failed = firstRound && pipelineStatus === 'failed';
   const firstPending = stages.findIndex((s) => !byType.has(s.key));
   const [open, setOpen] = useState(firstRound);
+  const doneCount = stages.filter((s) => byType.has(s.key)).length;
 
   let elapsed: string | null = null;
   if (startedAt && finishedAt) {
@@ -38,8 +41,8 @@ export default function AgentTrace({ pipelineStatus, messages, firstRound, start
   return (
     <details className="trace" open={open || running || failed} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
       <summary>
-        {running ? <span className="spin" /> : failed ? <span className="fail">!</span> : <span className="ok">✓</span>}
-        {running ? '正在分析' : failed ? '分析中断，已给出兜底回复' : `分析完成${elapsed ? ` · 用时 ${elapsed}` : ''}`}
+        {running ? <AtomSpinner lit={Math.min(3, doneCount)} /> : failed ? <span className="fail">!</span> : <span className="ok">✓</span>}
+        {running ? TRACE.running : failed ? TRACE.failed : `${TRACE.done}${elapsed ? ` · ${elapsed}` : ''}`}
         <span className="chev">›</span>
       </summary>
       <div className="steps">

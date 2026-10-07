@@ -39,7 +39,7 @@ export default function ProgressBar({
         {revealed
           ? <span>对 <span className="n">{correct}</span> · 错 <span className="n">{wrong}</span> · 跳 <span className="n">{skipped}</span></span>
           : <span>已答 <span className="n">{correct + wrong}</span> · 跳 <span className="n">{skipped}</span></span>}
-        <span className={`timer ${timed ? '' : 'off'}`}>{timed ? fmtClock(elapsedSec) : '—'}</span>
+        <span className={`timer ${timed ? '' : 'off'}`} title={timed ? 'Bernadette is watching' : undefined}>{timed ? fmtClock(elapsedSec) : '—'}</span>
         <button type="button" className="btn ghost sm" onClick={onEnd}>结束练习</button>
       </div>
     </div>

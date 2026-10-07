@@ -3,44 +3,52 @@
    管理台仍用 Ant Design，只在 .admin-root 内生效，互不影响
    ===================================================================== */
 :root {
-  --bg: #f6f6f4;
-  --panel: #ffffff;
-  --panel-2: #fafaf8;
-  --line: #e7e6e2;
-  --line-2: #efeeea;
-  --ink: #1c1c1a;
-  --ink-2: #5b5b57;
-  --ink-3: #8c8c86;
-  --teach: #3b5bdb;
-  --teach-soft: #edf0fc;
-  --practice: #0f8a5f;
-  --practice-soft: #e8f6ef;
+  /* 生活大爆炸主题：公寓日光米白、芥末黄墙、砖红、Green Lantern 绿 */
+  --bg: #f6f1e6;
+  --panel: #fffdf8;
+  --panel-2: #faf6ec;
+  --line: #e6dcc6;
+  --line-2: #efe8d8;
+  --ink: #2a2118;
+  --ink-2: #665a4b;
+  --ink-3: #96887a;
+  --teach: #1e8c4a;
+  --teach-soft: #e4f3e9;
+  --practice: #a8731a;
+  --practice-soft: #f8edd3;
   --warn: #d97706;
-  --warn-soft: #fff4e5;
-  --bad: #d6453d;
-  --bad-soft: #fdecec;
+  --warn-soft: #fff1dc;
+  --bad: #c8322b;
+  --bad-soft: #fbe5e3;
+  --mustard: #d9a520;
+  --brick: #c8322b;
+  --lantern: #1e8c4a;
   --radius: 14px;
-  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.12);
+  --shadow: 0 1px 2px rgba(60,40,10,.05), 0 8px 24px -12px rgba(60,40,10,.18);
   --accent: var(--teach);
   --accent-soft: var(--teach-soft);
 }
 [data-theme="dark"] {
-  --bg: #141413;
-  --panel: #1d1d1b;
-  --panel-2: #232321;
-  --line: #2d2d2a;
-  --line-2: #262624;
-  --ink: #ecebe6;
-  --ink-2: #a8a7a0;
-  --ink-3: #74736d;
-  --teach: #7b93ff;
-  --teach-soft: #1f2440;
-  --practice: #3fcf95;
-  --practice-soft: #16302a;
+  /* 夜晚的公寓：深棕底、暖灯 */
+  --bg: #1a1511;
+  --panel: #241e18;
+  --panel-2: #2a231c;
+  --line: #3a3128;
+  --line-2: #322a22;
+  --ink: #efe6d6;
+  --ink-2: #b3a391;
+  --ink-3: #7f7264;
+  --teach: #4fc47f;
+  --teach-soft: #1c3326;
+  --practice: #e2b24a;
+  --practice-soft: #3a2e14;
   --warn: #f3a33c;
   --warn-soft: #3a2a12;
   --bad: #f0665e;
   --bad-soft: #3a1d1b;
+  --mustard: #e2b24a;
+  --brick: #f0665e;
+  --lantern: #4fc47f;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
 }
 [data-mode="practice"] { --accent: var(--practice); --accent-soft: var(--practice-soft); }
@@ -493,3 +501,89 @@ body {
   .pbar2 { flex-wrap: wrap; }
   .pbar2 .dots { flex-basis: 100%; order: 10; }
 }
+
+/* =====================================================================
+   生活大爆炸主题：原子轨道、走廊登录页、Soft Kitty、404
+   ===================================================================== */
+/* ---------- 原子轨道加载 ---------- */
+.atom { display: inline-block; vertical-align: middle; flex: none; }
+.atom .atom-orbits { transform-origin: 20px 20px; animation: atom-spin 2.4s linear infinite; }
+.atom .atom-orbit { fill: none; stroke: var(--line); stroke-width: 2.4; transition: stroke .3s; }
+.atom .atom-orbit.lit { stroke: var(--accent); }
+.atom .atom-core { fill: var(--mustard); }
+@keyframes atom-spin { to { transform: rotate(360deg); } }
+.trace summary .atom .atom-orbit:not(.lit) { stroke: var(--line); }
+
+/* ---------- 品牌与导航图标 ---------- */
+.brand .logo { background: var(--lantern); color: #fffdf8; }
+.brand .logo svg { display: block; }
+.nav .ico { display: inline-grid; place-items: center; }
+.nav .ico svg { width: 16px; height: 16px; }
+.msg.ai .who { background: var(--lantern); color: #fffdf8; }
+.msg.ai .who svg { display: block; }
+.insight .who svg { display: block; }
+
+/* ---------- 主页问候的英文副标题 ---------- */
+.hero .weekday {
+  display: inline-block; margin: 6px 0 14px; padding: 4px 10px; border-radius: 999px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; letter-spacing: .2px;
+  color: var(--ink-2); background: var(--panel-2); border: 1px dashed var(--line);
+}
+
+/* ---------- Soft Kitty 空状态 ---------- */
+.kitty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 12px; text-align: center; }
+.kitty img { width: 140px; max-width: 70%; opacity: .95; }
+.kitty .lyric { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: var(--ink-3); letter-spacing: .2px; }
+.kitty .note { font-size: 12.5px; color: var(--ink-3); max-width: 220px; line-height: 1.5; }
+.kitty.compact { padding: 18px 8px 10px; }
+.kitty.compact img { width: 96px; }
+
+/* ---------- 登录页：公寓走廊 ---------- */
+.login.hallway {
+  position: relative; background-size: cover; background-position: center 30%; background-color: #2a2118;
+  grid-template-rows: auto 1fr; align-content: center; justify-items: center; gap: 18px;
+}
+.login.hallway .veil {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(40,28,14,.15) 0%, rgba(40,28,14,.65) 70%, rgba(20,14,8,.85) 100%);
+}
+.login .knock {
+  position: relative; display: flex; gap: 14px; min-height: 28px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 15px; font-weight: 600; letter-spacing: .3px;
+  color: #fff3d6; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+.login .knock span { opacity: 0; transform: translateY(4px); transition: opacity .18s, transform .18s; }
+.login .knock span.on { opacity: 1; transform: none; }
+.login .knock span::before { content: "✊ "; opacity: .8; }
+.login .card.door {
+  position: relative; width: 460px; background: var(--panel);
+  border: 1px solid rgba(255,240,210,.25); box-shadow: 0 30px 60px -20px rgba(0,0,0,.7), 0 0 0 6px rgba(255,236,200,.08);
+}
+.login .plate {
+  display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; margin-bottom: 10px;
+  border-radius: 6px; background: linear-gradient(180deg, #e9c97c, #b8902f); color: #3a2a08;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 1px 2px rgba(0,0,0,.3);
+}
+.login .plate.agreement { background: linear-gradient(180deg, #f3ecd9, #d9ccab); letter-spacing: 1px; }
+.login .mailbox { display: flex; flex-direction: column; gap: 0; }
+.login .pick { border-left: 4px solid var(--mustard); }
+.login .pick:hover, .login .pick:focus-visible { border-left-color: var(--lantern); }
+.login .ooo {
+  margin-top: 16px; padding: 6px 10px; text-align: center;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 1.5px;
+  color: #2a2118; background: repeating-linear-gradient(135deg, #f2c94c 0 14px, #2a2118 14px 28px);
+  -webkit-text-stroke: 0; text-shadow: 0 0 2px #f2c94c, 0 0 2px #f2c94c, 0 0 4px #f2c94c;
+  border-radius: 4px;
+}
+[data-theme="dark"] .login .ooo { color: #2a2118; }
+
+/* ---------- 404：薛定谔的猫箱 ---------- */
+.notfound { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; padding: 24px; }
+.notfound .box { position: relative; width: 120px; height: 84px; margin-bottom: 14px; border-radius: 8px; background: #b98b4a; box-shadow: inset 0 -8px 0 #8f6a33; }
+.notfound .box .lid { position: absolute; left: -4px; right: -4px; top: -10px; height: 22px; border-radius: 6px; background: #cfa05e; transform-origin: left bottom; animation: lid 3s ease-in-out infinite; }
+.notfound .box .q { position: absolute; inset: 0; display: grid; place-items: center; font-size: 36px; font-weight: 700; color: #fff3d6; opacity: .9; }
+@keyframes lid { 0%, 70%, 100% { transform: rotate(0); } 80%, 90% { transform: rotate(-12deg); } }
+.notfound h1 { font-size: 22px; margin: 0; letter-spacing: -.3px; }
+.notfound p { color: var(--ink-2); margin: 0 0 12px; }

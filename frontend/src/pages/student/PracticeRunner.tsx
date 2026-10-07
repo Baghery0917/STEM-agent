@@ -16,6 +16,7 @@ import EmotionBadge from '@/components/shell/EmotionBadge';
 import QuestionCard, { type ItemState } from '@/components/practice/QuestionCard';
 import ProgressBar from '@/components/practice/ProgressBar';
 import PracticeSummary from '@/components/practice/PracticeSummary';
+import AtomSpinner from '@/components/theme/AtomSpinner';
 
 export default function PracticeRunner() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -213,7 +214,7 @@ export default function PracticeRunner() {
         <TopBar crumb="加载中…" right={emotionBadge} />
         <section className="stage">
           <div className="pwrap muted">
-            {detail.isError ? `加载失败：${(detail.error as Error).message}` : '正在载入练习…'}
+            {detail.isError ? `加载失败：${(detail.error as Error).message}` : <><AtomSpinner size={18} /> 正在载入练习…</>}
           </div>
         </section>
       </>
