@@ -12,6 +12,8 @@ interface Props {
   preselect?: number[];
   loading?: boolean;
   onStart: (body: StartPracticeRequest) => void;
+  /** 内嵌在页面布局里，而不是吸底 */
+  inline?: boolean;
 }
 
 const COUNT_PRESETS = [5, 10, 20];
@@ -20,7 +22,7 @@ const COUNT_PRESETS = [5, 10, 20];
  * 底部练习参数面板。
  * 规则：计时 → 做完统一批改（不可选即时反馈）；不计时 → 可选即时 / 统一。
  */
-export default function SetupPanel({ studentId, suggested, preselect, loading, onStart }: Props) {
+export default function SetupPanel({ studentId, suggested, preselect, loading, onStart, inline }: Props) {
   const tree = useKnowledgeTree();
   const [selected, setSelected] = useState<Set<number>>(new Set(preselect ?? []));
   const [treeOpen, setTreeOpen] = useState(false);
@@ -66,8 +68,8 @@ export default function SetupPanel({ studentId, suggested, preselect, loading, o
   else summary = `题库匹配 ${matched} 题 · 本次出 ${effective} 题${timed ? ` · 预计 ${Math.max(1, Math.round(effective * 1.2))} 分钟` : ''}`;
 
   return (
-    <div className="composer-wrap">
-      <div className="composer wide">
+    <div className={inline ? 'setup-inline' : 'composer-wrap'}>
+      <div className={inline ? '' : 'composer wide'}>
         <div className="setup-panel">
           <div className="sh">
             练习参数

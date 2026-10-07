@@ -715,11 +715,6 @@ body {
 .hero.with-figure { position: relative; padding-right: 180px; }
 .hero .figure { position: absolute; right: 0; top: 60px; height: 260px; width: auto; filter: drop-shadow(0 14px 18px rgba(40,24,8,.3)); animation: float-in .6s cubic-bezier(.2,.8,.2,1) both; }
 @media (max-width: 900px) { .hero.with-figure { padding-right: 24px; } .hero .figure { display: none; } }
-/* 练习参数页：等距公寓插画 */
-.pempty.with-art { position: relative; }
-.pempty .art { position: absolute; right: -40px; top: 40px; width: 260px; border-radius: 16px; opacity: .9; transform: rotate(3deg);
-  box-shadow: 0 20px 40px -20px rgba(40,24,8,.5); pointer-events: none; }
-@media (max-width: 1000px) { .pempty .art { display: none; } }
 /* 练习进度条：楼层指示 */
 /* 题卡：白板感，顶部一道马克笔色 */
 .qcard { border-top: 4px solid var(--mustard); }
@@ -747,40 +742,57 @@ body {
 .scene .topline .wordmark .w1 { color: #fff3d6; font-size: calc(18px * var(--s)); text-shadow: 0 1px 2px rgba(0,0,0,.5); }
 .scene .topline .wordmark .w2 { color: #f0665e; font-size: calc(16px * var(--s)); text-shadow: 0 1px 2px rgba(0,0,0,.5); }
 
-/* ---------- 练习顶栏：电梯楼层指示板 ---------- */
-.ptop .panel {
-  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; padding: 10px 14px;
-  border-radius: 14px; background: linear-gradient(180deg, #fffdf8, #f7f0e1); border: 1px solid var(--line);
-  box-shadow: var(--shadow), inset 0 1px 0 #fff;
-}
-.ptop .clock { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px 5px 6px; border-radius: 10px; background: #2a2118; color: #f2c94c; box-shadow: inset 0 2px 6px rgba(0,0,0,.6); }
-.ptop .clock .digits { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 17px; font-weight: 700; letter-spacing: 1.5px; font-variant-numeric: tabular-nums; text-shadow: 0 0 8px rgba(242,201,76,.55); }
-.ptop .panel:not(.timed) .clock { color: #8a7458; text-shadow: none; }
-.ptop .panel:not(.timed) .clock .digits { text-shadow: none; }
-.ptop .clock .lbl { font-size: 10px; letter-spacing: 1px; color: #b9a481; }
-.ptop .floors { display: flex; gap: 4px; min-width: 0; }
-.ptop .floor { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px; border-radius: 8px; transition: .15s; }
-.ptop .floor .lamp { width: 100%; height: 6px; border-radius: 3px; background: #e3d7bf; box-shadow: inset 0 1px 1px rgba(0,0,0,.08); transition: .15s; }
-.ptop .floor .num { font-size: 10px; font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.ptop .floor.done .lamp { background: var(--ink-3); }
-.ptop .floor.ok .lamp { background: var(--lantern); box-shadow: 0 0 6px rgba(30,140,74,.5); }
-.ptop .floor.no .lamp { background: var(--brick); box-shadow: 0 0 6px rgba(200,50,43,.45); }
-.ptop .floor.skip .lamp { background: var(--warn); }
-.ptop .floor.cur { background: rgba(217,165,32,.14); }
-.ptop .floor.cur .lamp { background: var(--mustard); box-shadow: 0 0 8px rgba(217,165,32,.8); }
-.ptop .floor.cur .num { color: var(--ink); }
-.ptop .floor.star .num::after { content: "★"; font-size: 8px; color: var(--warn); margin-left: 1px; }
-.ptop .floor:hover { background: rgba(42,33,24,.06); }
-.ptop .tally { display: inline-flex; align-items: center; gap: 6px; }
-.ptop .tally .pos { display: inline-flex; align-items: baseline; gap: 3px; margin-right: 6px; }
-.ptop .tally .pos b { font-size: 16px; color: var(--ink); }
-.ptop .tally .pos i { font-style: normal; font-size: 11.5px; color: var(--ink-3); }
-.ptop .tally .chip { min-width: 26px; padding: 2px 7px; border-radius: 999px; text-align: center; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.ptop .tally .chip.ok { background: var(--teach-soft); color: var(--lantern); }
-.ptop .tally .chip.no { background: var(--bad-soft); color: var(--brick); }
-.ptop .tally .chip.skip { background: var(--warn-soft); color: var(--warn); }
-.ptop .tally .chip.done { background: var(--line-2); color: var(--ink-2); }
 .comfort { margin: 4px 0 18px; border: 1px dashed var(--line); border-radius: 14px; background: var(--panel-2); }
 .qcard .voice .kitty { padding: 0 0 0 6px; margin-left: auto; flex-direction: row; gap: 6px; }
 .qcard .voice .kitty img { width: 44px; }
 .qcard .voice .kitty .lyric { display: none; }
+
+/* ---------- 练习参数页：左右排版 ---------- */
+.psetup { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 32px; max-width: 1100px; margin: 0 auto; padding: 36px 28px 60px; align-items: start; }
+.psetup .left { position: sticky; top: 24px; }
+.psetup .kicker { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--mustard); font-weight: 700; margin-bottom: 8px; }
+.psetup .hi { font-size: 28px; font-weight: 600; letter-spacing: -.5px; margin: 0 0 10px; }
+.psetup p { color: var(--ink-2); font-size: 14px; line-height: 1.6; margin: 0 0 22px; }
+.psetup .recent.col1 { grid-template-columns: 1fr; }
+.psetup .art { display: block; width: 100%; margin-top: 26px; border-radius: 14px; border: 1px solid var(--line); opacity: .9; }
+.setup-inline .setup-panel { box-shadow: var(--shadow); }
+@media (max-width: 900px) { .psetup { grid-template-columns: 1fr; } .psetup .left { position: static; } .psetup .art { display: none; } }
+
+/* ---------- 练习进行页：题卡左，电梯右 ---------- */
+.prun { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 20px; max-width: 1000px; margin: 0 auto; padding: 16px 24px 200px; }
+.prun .pwrap { max-width: none; margin: 0; padding: 0; }
+.ptop { position: static; padding: 0; background: none; }
+.elevator {
+  position: sticky; top: 12px; display: flex; flex-direction: column; gap: 10px; padding: 10px; border-radius: 16px;
+  background: linear-gradient(180deg, #fffdf8, #f3ead7); border: 1px solid var(--line); box-shadow: var(--shadow), inset 0 1px 0 #fff;
+}
+.elevator .clock { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px; border-radius: 12px; background: #2a2118; color: #f2c94c; box-shadow: inset 0 2px 6px rgba(0,0,0,.6); }
+.elevator .clock .digits { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 20px; font-weight: 700; letter-spacing: 1.5px; font-variant-numeric: tabular-nums; text-shadow: 0 0 8px rgba(242,201,76,.55); }
+.elevator:not(.timed) .clock { color: #8a7458; }
+.elevator:not(.timed) .clock .digits { text-shadow: none; }
+.elevator .clock .lbl { font-size: 10px; letter-spacing: 1px; color: #b9a481; }
+.elevator .shaft { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 8px 6px 8px 8px; border-radius: 12px; background: #2a2118; box-shadow: inset 0 2px 8px rgba(0,0,0,.6); }
+.elevator .floor { display: grid; grid-template-columns: 1fr 10px; align-items: center; gap: 8px; height: 26px; padding: 0 4px 0 8px; border-radius: 7px; transition: .15s; }
+.elevator .floor .num { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; font-weight: 700; color: #8a7458; text-align: left; }
+.elevator .floor .lamp { width: 10px; height: 10px; border-radius: 50%; background: #4a3d30; box-shadow: inset 0 1px 1px rgba(0,0,0,.5); transition: .15s; }
+.elevator .floor.done .lamp { background: #b9a481; }
+.elevator .floor.ok .lamp { background: #4fc47f; box-shadow: 0 0 8px rgba(79,196,127,.7); }
+.elevator .floor.no .lamp { background: #f0665e; box-shadow: 0 0 8px rgba(240,102,94,.6); }
+.elevator .floor.skip .lamp { background: #f3a33c; box-shadow: 0 0 6px rgba(243,163,60,.5); }
+.elevator .floor.cur { background: rgba(242,201,76,.16); }
+.elevator .floor.cur .num { color: #f2c94c; text-shadow: 0 0 8px rgba(242,201,76,.8); }
+.elevator .floor.cur .lamp { background: #f2c94c; box-shadow: 0 0 10px rgba(242,201,76,.9); }
+.elevator .floor.star .num::after { content: " ★"; font-size: 9px; color: #f3a33c; }
+.elevator .floor:hover { background: rgba(255,240,200,.08); }
+.elevator .car { position: absolute; left: 3px; top: calc(8px + var(--pos) * 30px); width: 3px; height: 26px; border-radius: 2px; background: #f2c94c; box-shadow: 0 0 8px rgba(242,201,76,.9); transition: top .35s cubic-bezier(.3,.9,.3,1); }
+.elevator .tally { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.elevator .tally .pos { display: inline-flex; align-items: baseline; gap: 3px; }
+.elevator .tally .pos b { font-size: 20px; color: var(--ink); }
+.elevator .tally .pos i { font-style: normal; font-size: 12px; color: var(--ink-3); }
+.elevator .tally .chips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.elevator .tally .chip { min-width: 28px; padding: 2px 7px; border-radius: 999px; text-align: center; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.elevator .tally .chip.ok { background: var(--teach-soft); color: var(--lantern); }
+.elevator .tally .chip.no { background: var(--bad-soft); color: var(--brick); }
+.elevator .tally .chip.skip { background: var(--warn-soft); color: var(--warn); }
+.elevator .tally .chip.done { background: var(--line-2); color: var(--ink-2); }
+@media (max-width: 760px) { .prun { grid-template-columns: 1fr; } .elevator { position: static; flex-direction: row; flex-wrap: wrap; } .elevator .shaft { flex: 1; flex-direction: row-reverse; } .elevator .car { display: none; } }

@@ -44,37 +44,43 @@ export default function PracticeSetup() {
     <>
       <TopBar crumb="新练习" />
       <section className="stage">
-        <div className="pempty with-art">
-          <img className="art" src={`${import.meta.env.BASE_URL}tbbt/illustrations/apartment-isometric.jpg`} alt="" draggable={false} />
-          <h1 className="hi">开始一次练习</h1>
-          <p>在下面设置范围和参数，确认后开始出题。做题途中任何一题都可以跳过；不计时时任何一题都可以一键转到教学模式追问。</p>
-          {recentList.length > 0 && (
-            <>
-              <div className="grp" style={{ paddingLeft: 0 }}>最近的练习</div>
-              <div className="recent">
-                {recentList.map((s) => {
-                  const names = s.knowledge_point_ids.map((id) => tree.data?.sectionById.get(id)?.title).filter(Boolean) as string[];
-                  const answered = s.correct_count + s.wrong_count;
-                  const rate = answered ? `正确率 ${Math.round((s.correct_count / answered) * 100)}%` : '未作答';
-                  return (
-                    <button type="button" key={s.id} className="rc" onClick={() => navigate(`/practice/${s.id}`)}>
-                      <b>{names.slice(0, 2).join('、') || '练习'} · {s.total_count} 题</b>
-                      <span className="m">{shortTime(s.started_at)} · {s.timed ? '计时' : '不计时'} · {s.ended_at ? rate : '进行中'}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
+        <div className="psetup">
+          <div className="left">
+            <div className="kicker">Whiteboard session</div>
+            <h1 className="hi">开始一次练习</h1>
+            <p>在右边设置范围和参数，确认后开始出题。做题途中任何一题都可以跳过；不计时时任何一题都可以一键转到教学模式追问。</p>
+            {recentList.length > 0 && (
+              <>
+                <div className="grp" style={{ paddingLeft: 0 }}>最近的练习</div>
+                <div className="recent col1">
+                  {recentList.map((s) => {
+                    const names = s.knowledge_point_ids.map((id) => tree.data?.sectionById.get(id)?.title).filter(Boolean) as string[];
+                    const answered = s.correct_count + s.wrong_count;
+                    const rate = answered ? `正确率 ${Math.round((s.correct_count / answered) * 100)}%` : '未作答';
+                    return (
+                      <button type="button" key={s.id} className="rc" onClick={() => navigate(`/practice/${s.id}`)}>
+                        <b>{names.slice(0, 2).join('、') || '练习'} · {s.total_count} 题</b>
+                        <span className="m">{shortTime(s.started_at)} · {s.timed ? '计时' : '不计时'} · {s.ended_at ? rate : '进行中'}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            <img className="art" src={`${import.meta.env.BASE_URL}tbbt/backgrounds/four-heads-cream.jpg`} alt="" draggable={false} />
+          </div>
+          <div className="right">
+            <SetupPanel
+              inline
+              studentId={student.id}
+              suggested={suggested}
+              preselect={preselect}
+              loading={start.isPending}
+              onStart={(body) => start.mutate(body)}
+            />
+          </div>
         </div>
       </section>
-      <SetupPanel
-        studentId={student.id}
-        suggested={suggested}
-        preselect={preselect}
-        loading={start.isPending}
-        onStart={(body) => start.mutate(body)}
-      />
     </>
   );
 }

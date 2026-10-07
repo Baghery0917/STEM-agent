@@ -269,6 +269,7 @@ export default function PracticeRunner() {
         right={emotionBadge}
       />
       <section className="stage">
+        <div className="prun">
         <div className="pwrap">
           <ProgressBar
             timed={session.timed}
@@ -309,6 +310,7 @@ export default function PracticeRunner() {
           <div className="qfoot-note">
             {ended ? '练习已结束 · 这是回顾' : session.timed ? '计时中 · 做完统一批改，卡住就星标' : session.instant_feedback ? '不计时 · 每题即时反馈，随时可以转去提问' : '不计时 · 做完统一批改，随时可以转去提问'}
           </div>
+        </div>
         </div>
       </section>
       <div className="composer-wrap">
