@@ -1,5 +1,30 @@
 import { apiClient } from './client';
 
+const TOKEN_KEY = 'stem:admin-token';
+
+export function getAdminToken(): string | null {
+  return sessionStorage.getItem(TOKEN_KEY);
+}
+
+export function clearAdminToken() {
+  sessionStorage.removeItem(TOKEN_KEY);
+}
+
+export async function adminLogin(password: string) {
+  const { data } = await apiClient.post<{ token: string }>('/admin/login', { password });
+  sessionStorage.setItem(TOKEN_KEY, data.token);
+  return data.token;
+}
+
+// 管理台请求统一带口令令牌
+apiClient.interceptors.request.use((config) => {
+  if (config.url?.startsWith('/admin/db')) {
+    const token = getAdminToken();
+    if (token) config.headers.set('X-Admin-Token', token);
+  }
+  return config;
+});
+
 export interface AdminDbColumn {
   name: string;
   type: string;

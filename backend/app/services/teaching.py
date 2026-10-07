@@ -15,6 +15,9 @@ from app.llm.client import LLMClient
 from app.models.section import Section
 from app.models.student_knowledge_summary import StudentKnowledgeSummary
 from app.models.emotion import StudentKpEmotion
+from app.models.practice import PracticeItem, PracticeSession
+from app.models.question import Question
+from app.models.student import ExplainStyle, Student
 from app.models.teaching import (
     MessageRole,
     MessageType,
@@ -46,6 +49,14 @@ _EMOTION_GUIDANCE = (
     "状态偏向受挫（>=3）时先肯定已做对的部分、放慢节奏、一次只推进一小步；"
     "状态自信（<=2）时可以直接追问更深的问题。不要在回复里提及你观察到了情绪。"
 )
+_EXPLAIN_STYLE_GUIDANCE: dict[ExplainStyle, str] = {
+    ExplainStyle.DIRECT: "\n学生设置：直接给答案。先给出完整解答与关键步骤，再补充一句为什么。",
+    ExplainStyle.GUIDED: "\n学生设置：引导我自己找。不直接给答案，每次只抛一个小问题，等学生回应。",
+    ExplainStyle.HINT: "\n学生设置：只给提示。只指出卡点所在和下一步方向，不展开推导。",
+}
+# 掌握度自评 -> 结束会话时的 mastery_level_delta（学生未显式提交时使用最后一次自评）
+_SELF_RATING_DELTA: dict[int, float] = {0: -0.1, 1: 0.05, 2: 0.15, 3: 0.25}
+
 _DEFAULT_ASSISTANT_REPLY = (
     "我现在暂时无法调用讲解服务，请稍后再试。你可以先尝试描述一下你对题目的初步思路。"
 )
@@ -68,11 +79,22 @@ class TeachingService:
         student_id: int,
         question_content: str,
         question_image: str | None = None,
+        source_practice_session_id: int | None = None,
+        source_question_ids: list[int] | None = None,
     ) -> TeachingSession:
+        if source_practice_session_id:
+            question_content = await self.build_handoff_content(
+                student_id=student_id,
+                practice_session_id=source_practice_session_id,
+                question_ids=source_question_ids or [],
+                student_note=question_content,
+            )
         session = TeachingSession(
             student_id=student_id,
             status=TeachingSessionStatus.ACTIVE,
             pipeline_status=PipelineStatus.PENDING,
+            source_practice_session_id=source_practice_session_id,
+            source_question_ids=source_question_ids or None,
         )
         self.db.add(session)
         await self.db.flush()
@@ -87,6 +109,77 @@ class TeachingService:
         )
         await self.db.flush()
         return session
+
+    async def build_handoff_content(
+        self,
+        student_id: int,
+        practice_session_id: int,
+        question_ids: list[int],
+        student_note: str,
+    ) -> str:
+        """练习转教学：把题干、学生作答、正确答案拼成第一条消息，供流水线分析与讲解"""
+        result = await self.db.execute(
+            select(PracticeSession).where(
+                PracticeSession.id == practice_session_id,
+                PracticeSession.student_id == student_id,
+            )
+        )
+        practice = result.scalar_one_or_none()
+        if practice is None:
+            raise LookupError("Practice session not found")
+        ids = [q for q in question_ids if q in practice.question_ids] or list(practice.starred_question_ids)
+        if not ids:
+            raise ValueError("No questions selected from the practice session")
+
+        q_result = await self.db.execute(select(Question).where(Question.id.in_(ids)))
+        q_by_id = {q.id: q for q in q_result.scalars().all()}
+        it_result = await self.db.execute(
+            select(PracticeItem).where(
+                PracticeItem.practice_session_id == practice_session_id,
+                PracticeItem.question_id.in_(ids),
+            )
+        )
+        item_by_q = {it.question_id: it for it in it_result.scalars().all()}
+
+        blocks: list[str] = []
+        for qid in ids:
+            q = q_by_id.get(qid)
+            if q is None:
+                continue
+            pos = practice.question_ids.index(qid) + 1
+            item = item_by_q.get(qid)
+            if item is None:
+                outcome = "未作答"
+            elif item.is_skipped:
+                outcome = "跳过"
+            else:
+                outcome = f"我的答案：{item.user_answer}（{'答对' if item.is_correct else '答错'}）"
+            blocks.append(
+                f"【练习第 {pos} 题】\n{q.content}\n{outcome}\n正确答案：{q.answer}"
+            )
+        header = f"（来自练习 #{practice.id}）"
+        note = student_note.strip()
+        return "\n\n".join([header, *blocks, note] if note else [header, *blocks])
+
+    async def rate_message(
+        self, session_id: int, message_id: int, rating: int | None,
+    ) -> TeachingMessage:
+        """记录学生对某条 AI 回复的掌握度自评（0-3），None 表示取消"""
+        result = await self.db.execute(
+            select(TeachingMessage).where(
+                TeachingMessage.id == message_id,
+                TeachingMessage.session_id == session_id,
+            )
+        )
+        msg = result.scalar_one_or_none()
+        if msg is None:
+            raise LookupError("Message not found")
+        if msg.role != MessageRole.ASSISTANT:
+            raise ValueError("Only assistant messages can be rated")
+        msg.self_rating = rating
+        await self.db.flush()
+        await self.db.refresh(msg)
+        return msg
 
     async def run_pipeline(
         self,
@@ -309,6 +402,9 @@ class TeachingService:
         session.status = TeachingSessionStatus.COMPLETED
         session.ended_at = _utcnow()
         session.end_reason = reason
+
+        if mastery_level_delta is None:
+            mastery_level_delta = self._delta_from_self_rating(session)
 
         section_ids = self._extract_section_ids_from_session(session)
         await self._update_knowledge_summaries(
@@ -830,6 +926,7 @@ Reason: <one sentence reason>
             emotion_history=emotion_history,
             instant_emotion=instant_emotion,
             references=references,
+            explain_style=await self._student_explain_style(session.student_id),
         )
 
         messages = [
@@ -850,6 +947,21 @@ Reason: <one sentence reason>
         except Exception as exc:
             logger.warning("LLM chat response failed: %s", exc)
             return _DEFAULT_ASSISTANT_REPLY
+
+    async def _student_explain_style(self, student_id: int) -> ExplainStyle | None:
+        result = await self.db.execute(
+            select(Student.explain_style).where(Student.id == student_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def _explain_style_guidance(self, session_id: int) -> str | None:
+        result = await self.db.execute(
+            select(Student.explain_style)
+            .join(TeachingSession, TeachingSession.student_id == Student.id)
+            .where(TeachingSession.id == session_id)
+        )
+        style = result.scalar_one_or_none()
+        return _EXPLAIN_STYLE_GUIDANCE[style] if style else None
 
     async def _build_chat_messages(self, session_id: int) -> list[dict]:
         result = await self.db.execute(
@@ -886,6 +998,9 @@ Reason: <one sentence reason>
         if reference_content and not reference_content.startswith("No reference question"):
             system_parts.append(f"\n{reference_content}")
         system_parts.append(_EMOTION_GUIDANCE)
+        style_guidance = await self._explain_style_guidance(session_id)
+        if style_guidance:
+            system_parts.append(style_guidance)
 
         llm_messages = [{"role": "system", "content": "\n".join(system_parts)}]
         for msg in messages:
@@ -904,6 +1019,7 @@ Reason: <one sentence reason>
         emotion_history: dict[int, StudentKpEmotion] | None = None,
         instant_emotion: InstantEmotion | None = None,
         references: list[tuple] | None = None,
+        explain_style: ExplainStyle | None = None,
     ) -> str:
         prompt_parts = [
             "You are an expert STEM tutor. Your goal is to help the student understand concepts through guided inquiry.",
@@ -947,12 +1063,26 @@ Reason: <one sentence reason>
             "Adapt your approach based on the teaching strategy and student's knowledge level."
         )
         prompt_parts.append(_EMOTION_GUIDANCE)
+        if explain_style is not None:
+            prompt_parts.append(_EXPLAIN_STYLE_GUIDANCE[explain_style])
 
         return "\n".join(prompt_parts)
 
     # ------------------------------------------------------------------
     # 会话结束：知识点更新
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _delta_from_self_rating(session: TeachingSession) -> float | None:
+        """取最后一条带自评的 AI 回复，映射为掌握度变化；没有自评则不变"""
+        rated = [
+            m for m in session.messages
+            if m.role == MessageRole.ASSISTANT and m.self_rating is not None
+        ]
+        if not rated:
+            return None
+        latest = max(rated, key=lambda m: m.sequence)
+        return _SELF_RATING_DELTA.get(latest.self_rating)
 
     def _extract_section_ids_from_session(
         self, session: TeachingSession,

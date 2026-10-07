@@ -1286,3 +1286,297 @@ class TestTeachingRouter:
         assert len(data) == 1
         # sessions[2] newest, sessions[1] second, sessions[0] oldest → offset=1 gives middle
         assert data[0]["id"] == sessions[1].id
+
+
+class TestSelfRatingAndHandoff:
+    """掌握度自评、练习转教学、讲解风格注入"""
+
+    async def _start(self, db_session, student, section, note="Test question"):
+        with (
+            patch("app.services.teaching.LLMClient") as MockLLM,
+            patch("app.services.question.LLMClient") as MockQuestionLLM,
+            patch_text_emotion(),
+        ):
+            mock_llm = MockLLM.return_value
+            mock_llm.chat = AsyncMock(side_effect=[
+                f'[{{"section_id": {section.id}, "confidence": 0.9}}]',
+                "Strategy: Test\nReason: Test.",
+                "Welcome!",
+            ])
+            mock_llm.embed = AsyncMock(return_value=[[0.0] * 1024])
+            MockQuestionLLM.return_value.embed = AsyncMock(return_value=[[0.0] * 1024])
+            service = TeachingService(db_session)
+            session = await service.start_session(student_id=student.id, question_content=note)
+            return service, session
+
+    async def test_rate_message_sets_and_clears(self, db_session: AsyncSession):
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        service, session = await self._start(db_session, student, section)
+        assistant = next(m for m in session.messages if m.role == MessageRole.ASSISTANT)
+
+        msg = await service.rate_message(session.id, assistant.id, 2)
+        assert msg.self_rating == 2
+        msg = await service.rate_message(session.id, assistant.id, None)
+        assert msg.self_rating is None
+
+    async def test_rate_rejects_user_message(self, db_session: AsyncSession):
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        service, session = await self._start(db_session, student, section)
+        user_msg = next(m for m in session.messages if m.role == MessageRole.USER)
+        with pytest.raises(ValueError, match="Only assistant"):
+            await service.rate_message(session.id, user_msg.id, 1)
+
+    async def test_end_session_uses_latest_self_rating_when_no_delta(self, db_session: AsyncSession):
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        service, session = await self._start(db_session, student, section)
+        assistant = next(m for m in session.messages if m.role == MessageRole.ASSISTANT)
+        await service.rate_message(session.id, assistant.id, 3)
+
+        with patch_text_emotion():
+            ended = await service.end_session(session_id=session.id)
+        assert ended.status == TeachingSessionStatus.COMPLETED
+
+        summary = (await db_session.execute(
+            select(StudentKnowledgeSummary).where(
+                StudentKnowledgeSummary.student_id == student.id,
+                StudentKnowledgeSummary.section_id == section.id,
+            )
+        )).scalar_one()
+        assert summary.mastery_level == pytest.approx(0.25)
+
+    async def test_end_session_explicit_delta_overrides_self_rating(self, db_session: AsyncSession):
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        service, session = await self._start(db_session, student, section)
+        assistant = next(m for m in session.messages if m.role == MessageRole.ASSISTANT)
+        await service.rate_message(session.id, assistant.id, 3)
+
+        with patch_text_emotion():
+            await service.end_session(session_id=session.id, mastery_level_delta=0.05)
+        summary = (await db_session.execute(
+            select(StudentKnowledgeSummary).where(StudentKnowledgeSummary.student_id == student.id)
+        )).scalar_one()
+        assert summary.mastery_level == pytest.approx(0.05)
+
+    async def test_handoff_builds_first_message_from_practice(self, db_session: AsyncSession):
+        from app.models.practice import PracticeItem, PracticeSession
+        from app.models.question import Difficulty, Question, QuestionType, question_knowledge_point
+
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        q = Question(type=QuestionType.CALCULATION, content="最后 2s 位移 4m，求倒数第 2 个 1s 位移", answer="3 m", difficulty=Difficulty.MEDIUM)
+        db_session.add(q)
+        await db_session.flush()
+        await db_session.execute(question_knowledge_point.insert().values(question_id=q.id, section_id=section.id))
+        practice = PracticeSession(
+            timed=False, knowledge_point_ids=[section.id], difficulty_range=[Difficulty.MEDIUM],
+            question_ids=[q.id], starred_question_ids=[], student_id=student.id, total_count=1, started_at=_utcnow(),
+        )
+        db_session.add(practice)
+        await db_session.flush()
+        db_session.add(PracticeItem(
+            practice_session_id=practice.id, student_id=student.id, question_id=q.id,
+            user_answer="1 m", sequence=0, is_correct=False, is_skipped=False, started_at=_utcnow(), ended_at=_utcnow(),
+        ))
+        await db_session.flush()
+
+        service = TeachingService(db_session)
+        session = await service.create_session_shell(
+            student_id=student.id,
+            question_content="为什么不是 4 ÷ 2？",
+            source_practice_session_id=practice.id,
+            source_question_ids=[q.id],
+        )
+        assert session.source_practice_session_id == practice.id
+        assert session.source_question_ids == [q.id]
+        first = session.messages[0] if session.messages else (await service.get_session(session.id)).messages[0]
+        assert first.message_type == MessageType.QUESTION_SUBMIT
+        assert f"（来自练习 #{practice.id}）" in first.content
+        assert "【练习第 1 题】" in first.content
+        assert "我的答案：1 m（答错）" in first.content
+        assert "正确答案：3 m" in first.content
+        assert first.content.endswith("为什么不是 4 ÷ 2？")
+
+    async def test_handoff_rejects_other_students_practice(self, db_session: AsyncSession):
+        from app.models.practice import PracticeSession
+        from app.models.question import Difficulty
+
+        student = await create_test_student(db_session)
+        other = await create_test_student(db_session, name="Other")
+        _, _, section = await create_knowledge_chain(db_session)
+        practice = PracticeSession(
+            timed=False, knowledge_point_ids=[section.id], difficulty_range=[Difficulty.EASY],
+            question_ids=[], starred_question_ids=[], student_id=other.id, total_count=0, started_at=_utcnow(),
+        )
+        db_session.add(practice)
+        await db_session.flush()
+        with pytest.raises(LookupError):
+            await TeachingService(db_session).create_session_shell(
+                student_id=student.id, question_content="x", source_practice_session_id=practice.id,
+            )
+
+    async def test_explain_style_injected_into_chat_prompt(self, db_session: AsyncSession):
+        from app.models.student import ExplainStyle
+
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session)
+        service, session = await self._start(db_session, student, section)
+        student.explain_style = ExplainStyle.DIRECT
+        await db_session.flush()
+
+        messages = await service._build_chat_messages(session.id)
+        assert "直接给答案" in messages[0]["content"]
+
+
+class TestReportService:
+    async def test_report_aggregates_practice_teaching_and_emotion(self, db_session: AsyncSession):
+        from app.models.practice import PracticeItem, PracticeSession
+        from app.models.question import Difficulty, Question, QuestionType, question_knowledge_point
+        from app.services.report import ReportService
+
+        student = await create_test_student(db_session)
+        _, _, section = await create_knowledge_chain(db_session, section_title="Kinematics")
+        q = Question(type=QuestionType.SINGLE_CHOICE, content="Q", answer="A", difficulty=Difficulty.EASY)
+        db_session.add(q)
+        await db_session.flush()
+        await db_session.execute(question_knowledge_point.insert().values(question_id=q.id, section_id=section.id))
+        practice = PracticeSession(
+            timed=True, knowledge_point_ids=[section.id], difficulty_range=[Difficulty.EASY],
+            question_ids=[q.id], starred_question_ids=[], student_id=student.id, total_count=1, started_at=_utcnow(),
+            correct_count=1,
+        )
+        db_session.add(practice)
+        await db_session.flush()
+        db_session.add(PracticeItem(
+            practice_session_id=practice.id, student_id=student.id, question_id=q.id, user_answer="A",
+            sequence=0, is_correct=True, is_skipped=False, started_at=_utcnow(), ended_at=_utcnow(),
+        ))
+        db_session.add(StudentKnowledgeSummary(
+            student_id=student.id, section_id=section.id, mastery_level=0.6,
+            correct_count=1, total_practice_count=1, total_teaching_count=0, last_practice_at=_utcnow(),
+        ))
+        db_session.add(EmotionLog(
+            student_id=student.id, section_id=section.id, mode=EmotionMode.PRACTICE, session_id=practice.id,
+            emotion_value=2.0, start_time=_utcnow(), end_time=_utcnow(),
+        ))
+        await db_session.flush()
+
+        report = await ReportService(db_session).build(student.id, "recent", with_summary=False)
+        assert report.practice_count == 1
+        assert report.answered_count == 1 and report.correct_count == 1
+        assert report.teaching_count == 0
+        assert [k.section_title for k in report.knowledge_points] == ["Kinematics"]
+        assert report.knowledge_points[0].recent_practice_count == 1
+        assert len(report.emotion_days) == 7
+        assert report.emotion_days[-1].value == 2.0
+        assert report.emotion_logs[0].emotion == "略犹豫"
+        assert report.summary is None
+
+    async def test_report_endpoint_404_for_unknown_student(self, client):
+        resp = await client.get("/api/v1/students/9999/report", params={"summary": "false"})
+        assert resp.status_code == 404
+
+
+class TestSessionSearch:
+    async def test_search_hits_teaching_messages_and_practice_sections(self, client, db_session: AsyncSession):
+        from app.models.practice import PracticeSession
+        from app.models.question import Difficulty
+
+        student = await create_test_student(db_session)
+        other = await create_test_student(db_session, name="Other")
+        _, _, section = await create_knowledge_chain(db_session, section_title="摩擦力")
+
+        s1 = TeachingSession(student_id=student.id, status=TeachingSessionStatus.ACTIVE)
+        s2 = TeachingSession(student_id=student.id, status=TeachingSessionStatus.COMPLETED)
+        s3 = TeachingSession(student_id=other.id, status=TeachingSessionStatus.ACTIVE)
+        db_session.add_all([s1, s2, s3])
+        await db_session.flush()
+        db_session.add_all([
+            TeachingMessage(session_id=s1.id, role=MessageRole.USER, content="斜面上的摩擦力方向怎么判断", message_type=MessageType.QUESTION_SUBMIT, sequence=0),
+            TeachingMessage(session_id=s1.id, role=MessageRole.SYSTEM, content="摩擦力 strategy", message_type=MessageType.STRATEGY, sequence=1),
+            TeachingMessage(session_id=s2.id, role=MessageRole.USER, content="弹簧振子周期", message_type=MessageType.QUESTION_SUBMIT, sequence=0),
+            TeachingMessage(session_id=s2.id, role=MessageRole.ASSISTANT, content="这和摩擦力无关", message_type=MessageType.CHAT, sequence=1),
+            TeachingMessage(session_id=s3.id, role=MessageRole.USER, content="摩擦力", message_type=MessageType.QUESTION_SUBMIT, sequence=0),
+        ])
+        db_session.add(PracticeSession(
+            timed=False, instant_feedback=True, knowledge_point_ids=[section.id], difficulty_range=[Difficulty.EASY],
+            question_ids=[], starred_question_ids=[], student_id=student.id, total_count=3, started_at=_utcnow(),
+        ))
+        await db_session.flush()
+
+        resp = await client.get(f"/api/v1/students/{student.id}/sessions/search", params={"q": "摩擦力"})
+        assert resp.status_code == 200
+        hits = resp.json()["hits"]
+        kinds = {(h["kind"], h["id"]) for h in hits}
+        assert ("teaching", s1.id) in kinds
+        assert ("teaching", s2.id) in kinds          # assistant 消息命中
+        assert ("teaching", s3.id) not in kinds      # 别人的会话
+        practice_hits = [h for h in hits if h["kind"] == "practice"]
+        assert len(practice_hits) == 1 and "摩擦力" in practice_hits[0]["title"]
+        teach_hit = next(h for h in hits if h["id"] == s2.id and h["kind"] == "teaching")
+        assert "摩擦力" in teach_hit["snippet"]
+
+        empty = await client.get(f"/api/v1/students/{student.id}/sessions/search", params={"q": "不存在的词"})
+        assert empty.json()["hits"] == []
+
+
+class TestEvaluationEndpoint:
+    async def test_unavailable_when_not_configured(self, client, db_session: AsyncSession, monkeypatch):
+        from app.config import settings
+
+        student = await create_test_student(db_session)
+        monkeypatch.setattr(settings, "evaluation_mcp_url", "")
+        resp = await client.get(f"/api/v1/students/{student.id}/evaluation")
+        assert resp.status_code == 200
+        assert resp.json()["source"] == "unavailable"
+
+    async def test_returns_mcp_result(self, client, db_session: AsyncSession, monkeypatch):
+        from app.config import settings
+        from app.external.evaluation import EvaluationClient, EvaluationResult
+
+        student = await create_test_student(db_session)
+        monkeypatch.setattr(settings, "evaluation_mcp_url", "http://fake/mcp")
+        monkeypatch.setattr(
+            EvaluationClient, "get_evaluation",
+            AsyncMock(return_value=EvaluationResult("练得不错", ["要点一"])),
+        )
+        resp = await client.get(f"/api/v1/students/{student.id}/evaluation")
+        body = resp.json()
+        assert body["source"] == "mcp" and body["evaluation"] == "练得不错" and body["highlights"] == ["要点一"]
+
+    async def test_mcp_failure_degrades(self, client, db_session: AsyncSession, monkeypatch):
+        from app.config import settings
+        from app.external.evaluation import EvaluationClient
+
+        student = await create_test_student(db_session)
+        monkeypatch.setattr(settings, "evaluation_mcp_url", "http://fake/mcp")
+        monkeypatch.setattr(EvaluationClient, "get_evaluation", AsyncMock(side_effect=TimeoutError("slow")))
+        resp = await client.get(f"/api/v1/students/{student.id}/evaluation")
+        assert resp.json()["source"] == "unavailable"
+
+
+class TestAdminLogin:
+    async def test_login_and_token_gate(self, client, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "admin_password", "s3cret")
+        bad = await client.post("/api/v1/admin/login", json={"password": "nope"})
+        assert bad.status_code == 401
+        ok = await client.post("/api/v1/admin/login", json={"password": "s3cret"})
+        assert ok.status_code == 200
+        token = ok.json()["token"]
+
+        denied = await client.get("/api/v1/admin/db/tables")
+        assert denied.status_code == 401
+        allowed = await client.get("/api/v1/admin/db/tables", headers={"X-Admin-Token": token})
+        assert allowed.status_code == 200
+
+    async def test_login_disabled_without_password(self, client, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "admin_password", "")
+        resp = await client.post("/api/v1/admin/login", json={"password": "x"})
+        assert resp.status_code == 403

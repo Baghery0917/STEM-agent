@@ -17,7 +17,6 @@ from app.models.teaching import (
 )
 from app.models.practice import (
     PracticeSession,
-    PracticeMode,
     PracticeItem,
 )
 from app.models.llm_call_log import LLMCallLog, LLMCallType, LLMCallStatus
@@ -29,6 +28,6 @@ __all__ = [
     "TeachingSession", "TeachingSessionStatus", "SessionEndReason", "PipelineStatus",
     "TeachingMessage", "MessageRole", "MessageType",
     "TeachingReference",
-    "PracticeSession", "PracticeMode", "PracticeItem",
+    "PracticeSession", "PracticeItem",
     "LLMCallLog", "LLMCallType", "LLMCallStatus",
 ]

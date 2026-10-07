@@ -3,12 +3,13 @@ import logging
 from contextlib import asynccontextmanager, suppress
 from collections.abc import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine, get_db_context
-from app.api.v1.routers import admin_db, health, knowledge_structure, questions, student, teaching, practice
+from app.api.v1.routers import admin_auth, admin_db, health, knowledge_structure, questions, student, teaching, practice
+from app.api.v1.routers.admin_auth import require_admin
 from app.services.teaching import TeachingService
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,11 @@ app.include_router(questions.router, prefix="/api/v1/questions", tags=["question
 app.include_router(student.router, prefix="/api/v1/students", tags=["students"])
 app.include_router(teaching.router, prefix="/api/v1/teaching", tags=["teaching"])
 app.include_router(practice.router, prefix="/api/v1/practice", tags=["practice"])
-app.include_router(admin_db.router, prefix="/api/v1/admin/db", tags=["admin-db"])
+app.include_router(admin_auth.router, prefix="/api/v1/admin", tags=["admin-auth"])
+app.include_router(
+    admin_db.router, prefix="/api/v1/admin/db", tags=["admin-db"],
+    dependencies=[Depends(require_admin)],
+)
 
 
 @app.get("/")
