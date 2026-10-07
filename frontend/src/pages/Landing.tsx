@@ -6,7 +6,6 @@ import dayjs from 'dayjs';
 import BrandMark from '@/components/theme/BrandMark';
 import { PHYSICS_NEWS, TBBT_TRIVIA } from '@/theme/landing';
 import { PERSONAS, personaFigure, type PersonaKey } from '@/theme/personas';
-import { useStudentStore } from '@/stores/studentStore';
 import { useReveal } from '@/hooks/useReveal';
 
 const WORD = 'STEM AGENT';
@@ -20,7 +19,6 @@ const ROWS = 9;
  */
 export default function Landing() {
   const navigate = useNavigate();
-  const student = useStudentStore((s) => s.current);
   const root = useRef<HTMLDivElement>(null);
   const [hot, setHot] = useState(Math.floor(ROWS / 2));
   const [scrolled, setScrolled] = useState(false);
@@ -42,7 +40,7 @@ export default function Landing() {
     setHot(i);
   };
 
-  const goLogin = () => navigate(student ? '/teaching' : '/login');
+  const goLogin = () => navigate('/login');
   const base = import.meta.env.BASE_URL;
 
   return (
@@ -59,7 +57,7 @@ export default function Landing() {
             <a href="#tutors">Tutors</a>
           </nav>
           <button type="button" className="land-login" onClick={goLogin}>
-            <span>{student ? `回到 4A · ${student.name}` : 'Login'}</span>
+            <span>Login</span>
             <i>→</i>
           </button>
         </header>
