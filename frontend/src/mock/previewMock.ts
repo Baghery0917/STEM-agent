@@ -12,6 +12,16 @@ const students: any[] = [{ id: 1, name: '林小雨', gender: 'female', explain_s
 const CARD_ORDER = ['penny', 'howard', 'raj', 'bernadette', 'amy', 'sheldon'];
 const cards: any[] = [{ card_key: 'penny', acquired_at: ago(48) }];
 const grantNext = () => { const k = CARD_ORDER.find((c) => !cards.some((x) => x.card_key === c)); if (k) cards.push({ card_key: k, acquired_at: now() }); };
+// 徽章：预览里已有三枚，指标写死；签到次数每次 +1，到 10 次发 galileo
+const BADGE_RULES = [
+  ['newton', 'answered', 1], ['galileo', 'logins', 10], ['tycho', 'logins', 50], ['kepler', 'streak_days', 7],
+  ['curie', 'longest_minutes', 45], ['faraday', 'longest_minutes', 90], ['einstein', 'total_minutes', 600], ['hawking', 'total_minutes', 3000],
+  ['maxwell', 'answered', 200], ['bohr', 'teaching_sessions', 20], ['heisenberg', 'star_asked', 5], ['feynman', 'teach_others', 5],
+] as const;
+const metrics: Record<string, number> = { logins: 7, answered: 58, teaching_sessions: 6, teach_others: 2, star_asked: 1, longest_minutes: 52, total_minutes: 214, streak_days: 4 };
+const badges: any[] = [{ badge_key: 'newton', acquired_at: ago(200) }, { badge_key: 'curie', acquired_at: ago(70) }];
+const grantBadges = () => { const fresh: any[] = []; for (const [k, m, th] of BADGE_RULES) if (!badges.some((b) => b.badge_key === k) && metrics[m] >= th) { const b = { badge_key: k, acquired_at: now() }; badges.push(b); fresh.push(b); } return fresh; };
+const badgeProgress = () => BADGE_RULES.map(([k, m, th]) => ({ badge_key: k, metric: m, threshold: th, value: metrics[m] }));
 const volumes = [{ id: 1, title: '高二物理 · 必修一', description: null, order: 0 }];
 const chapters = [
   { id: 1, volume_id: 1, title: '第三章 相互作用', order: 0 },
@@ -94,7 +104,8 @@ async function handle(method: string, path: string, search: URLSearchParams, bod
   let m: RegExpMatchArray | null;
   if (path === '/students' && method === 'GET') return json(students);
   if (path === '/students' && method === 'POST') { const s = { id: ++nextId, ...body, explain_style: null, persona: null, created_at: now(), updated_at: now() }; students.push(s); return json(s, 201); }
-  if ((m = path.match(/^\/students\/(\d+)\/cards$/))) return json({ cards, unlocked: ['leonard', ...cards.map((c) => c.card_key)] });
+  if ((m = path.match(/^\/students\/(\d+)\/cards$/))) { grantBadges(); return json({ cards, unlocked: ['leonard', ...cards.map((c) => c.card_key)], badges, badge_progress: badgeProgress() }); }
+  if ((m = path.match(/^\/students\/(\d+)\/checkin$/))) { metrics.logins += 1; return json({ login_count: metrics.logins, new_badges: grantBadges() }); }
   if ((m = path.match(/^\/students\/(\d+)\/report$/))) { await delay(300); return json(report(search.get('mode') || 'recent')); }
   if ((m = path.match(/^\/students\/(\d+)\/evaluation$/))) {
     await delay(900);

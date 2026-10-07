@@ -44,7 +44,7 @@ export default function Settings() {
 
   return (
     <>
-      <TopBar crumb="设置" showSeg={false} />
+      <TopBar crumb="设置" showSeg={false} back />
       <section className="stage">
         <div className="settings settings-chapter">
           <ChapterHero
@@ -52,8 +52,8 @@ export default function Settings() {
             eyebrow="Roommate Agreement"
             title="把学习习惯写进室友协议。"
             description="这里的条款只决定你如何被讲解、被提醒和被陪伴。随时可以改，下一次会话就会生效。"
-            art={`${import.meta.env.BASE_URL}tbbt/apartment/sheldon-bathroom-render.jpg`}
-            artAlt="Apartment 4A 室内场景"
+            art={`${import.meta.env.BASE_URL}tbbt/illustrations/apartment-isometric.jpg`}
+            artAlt="Apartment 4A 客厅等距插画"
           />
           <SceneSection number="4A.1" eyebrow="Resident file" title="住户档案" aside="身份与会话入口">
             <div className="srow">

@@ -103,7 +103,7 @@ body {
 .me .sub { font-size: 11.5px; color: var(--ink-3); }
 
 /* ---------- main ---------- */
-.main { display: flex; flex-direction: column; min-width: 0; position: relative; }
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; }
 .topbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 12px 20px; gap: 12px; }
 .topbar .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .topbar .right { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
@@ -447,7 +447,8 @@ body {
 
 /* ---------- responsive ---------- */
 @media (max-width: 900px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; min-height: 100vh; }
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; height: auto; min-height: 100vh; }
+  .rail { min-width: 0; overflow: hidden; }
   .rail { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--line); padding: 10px; }
   .rail .brand { width: 100%; padding-bottom: 4px; }
   .rail .search, .rail .grp { display: none; }
@@ -645,6 +646,12 @@ body {
 
 /* ---------- 认可卡 ---------- */
 .cards { max-width: 640px; margin: 0 auto; padding: 18px 20px 48px; }
+.cards.cards-chapter { max-width: 920px; padding: 24px 28px 120px; }
+.cards-chapter .chapter-art { object-position: center 40%; }
+.cards-chapter .dot-sep { margin: 0 8px; color: var(--ink-3); }
+.cards-chapter .floor { margin: 4px auto 0; }
+.cards-chapter .floor img { max-height: 520px; }
+.cards-chapter .collection-complete { margin: 20px 0 0; }
 .chead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .chead h1 { font-size: 20px; font-weight: 600; letter-spacing: -.4px; margin: 0; }
 .chead .sub { color: var(--ink-3); font-size: 12.5px; margin-top: 2px; }
@@ -667,7 +674,7 @@ body {
 .floor .spot.cur .lbl { background: var(--pc); color: #fffdf8; }
 @keyframes spot-pulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(255,253,248,.9), 0 8px 18px -6px rgba(40,24,8,.5); } 50% { box-shadow: 0 0 0 6px rgba(217,165,32,.55), 0 8px 18px -6px rgba(40,24,8,.5); } }
 
-.cmodal { position: fixed; inset: 0; z-index: 60; background: rgba(30,20,10,.45); display: grid; place-items: center; padding: 16px; animation: fade .2s; }
+.cmodal { position: fixed; inset: 0; z-index: 110; background: rgba(30,20,10,.45); display: grid; place-items: center; padding: 16px; animation: fade .2s; }
 @keyframes fade { from { opacity: 0; } }
 .ccard {
   display: grid; grid-template-columns: 120px 1fr; width: 400px; max-width: 100%; max-height: min(420px, calc(100vh - 48px)); border-radius: 16px; overflow: hidden;
@@ -920,7 +927,7 @@ body {
 .settings-chapter .scene-section .srow { padding: 10px 0; }
 .settings-chapter .scene-section .srow:first-child { padding-top: 0; }
 .settings-chapter .scene-section .srow:last-child { padding-bottom: 0; }
-.settings-chapter .chapter-art { object-position: center 64%; }
+.settings-chapter .chapter-art { object-position: center 42%; }
 @media (max-width: 900px) {
   .report-flow { grid-template-columns: 1fr; }
   .report-dispatch { padding: 18px; }
@@ -967,3 +974,63 @@ body {
   .rail .me { flex: 1 1 100%; margin-left: 0; padding-top: 9px; border-top: 1px solid var(--line-2); }
   .rail .me .tutor { margin-left: auto; }
 }
+
+/* ---------- physicist badges ---------- */
+.badge-wall .scene-content { position: relative; }
+.badge-wall::before { content: ""; position: absolute; inset: 0; background: var(--wall-art) center/cover; opacity: .08; pointer-events: none; }
+.badge-wall { position: relative; }
+.badge-wall > * { position: relative; }
+.badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
+.badge {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 10px 12px; border-radius: 16px; text-align: center;
+  background: var(--panel-2); border: 1px solid var(--line); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.badge:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--ink-3); }
+.badge .medal {
+  display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: #9a8f80;
+  background: #ece5d6; box-shadow: inset 0 0 0 3px #fffdf8, inset 0 0 0 4px #d9cdb5; filter: grayscale(1);
+}
+.badge.got .medal {
+  color: #fffdf8; filter: none; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--bc) 60%, #fff), var(--bc) 70%);
+  box-shadow: inset 0 0 0 3px #fffdf8, inset 0 0 0 5px color-mix(in srgb, var(--bc) 70%, #2a2118), 0 8px 18px -8px var(--bc);
+}
+.badge .bname { font-weight: 600; font-size: 13px; color: var(--ink-3); }
+.badge.got .bname { color: var(--ink); }
+.badge .bwho { font: 700 9.5px ui-monospace, monospace; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink-3); }
+.badge.got .bwho { color: var(--bc); }
+.badge .bbar { width: 100%; height: 4px; border-radius: 4px; background: var(--line-2); overflow: hidden; margin-top: 2px; }
+.badge .bbar i { display: block; height: 100%; background: var(--mustard); border-radius: 4px; }
+.bcard {
+  width: 340px; max-width: 100%; padding: 26px 22px 18px; border-radius: 18px; text-align: center; background: var(--panel);
+  box-shadow: 0 40px 80px -30px rgba(40,24,8,.7); animation: float-in .35s cubic-bezier(.2,.8,.2,1); display: flex; flex-direction: column; align-items: center;
+}
+.bcard .medal {
+  display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; color: #9a8f80; background: #ece5d6;
+  box-shadow: inset 0 0 0 4px #fffdf8, inset 0 0 0 6px #d9cdb5; filter: grayscale(1); margin-bottom: 12px;
+}
+.bcard.got .medal {
+  color: #fffdf8; filter: none; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--bc) 60%, #fff), var(--bc) 70%);
+  box-shadow: inset 0 0 0 4px #fffdf8, inset 0 0 0 7px color-mix(in srgb, var(--bc) 70%, #2a2118), 0 14px 30px -10px var(--bc);
+}
+.bcard .kicker { font: 700 10px ui-monospace, monospace; letter-spacing: 1.6px; text-transform: uppercase; color: var(--bc); }
+.bcard h2 { margin: 2px 0 8px; font-size: 22px; letter-spacing: -.3px; }
+.bcard .quote { margin: 0 0 8px; font-family: "Iowan Old Style", "Palatino", "Songti SC", "Noto Serif SC", Georgia, serif; font-size: 14px; line-height: 1.5; }
+.bcard .meta { font-size: 12px; color: var(--ink-2); }
+.bcard .acts { margin-top: 16px; }
+@media (max-width: 760px) {
+  .cards.cards-chapter { padding: 12px 12px 80px; }
+  .badge-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .badge { padding: 12px 6px 10px; }
+  .badge .medal { width: 48px; height: 48px; }
+}
+
+/* ---------- 404：电梯停运海报 ---------- */
+.notfound { background: #c8322b var(--poster) center/cover no-repeat; color: #fffdf8; }
+.notfound h1, .notfound p { text-shadow: 0 2px 10px rgba(80,0,0,.5); }
+.notfound p { color: rgba(255,253,248,.85); }
+.notfound .box { display: none; }
+.notfound .btn.pri { background: #fffdf8; color: #c8322b; border-color: #fffdf8; }
+
+/* Sheldon 翻牌：背面 Bazinga 彩蛋 */
+.flip.sheldon .back { background: #fffdf8 var(--bazinga) center/80% no-repeat; }
+.flip.sheldon .back .atom-mark { display: none; }

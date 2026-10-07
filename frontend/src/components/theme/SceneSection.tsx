@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 interface Props {
   number?: string;
@@ -8,6 +8,7 @@ interface Props {
   children: ReactNode;
   tone?: 'paper' | 'dark' | 'plain';
   className?: string;
+  style?: CSSProperties;
 }
 
 export default function SceneSection({
@@ -18,9 +19,10 @@ export default function SceneSection({
   children,
   tone = 'paper',
   className = '',
+  style,
 }: Props) {
   return (
-    <section className={`scene-section ${tone} ${className}`}>
+    <section className={`scene-section ${tone} ${className}`} style={style}>
       <div className="scene-heading">
         <div>
           <div className="scene-kicker">{number && <span>{number}</span>}{eyebrow}</div>

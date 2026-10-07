@@ -15,7 +15,11 @@ from app.schemas.student import StudentCreate, StudentUpdate, StudentResponse
 from app.services.report import ReportService
 from app.services.student import StudentService
 from app.models.student import Gender, Persona
-from app.schemas.recognition import StudentCardResponse, StudentCardsResponse
+from app.schemas.recognition import (
+    BadgeProgress, CheckinResponse, StudentBadgeResponse, StudentCardResponse, StudentCardsResponse,
+    StudentCollectionResponse,
+)
+from app.services.badges import BADGES, BadgeService
 from app.services.recognition import RecognitionService
 
 logger = logging.getLogger(__name__)
@@ -98,14 +102,36 @@ async def search_sessions(
     return SessionSearchResponse(q=q, hits=[SessionSearchHit(**h) for h in hits])
 
 
-@router.get("/{student_id}/cards", response_model=StudentCardsResponse)
-async def get_student_cards(student_id: int, db: DbSession) -> StudentCardsResponse:
+@router.get("/{student_id}/cards", response_model=StudentCollectionResponse)
+async def get_student_cards(student_id: int, db: DbSession) -> StudentCollectionResponse:
+    """收藏页：认可卡 + 徽章 + 徽章进度。顺手补发已达标徽章"""
     if not await StudentService().get(db, student_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
     rec = RecognitionService(db)
-    return StudentCardsResponse(
+    badges = BadgeService(db)
+    await badges.evaluate(student_id)
+    metrics = await badges.metrics(student_id)
+    return StudentCollectionResponse(
         cards=[StudentCardResponse.model_validate(c) for c in await rec.cards(student_id)],
         unlocked=await rec.unlocked_personas(student_id),
+        badges=[StudentBadgeResponse.model_validate(b) for b in await badges.badges(student_id)],
+        badge_progress=[
+            BadgeProgress(badge_key=r.key, metric=r.metric, threshold=r.threshold, value=metrics[r.metric])
+            for r in BADGES
+        ],
+    )
+
+
+@router.post("/{student_id}/checkin", response_model=CheckinResponse)
+async def checkin(student_id: int, db: DbSession) -> CheckinResponse:
+    """进入应用时调一次：记登录、补发徽章"""
+    if not await StudentService().get(db, student_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+    badges = BadgeService(db)
+    new = await badges.record_login(student_id)
+    return CheckinResponse(
+        login_count=await badges.login_count(student_id),
+        new_badges=[StudentBadgeResponse.model_validate(b) for b in new],
     )
 
 

@@ -6,6 +6,7 @@ import type { Persona } from '@/api/types';
 import { useStudentStore } from '@/stores/studentStore';
 import { toast } from '@/stores/toastStore';
 import { CARD_QUOTE, CARD_SPOT, personaByKey, personaFigure, type PersonaKey } from '@/theme/personas';
+import { tbbtCssUrl } from '@/theme/assets';
 
 interface Props {
   cardKey: PersonaKey;
@@ -36,7 +37,7 @@ export default function CardReveal({ cardKey, onClose }: Props) {
     <div className="reveal" onClick={onClose}>
       <div className="rwrap" onClick={(e) => e.stopPropagation()}>
         <div className="rtitle">新的认可卡</div>
-        <div className={`flip ${flipped ? 'on' : ''}`} style={{ ['--pc' as string]: p.color }}>
+        <div className={`flip ${cardKey} ${flipped ? 'on' : ''}`} style={{ ['--pc' as string]: p.color, ['--bazinga' as string]: tbbtCssUrl('logos/bazinga-yellow.png') }}>
           <div className="face back"><span className="atom-mark" /></div>
           <div className="face front">
             <img src={personaFigure(cardKey)} alt="" />

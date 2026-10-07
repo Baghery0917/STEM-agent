@@ -5,6 +5,10 @@ import Toasts from '@/components/shell/Toasts';
 import { useRequireStudent } from '@/hooks/useRequireStudent';
 import { useUiStore } from '@/stores/uiStore';
 import { useCards } from '@/hooks/useCards';
+import { useQueryClient } from '@tanstack/react-query';
+import { checkin } from '@/api/cards';
+import { toast } from '@/stores/toastStore';
+import { badgeByKey } from '@/theme/badges';
 import CardReveal from '@/components/theme/CardReveal';
 import type { PersonaKey } from '@/theme/personas';
 
@@ -16,7 +20,23 @@ export default function StudentLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const cards = useCards(student?.id);
+  const qc = useQueryClient();
   const [reveal, setReveal] = useState<PersonaKey | null>(null);
+
+  // 签到：每次打开应用记一次登录，顺手领已达标的徽章
+  useEffect(() => {
+    if (!student) return;
+    const key = `stem:checkin:${student.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    checkin(student.id)
+      .then((r) => {
+        if (!r.new_badges.length) return;
+        r.new_badges.forEach((b) => { const m = badgeByKey(b.badge_key); toast.info(`新徽章 · ${m.title}（${m.name}）`); });
+        qc.invalidateQueries({ queryKey: ['student-cards', student.id] });
+      })
+      .catch(() => sessionStorage.removeItem(key));
+  }, [student, qc]);
 
   // 新卡检测：和本地「已看过」集合比对，有未看过的就翻牌
   useEffect(() => {

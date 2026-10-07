@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { updateStudent } from '@/api/students';
 import type { Persona } from '@/api/types';
 import { useStudentStore } from '@/stores/studentStore';
@@ -7,16 +8,21 @@ import { toast } from '@/stores/toastStore';
 import { useCards } from '@/hooks/useCards';
 import TopBar from '@/components/shell/TopBar';
 import PersonaAvatar from '@/components/theme/PersonaAvatar';
+import ChapterHero from '@/components/theme/ChapterHero';
+import SceneSection from '@/components/theme/SceneSection';
+import BadgeGlyph from '@/components/theme/BadgeGlyph';
 import { CARD_ORDER, CARD_QUOTE, CARD_SPOT, PERSONAS, personaByKey, personaFigure, type PersonaKey } from '@/theme/personas';
-import dayjs from 'dayjs';
+import { BADGES, badgeByKey, badgeHow, badgeProgressText, type BadgeKey } from '@/theme/badges';
+import { tbbtCssUrl } from '@/theme/assets';
 
-/** 认可卡收藏页：七个卡位落在整层户型图的七个房间上 */
+/** 收藏页：认可卡落在户型图的房间上；物理学家徽章按阈值点亮 */
 export default function Cards() {
   const student = useStudentStore((s) => s.current)!;
   const setCurrent = useStudentStore((s) => s.setCurrent);
   const qc = useQueryClient();
   const cards = useCards(student.id);
   const [open, setOpen] = useState<PersonaKey | null>(null);
+  const [openBadge, setOpenBadge] = useState<BadgeKey | null>(null);
   const [zoom, setZoom] = useState(1);
   const [celebrate, setCelebrate] = useState(false);
   const base = import.meta.env.BASE_URL;
@@ -26,6 +32,10 @@ export default function Cards() {
   const nextKey = CARD_ORDER.find((k) => k !== 'leonard' && !owned.has(k));
   const collected = Math.min(7, owned.size + (owned.has('leonard') ? 0 : 1));
   const complete = collected === 7;
+
+  const ownedBadges = new Map((cards.data?.badges ?? []).map((b) => [b.badge_key, b.acquired_at]));
+  const progress = new Map((cards.data?.badge_progress ?? []).map((p) => [p.badge_key, p]));
+  const badgeCount = BADGES.filter((b) => ownedBadges.has(b.key)).length;
 
   useEffect(() => {
     if (!complete) return;
@@ -43,57 +53,105 @@ export default function Cards() {
 
   const current = student.persona ?? 'leonard';
   const sel = open ? personaByKey(open) : null;
+  const selBadge = openBadge ? badgeByKey(openBadge) : null;
+  const selBadgeProgress = openBadge ? progress.get(openBadge) : undefined;
 
   return (
     <>
-      <TopBar crumb="认可卡" showSeg={false} back />
+      <TopBar crumb="公寓钥匙" showSeg={false} back />
       <section className="stage">
-        <div className="cards">
-          <div className="chead">
-            <div>
-              <h1>认可卡</h1>
-              <div className="sub">
-                已集齐 {collected} / 7 · {nextKey ? `下一张：${personaByKey(nextKey).name}` : '全部集齐'}
-              </div>
-            </div>
-            <div className="map-tools">
-              <button type="button" className="iconbtn" onClick={() => setZoom((z) => Math.max(1, z - .15))} aria-label="缩小户型图">−</button>
-              <span className="hint">Apartment 4A · {Math.round(zoom * 100)}%</span>
-              <button type="button" className="iconbtn" onClick={() => setZoom((z) => Math.min(1.6, z + .15))} aria-label="放大户型图">＋</button>
-            </div>
-          </div>
+        <div className="cards cards-chapter">
+          <ChapterHero
+            chapter="05"
+            eyebrow="Apartment keys"
+            title={<>谁给了你钥匙，<br />你又走了多远。</>}
+            description={
+              <>
+                认可卡 {collected} / 7{nextKey ? ` · 下一张：${personaByKey(nextKey).name}` : ' · 已集齐'}
+                <span className="dot-sep">·</span>
+                徽章 {badgeCount} / {BADGES.length}
+              </>
+            }
+            art={`${base}tbbt/apartment/hallway-render.jpg`}
+            artAlt="Apartment 4A 走廊与电梯"
+          />
 
           {complete && (
             <div className={`collection-complete ${celebrate ? 'celebrate' : ''}`}>
-              <img src={`${base}tbbt/backgrounds/group-orange.jpg`} alt="" />
+              <img src={`${base}tbbt/backgrounds/group-formal-gold.jpg`} alt="" />
               <div><span>All seven collected</span><strong>Bazinga. 4A 的门为你打开了。</strong></div>
             </div>
           )}
 
-          <div className="floor" aria-label="Apartment 4A 认可卡地图">
-            <div className="floor-canvas" style={{ transform: `scale(${zoom})` }}>
-              <img src={`${base}tbbt/apartment/floorplan-render-light.jpg`} alt="Apartment 4A 户型图" draggable={false} />
-            {PERSONAS.map((p) => {
-              const key = p.key as PersonaKey;
-              const spot = CARD_SPOT[key];
-              const has = key === 'leonard' || owned.has(key);
-              const isNext = key === nextKey;
-              return (
-                <button
-                  type="button"
-                  key={key}
-                  className={`spot ${has ? 'has' : 'no'} ${isNext ? 'next' : ''} ${current === key ? 'cur' : ''}`}
-                  style={{ left: `${spot.x}%`, top: `${spot.y}%`, ['--pc' as string]: p.color }}
-                  onClick={() => setOpen(key)}
-                  title={has ? `${p.name} · ${spot.room}` : `第 ${CARD_ORDER.indexOf(key) + 1} 张认可卡`}
-                >
-                  <PersonaAvatar persona={key} size={34} locked={!has} />
-                  <span className="lbl">{has ? p.name : '?'}</span>
-                </button>
-              );
-            })}
+          <SceneSection
+            number="05.1"
+            eyebrow="Floor plan"
+            title="认可卡"
+            aside={(
+              <div className="map-tools">
+                <button type="button" className="iconbtn" onClick={() => setZoom((z) => Math.max(1, z - .15))} aria-label="缩小户型图">−</button>
+                <span className="hint">Apartment 4A · {Math.round(zoom * 100)}%</span>
+                <button type="button" className="iconbtn" onClick={() => setZoom((z) => Math.min(1.6, z + .15))} aria-label="放大户型图">＋</button>
+              </div>
+            )}
+          >
+            <div className="floor" aria-label="Apartment 4A 认可卡地图">
+              <div className="floor-canvas" style={{ transform: `scale(${zoom})` }}>
+                <img src={`${base}tbbt/apartment/floorplan-render-light.jpg`} alt="Apartment 4A 户型图" draggable={false} />
+                {PERSONAS.map((p) => {
+                  const key = p.key as PersonaKey;
+                  const spot = CARD_SPOT[key];
+                  const has = key === 'leonard' || owned.has(key);
+                  const isNext = key === nextKey;
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      className={`spot ${has ? 'has' : 'no'} ${isNext ? 'next' : ''} ${current === key ? 'cur' : ''}`}
+                      style={{ left: `${spot.x}%`, top: `${spot.y}%`, ['--pc' as string]: p.color }}
+                      onClick={() => setOpen(key)}
+                      title={has ? `${p.name} · ${spot.room}` : `第 ${CARD_ORDER.indexOf(key) + 1} 张认可卡`}
+                    >
+                      <PersonaAvatar persona={key} size={34} locked={!has} />
+                      <span className="lbl">{has ? p.name : '?'}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          </SceneSection>
+
+          <SceneSection
+            number="05.2"
+            eyebrow="Hall of physicists"
+            title="物理学家徽章"
+            aside="达到阈值即点亮 · 不影响讲师解锁"
+            className="badge-wall"
+            style={{ ['--wall-art' as string]: tbbtCssUrl('backgrounds/sheldon-stencil-paper.jpg') }}
+          >
+            <div className="badge-grid">
+              {BADGES.map((b) => {
+                const got = ownedBadges.get(b.key);
+                const p = progress.get(b.key);
+                const pct = p ? Math.min(100, Math.round((p.value / p.threshold) * 100)) : 0;
+                return (
+                  <button
+                    type="button"
+                    key={b.key}
+                    className={`badge ${got ? 'got' : ''}`}
+                    style={{ ['--bc' as string]: b.color }}
+                    onClick={() => setOpenBadge(b.key)}
+                    title={got ? `${b.title} · ${dayjs(got).format('M 月 D 日')}` : badgeHow(b, p?.threshold ?? 0)}
+                  >
+                    <span className="medal"><BadgeGlyph glyph={b.glyph} /></span>
+                    <span className="bname">{b.title}</span>
+                    <span className="bwho">{b.name}</span>
+                    {!got && <span className="bbar"><i style={{ width: `${pct}%` }} /></span>}
+                  </button>
+                );
+              })}
+            </div>
+          </SceneSection>
         </div>
       </section>
 
@@ -127,6 +185,32 @@ export default function Cards() {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {selBadge && (
+        <div className="cmodal" onClick={() => setOpenBadge(null)}>
+          <div className={`bcard ${ownedBadges.has(selBadge.key) ? 'got' : ''}`} style={{ ['--bc' as string]: selBadge.color }} onClick={(e) => e.stopPropagation()}>
+            <span className="medal big"><BadgeGlyph glyph={selBadge.glyph} width={34} height={34} /></span>
+            <div className="kicker">{selBadge.name}</div>
+            <h2>{selBadge.title}</h2>
+            {ownedBadges.has(selBadge.key) ? (
+              <>
+                <p className="quote">"{selBadge.quote}"</p>
+                <div className="meta">{dayjs(ownedBadges.get(selBadge.key)).format('YYYY 年 M 月 D 日')} 获得 · {badgeHow(selBadge, selBadgeProgress?.threshold ?? 0)}</div>
+              </>
+            ) : (
+              <>
+                <p className="quote muted">{badgeHow(selBadge, selBadgeProgress?.threshold ?? 0)}</p>
+                {selBadgeProgress && (
+                  <div className="meta">
+                    已到 {badgeProgressText(selBadgeProgress.metric, selBadgeProgress.value, selBadgeProgress.threshold)}
+                  </div>
+                )}
+              </>
+            )}
+            <div className="acts"><button type="button" className="btn ghost" onClick={() => setOpenBadge(null)}>关闭</button></div>
           </div>
         </div>
       )}

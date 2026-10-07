@@ -36,7 +36,7 @@ export default function Report() {
 
   return (
     <>
-      <TopBar crumb="学习报告" showSeg={false} />
+      <TopBar crumb="学习报告" showSeg={false} back />
       <section className="stage">
         <div className="report">
           <ChapterHero

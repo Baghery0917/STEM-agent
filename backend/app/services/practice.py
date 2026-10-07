@@ -214,6 +214,8 @@ class PracticeService:
         await self._flow_back_emotion(session)
         from app.services.recognition import RecognitionService  # 局部导入避免循环
         await RecognitionService(self.db).on_practice_end(session)
+        from app.services.badges import BadgeService
+        await BadgeService(self.db).evaluate(session.student_id)
         await self.db.refresh(session)
         return session
 

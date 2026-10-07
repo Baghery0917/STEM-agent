@@ -18,7 +18,10 @@
 - `group-couch-blue.png`：登录页首选，沙发 + 浅蓝底，4K。
 - `group-orange.jpg`：收藏页集齐七张后的彩蛋。
 - `starfield.jpg`：深色模式背景。
-- `elevator-red.jpg`：404 页。
+- `elevator-red.jpg`：404 页（已接）。
+- `group-formal-gold.jpg`：收藏页七张集齐横幅。
+- `sheldon-stencil-paper.jpg`：徽章墙底纹，8% 透明度。
+- `bazinga-yellow.png`（logos）：Sheldon 认可卡翻牌背面。
 - `four-heads-cream.jpg` / `four-heads-yellow.jpg`：空状态插画备选。
 - `atom-orbit-portraits.jpg`：加载动画的轨道参考，不直接使用。
 
@@ -29,9 +32,9 @@
 | 目录 | 文件 | 用途 |
 |---|---|---|
 | `illustrations/` | `softkitty-phone.png` `softkitty-cushion.png`（已去白底） | 空状态、情绪低落时的安抚插画 |
-| `illustrations/` | `apartment-isometric.jpg`（作者署名 jettodesu，粉丝作品） | 收藏页背景候选、主页空状态 |
+| `illustrations/` | `apartment-isometric.jpg`（作者署名 jettodesu，粉丝作品） | 设置页章节头图（已接） |
 | `apartment/` | `hallway-set-photo.jpg` 真实片场走廊，电梯贴警戒带 | 登录页背景首选，替代之前的沙发合照 |
-| `apartment/` | `hallway-render.jpg` 俯视走廊建模 | 登录页备选、404 |
+| `apartment/` | `hallway-render.jpg` 俯视走廊建模 | 收藏页章节头图 |
 | `apartment/` | `floorplan-render-dark.jpg` `floorplan-render-light.jpg` 整层户型 | 收藏页背景：七个卡位可落在户型图的七个房间上 |
 | `apartment/` | `kitchen-render.jpg` `leonard-bedroom-render.jpg` `sheldon-bathroom-render.jpg` | 练习总结、报告页等区块的淡化背景备选 |
 
