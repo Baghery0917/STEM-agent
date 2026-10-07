@@ -14,7 +14,7 @@ export const WEEKDAY_LINES: Record<number, string> = {
 
 export const LOGIN = {
   title: 'Apartment 4A',
-  headline: 'Knock three times.',
+  headline: 'Knock, knock, knock.',
   subtitle: '报上名字敲门。登记过的直接进，第一次来会先登记。',
   teacherTab: 'Roommate Agreement',
   teacherSub: '签署室友协议进入管理台：知识树、题库、学生、数据库',
