@@ -808,3 +808,28 @@ body {
 /* 电梯井道：题多时可滚动，当前层自动滚入 */
 .elevator .shaft { max-height: calc(100vh - 300px); overflow: auto; scrollbar-width: none; }
 .elevator .shaft::-webkit-scrollbar { display: none; }
+
+/* ---------- 自检修正 ---------- */
+/* 电梯与题卡等高：右列撑满行高，井道占满中段，楼层均分 */
+.prun { align-items: stretch; padding-bottom: 200px; }
+.prun .pwrap { padding-bottom: 0; }
+.elevator { position: static; height: 100%; box-sizing: border-box; }
+.elevator .shaft { flex: 1; max-height: none; overflow: auto; justify-content: flex-end; }
+.elevator .floor { flex: 1 1 26px; min-height: 26px; max-height: 44px; position: relative; }
+.elevator .floor.cur::before { content: ""; position: absolute; left: -5px; top: 3px; bottom: 3px; width: 3px; border-radius: 2px; background: #f2c94c; box-shadow: 0 0 8px rgba(242,201,76,.9); }
+.elevator .car { display: none; }
+/* 侧栏底部：名字区不换行，讲师胶囊靠右 */
+.me { flex-wrap: nowrap; }
+.me > div:not(.avatar) { min-width: 0; overflow: hidden; }
+.me .nm, .me .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me .tutor { flex: none; }
+/* 参数面板页头：裁掉文字后只剩四个剪影，高度收一点 */
+.setup-panel.with-cover .cover { height: 150px; object-position: center; }
+/* 报告摘要：讲师头像在深色底上要有描边 */
+.insight .who.pavatar { box-shadow: 0 0 0 2px var(--bg); }
+/* 主页讲师立绘不要压到问候胶囊 */
+.hero.with-figure { min-height: 340px; }
+/* 题卡顶部马克笔线只在练习里用 */
+[data-mode="teaching"] .qcard { border-top-color: var(--line); border-top-width: 1px; }
+/* 搜索无结果的 Soft Kitty 不要太大 */
+.sessions .kitty.compact img { width: 84px; }

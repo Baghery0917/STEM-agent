@@ -53,7 +53,6 @@ export default function ProgressBar({
             </button>
           );
         })}
-        <span className="car" style={{ ['--pos' as string]: total - 1 - index }} aria-hidden="true" />
       </div>
 
       <div className="tally">

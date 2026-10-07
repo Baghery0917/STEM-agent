@@ -7,7 +7,7 @@ import { useStudentStore } from '@/stores/studentStore';
 import TopBar from '@/components/shell/TopBar';
 import { emotionBarHeight, emotionTone } from '@/utils/emotion';
 import { shortTime } from '@/utils/time';
-import { IconAtom } from '@/components/theme/Icons';
+import PersonaAvatar from '@/components/theme/PersonaAvatar';
 
 const WEEKDAY = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -52,7 +52,7 @@ export default function Report() {
           {r && (
             <>
               <div className="insight starry" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}tbbt/backgrounds/starfield.jpg)` }}>
-                <div className="who"><IconAtom width={16} height={16} /></div>
+                <PersonaAvatar persona={student.persona} size={30} className="who" />
                 <p>
                   {r.summary
                     ?? (r.practice_count + r.teaching_count === 0
