@@ -12,6 +12,7 @@ import { IconAtom, IconCouch, IconKey, IconThermostat, IconWhiteboard } from '@/
 import { EMPTY } from '@/theme/copy';
 import SoftKitty from '@/components/theme/SoftKitty';
 import PersonaAvatar from '@/components/theme/PersonaAvatar';
+import BrandMark from '@/components/theme/BrandMark';
 import { personaByKey } from '@/theme/personas';
 
 const GROUP_ORDER = ['今天', '昨天', '过去 7 天', '更早'] as const;
@@ -54,8 +55,8 @@ export default function Rail() {
   return (
     <aside className="rail">
       <div className="brand">
-        <div className="logo"><IconAtom width={18} height={18} /></div>
-        <b>STEM Agent</b>
+        <BrandMark size={30} />
+        <b className="wordmark">STEM <span>Agent</span></b>
         <span className="ver">{student?.name ?? ''}</span>
       </div>
       <button type="button" className="new-btn" onClick={newSession}>

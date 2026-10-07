@@ -1,17 +1,5 @@
 /** 生活大爆炸主题文案。英文只做点缀，讲题与功能文案全部中文。 */
 
-/** 主页问候的英文副标题，按星期切换（剧中固定日程） */
-export const WEEKDAY_LINES: Record<number, string> = {
-  0: "Sunday. Even Sheldon takes a break. You don't have to.",
-  1: 'Monday is Thai food night. Bring your own chopsticks.',
-  2: 'Tuesday: Cheesecake Factory night. Order the physics.',
-  3: 'Wednesday is new comic book day. Also, new problems.',
-  4: 'Thursday is pizza night. Slice the problem first.',
-  5: 'Friday: vintage video game night. Level up.',
-  6: 'Saturday is laundry night, 8:15 sharp. Be punctual.',
-};
-
-
 export const LOGIN = {
   title: 'Apartment 4A',
   headline: 'Knock, knock, knock.',

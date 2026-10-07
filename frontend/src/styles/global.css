@@ -746,3 +746,15 @@ body {
 .insight.starry > * { position: relative; }
 /* 输入框脚注：加原子 */
 .foot::before { content: "⚛ "; opacity: .6; }
+
+/* ---------- 品牌标与日程 ---------- */
+.brandmark-svg { display: block; flex: none; filter: drop-shadow(0 2px 4px rgba(40,24,8,.25)); }
+.wordmark { font-weight: 700; letter-spacing: -.3px; }
+.wordmark span { font-weight: 400; color: var(--ink-2); }
+.scene .topline .wordmark { color: #fff3d6; font-size: calc(15px * var(--s)); }
+.scene .topline .wordmark span { color: #e2b24a; }
+.door .face .today { display: inline-flex; align-items: center; gap: 6px; margin: -2px 0 8px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: calc(9.5px * var(--s)); letter-spacing: .6px; color: #d9c7a3; }
+.door .face .today svg { width: calc(13px * var(--s)); height: calc(13px * var(--s)); color: #e2b24a; }
+.hero .weekday { display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-size: 13px; letter-spacing: 0; padding: 6px 12px 6px 10px; border-style: solid; color: var(--ink-2); }
+.hero .weekday svg { color: var(--mustard); width: 16px; height: 16px; }
+.hero .weekday b { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; letter-spacing: .4px; color: var(--ink); }

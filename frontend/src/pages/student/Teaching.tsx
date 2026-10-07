@@ -23,7 +23,8 @@ import AgentTrace from '@/components/teaching/AgentTrace';
 import Message from '@/components/teaching/Message';
 import SelfRate from '@/components/teaching/SelfRate';
 import HandoffCard from '@/components/teaching/HandoffCard';
-import { WEEKDAY_LINES } from '@/theme/copy';
+import { todayTheme } from '@/theme/weekday';
+import WeekdayIcon from '@/components/theme/WeekdayIcon';
 import { DEFAULT_PERSONA, PERSONA_COPY, personaByKey, personaFigure, type PersonaKey } from '@/theme/personas';
 import PersonaAvatar from '@/components/theme/PersonaAvatar';
 
@@ -340,7 +341,7 @@ function EmptyHero({ studentId, studentName, persona }: { studentId: number; stu
   });
   const hour = new Date().getHours();
   const greet = hour < 6 ? '夜深了' : hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
-  const weekdayLine = WEEKDAY_LINES[new Date().getDay()];
+  const today = todayTheme();
   const weak = [...(report.data?.knowledge_points ?? [])]
     .filter((k) => k.total_practice_count > 0)
     .sort((a, b) => a.mastery_level - b.mastery_level)[0];
@@ -352,7 +353,7 @@ function EmptyHero({ studentId, studentName, persona }: { studentId: number; stu
       <h1 className="hi">
         {greet}，{studentName}。<br />{copy.heroLead}<em>{copy.heroEm}</em>
       </h1>
-      <div className="weekday">{weekdayLine}</div>
+      <div className="weekday"><WeekdayIcon day={today.key} /><b>{today.en.split(" · ")[1]}.</b><span>{today.zh}</span></div>
       <p>{copy.heroSub}</p>
       <div className="chips">
         {weak && (

@@ -9,7 +9,9 @@ import { toast } from '@/stores/toastStore';
 import Toasts from '@/components/shell/Toasts';
 import { GENDER_OPTIONS } from '@/utils/enums';
 import { LOGIN } from '@/theme/copy';
-import { IconAtom } from '@/components/theme/Icons';
+import BrandMark from '@/components/theme/BrandMark';
+import WeekdayIcon from '@/components/theme/WeekdayIcon';
+import { todayTheme } from '@/theme/weekday';
 
 type Tab = 'student' | 'admin';
 type Phase = 'idle' | 'knocking' | 'opening';
@@ -74,6 +76,7 @@ export default function Login() {
   });
 
   const base = import.meta.env.BASE_URL;
+  const today = todayTheme();
   const busy = enter.isPending || phase !== 'idle';
   const canEnter = name.trim().length > 0 && !busy;
   const who = name.trim() || '…';
@@ -92,8 +95,8 @@ export default function Login() {
           <img className="bg" src={`${base}tbbt/apartment/hallway-set-photo.jpg`} alt="" draggable={false} />
           <div className="veil" />
           <div className="topline">
-            <span className="brandmark"><IconAtom width={18} height={18} /></span>
-            <span>STEM Agent</span>
+            <BrandMark size={34} />
+            <span className="wordmark">STEM <span>Agent</span></span>
           </div>
 
           <div className={`door ${knocks ? `k${knocks}` : ''}`} style={doorStyle}>
@@ -105,6 +108,7 @@ export default function Login() {
 
             <div className="face">
               <div className="kicker">{LOGIN.title}</div>
+              <div className="today"><WeekdayIcon day={today.key} /><span>{today.en}</span></div>
               <h1>{tab === 'student' ? LOGIN.headline : LOGIN.teacherTab}</h1>
               <div className="tabs">
                 <button type="button" className={tab === 'student' ? 'on' : ''} disabled={busy} onClick={() => setTab('student')}>学生</button>
