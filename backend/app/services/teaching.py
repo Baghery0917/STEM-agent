@@ -204,6 +204,11 @@ class TeachingService:
         await self.db.commit()
 
         try:
+            # 1.5 有题目图片时先用视觉模型读题，再交给文本 LLM
+            question_content = await self._resolve_question_text(
+                session_id, question_content, question_image,
+            )
+
             # 2. LLM 分析知识点
             sections = await self._analyze_knowledge_points(question_content, question_image)
             analysis_content = self._format_analysis_content(sections)
@@ -654,11 +659,61 @@ class TeachingService:
     # 知识点分析
     # ------------------------------------------------------------------
 
+    async def _resolve_question_text(
+        self,
+        session_id: int,
+        question_content: str,
+        question_image: str | None,
+    ) -> str:
+        """有图则用视觉模型抽题干；结果写回首条用户消息，供后续对话沿用。"""
+        if not question_image:
+            return question_content
+        prompt = (
+            "请识别这张物理/数学题目图片中的全部题干与选项。"
+            "公式用 LaTeX（$...$ / $$...$$），保持原题结构，不要解题，不要额外说明。"
+        )
+        try:
+            extracted = await self.llm.vision(
+                question_image,
+                prompt=prompt,
+                context={"teaching_session_id": session_id},
+            )
+        except Exception as exc:
+            logger.warning("Vision question OCR failed: %s", exc)
+            return question_content
+
+        extracted = (extracted or "").strip()
+        if not extracted:
+            return question_content
+
+        note = (question_content or "").strip()
+        # 占位「请帮我讲讲这道题」不拼进题干
+        if note and note not in {"请帮我讲讲这道题", "请帮我讲讲这道题。"}:
+            merged = f"{note}\n\n【图片识别题干】\n{extracted}"
+        else:
+            merged = extracted
+
+        result = await self.db.execute(
+            select(TeachingMessage)
+            .where(
+                TeachingMessage.session_id == session_id,
+                TeachingMessage.message_type == MessageType.QUESTION_SUBMIT,
+            )
+            .order_by(TeachingMessage.sequence.asc())
+            .limit(1)
+        )
+        msg = result.scalar_one_or_none()
+        if msg:
+            msg.content = merged
+            await self.db.commit()
+        return merged
+
     async def _analyze_knowledge_points(
         self,
         question_content: str,
         question_image: str | None,
     ) -> list[Section]:
+        del question_image  # 视觉已在 _resolve_question_text 中完成
         result = await self.db.execute(select(Section))
         all_sections = result.scalars().all()
 

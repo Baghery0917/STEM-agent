@@ -1,5 +1,11 @@
 # 数据库 Schema
 
+> **外部对接（策略 / 评价只读连库）**  
+> - 怎么连：[`external-interfaces.md`](./external-interfaces.md) §0、[`design/db-external-access.md`](./design/db-external-access.md)  
+> - 账号：`strategy_reader` / `strategy_reader`（仅 SELECT）  
+> - 容器连接串：`postgresql://strategy_reader:strategy_reader@stem-db:5432/stem_db`  
+> - 本文只描述表结构，不含写库权限说明；外部服务禁止使用 `postgres` 超级用户。
+
 ## alembic_version
 
 | 列名 | 类型 | 可空 | 默认值 |

@@ -21,9 +21,40 @@ def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
 
 class LLMClient:
     def __init__(self):
+        # OpenAI SDK 要求 api_key 非空；未配置时用占位，实际调用会失败并由上层降级
+        self._chat_base = settings.llm_base_url
+        self._vision_base = settings.llm_vision_base_url or settings.llm_base_url
         self._client = AsyncOpenAI(
-            base_url=settings.llm_base_url,
-            api_key=settings.llm_api_key,
+            base_url=self._chat_base or None,
+            api_key=settings.llm_api_key or "not-configured",
+        )
+        vision_key = settings.llm_vision_api_key or settings.llm_api_key or "not-configured"
+        self._vision_client = (
+            self._client
+            if (
+                self._vision_base == self._chat_base
+                and vision_key == (settings.llm_api_key or "not-configured")
+            )
+            else AsyncOpenAI(base_url=self._vision_base or None, api_key=vision_key)
+        )
+        self._embed_base = (
+            settings.llm_embedding_base_url
+            or settings.llm_vision_base_url
+            or settings.llm_base_url
+        )
+        embed_key = (
+            settings.llm_embedding_api_key
+            or settings.llm_vision_api_key
+            or settings.llm_api_key
+            or "not-configured"
+        )
+        self._embed_client = (
+            self._vision_client
+            if (
+                self._embed_base == self._vision_base
+                and embed_key == vision_key
+            )
+            else AsyncOpenAI(base_url=self._embed_base or None, api_key=embed_key)
         )
 
     async def chat(
@@ -91,6 +122,7 @@ class LLMClient:
                 error=error,
                 duration_ms=duration_ms,
                 context=context,
+                base_url=self._vision_base,
             )
 
     async def embed(
@@ -124,6 +156,7 @@ class LLMClient:
                 error=error,
                 duration_ms=duration_ms,
                 context=context,
+                base_url=self._embed_base,
             )
 
     async def chat_stream(
@@ -204,7 +237,7 @@ class LLMClient:
                 ],
             }
         ]
-        return await self._client.chat.completions.create(
+        return await self._vision_client.chat.completions.create(
             model=kwargs.pop("model", settings.llm_vision_model),
             messages=messages,
             **kwargs,
@@ -216,10 +249,13 @@ class LLMClient:
         retry=retry_if_exception_type((RateLimitError, APIError)),
     )
     async def _embed_raw(self, texts: list[str]):
-        return await self._client.embeddings.create(
-            model=settings.llm_embedding_model,
-            input=texts,
-        )
+        kwargs: dict[str, Any] = {
+            "model": settings.llm_embedding_model,
+            "input": texts,
+        }
+        if settings.llm_embedding_dimension:
+            kwargs["dimensions"] = settings.llm_embedding_dimension
+        return await self._embed_client.embeddings.create(**kwargs)
 
     async def _record_log(
         self,
@@ -233,6 +269,7 @@ class LLMClient:
         error: Exception | None,
         duration_ms: int,
         context: dict | None,
+        base_url: str | None = None,
     ) -> None:
         if error is not None:
             response_text = None
@@ -263,6 +300,7 @@ class LLMClient:
             error=error,
             duration_ms=duration_ms,
             context=context,
+            base_url=base_url,
         )
 
     async def _write_log(
@@ -277,6 +315,7 @@ class LLMClient:
         error: Exception | None,
         duration_ms: int,
         context: dict | None,
+        base_url: str | None = None,
     ) -> None:
         try:
             if error is not None:
@@ -290,7 +329,7 @@ class LLMClient:
             log = LLMCallLog(
                 call_type=call_type,
                 model=model,
-                base_url=settings.llm_base_url,
+                base_url=base_url or settings.llm_base_url,
                 request_payload=payload,
                 request_params=params,
                 response_text=response_text,

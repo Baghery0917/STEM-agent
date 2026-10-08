@@ -254,10 +254,15 @@ body {
 .qcard .qh .ask.star { color: var(--warn); }
 .qcard .qh .ask.star:hover, .qcard .qh .ask.star.on { border-color: var(--warn); background: var(--warn-soft); }
 .qcard .qb { padding: 20px 18px; }
-.qcard .stem { font-size: 15.5px; line-height: 1.75; margin-bottom: 18px; white-space: pre-wrap; }
+.qcard .stem { font-size: 15.5px; line-height: 1.75; margin-bottom: 18px; }
+.qcard .stem p { margin: 0 0 0.6em; }
+.qcard .stem p:last-child { margin-bottom: 0; }
+.qcard .stem .katex-display { margin: 8px 0; overflow-x: auto; }
 .qcard .stem img { display: block; max-width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid var(--line); }
 .opts { display: grid; gap: 8px; }
 .opt { display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: center; padding: 11px 14px; border-radius: 11px; border: 1px solid var(--line); text-align: left; transition: .12s; font-size: 14px; }
+.opt .opt-md { min-width: 0; }
+.opt .opt-md .katex { font-size: 1.05em; }
 .opt:hover:not(:disabled) { border-color: var(--ink-3); background: var(--panel-2); }
 .opt:disabled { cursor: default; }
 .opt .l { width: 26px; height: 26px; border-radius: 8px; background: var(--line-2); display: grid; place-items: center; font-weight: 600; font-size: 12.5px; color: var(--ink-2); }
@@ -281,8 +286,9 @@ body {
 .fb b { display: block; margin-bottom: 2px; }
 .fb .why { color: var(--ink-2); font-size: 13px; }
 .fb .why b { display: inline; }
-.fb2 .sol { margin-top: 10px; padding: 12px 14px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line-2); font-size: 13.5px; color: var(--ink-2); line-height: 1.7; white-space: pre-wrap; }
-.fb2 .sol b { color: var(--ink); }
+.fb2 .sol { margin-top: 10px; padding: 12px 14px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line-2); font-size: 13.5px; color: var(--ink-2); line-height: 1.7; }
+.fb2 .sol > b { color: var(--ink); display: block; margin-bottom: 4px; }
+.fb2 .sol .katex-display { margin: 6px 0; overflow-x: auto; }
 .qfoot-note { text-align: center; margin-top: 14px; font-size: 12px; color: var(--ink-3); }
 
 /* practice setup */
@@ -805,10 +811,10 @@ body {
 .elevator:not(.timed) .clock { color: #8a7458; }
 .elevator:not(.timed) .clock .digits { text-shadow: none; }
 .elevator .clock .lbl { font-size: 10px; letter-spacing: 1px; color: #b9a481; }
-.elevator .shaft { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 8px 6px 8px 8px; border-radius: 12px; background: #2a2118; box-shadow: inset 0 2px 8px rgba(0,0,0,.6); }
-.elevator .floor { display: grid; grid-template-columns: 1fr 10px; align-items: center; gap: 8px; height: 26px; padding: 0 4px 0 8px; border-radius: 7px; transition: .15s; }
-.elevator .floor .num { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; font-weight: 700; color: #8a7458; text-align: left; }
-.elevator .floor .lamp { width: 10px; height: 10px; border-radius: 50%; background: #4a3d30; box-shadow: inset 0 1px 1px rgba(0,0,0,.5); transition: .15s; }
+.elevator .shaft { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 6px 5px 6px 6px; border-radius: 12px; background: #2a2118; box-shadow: inset 0 2px 8px rgba(0,0,0,.6); }
+.elevator .floor { display: grid; grid-template-columns: 1fr 8px; align-items: center; gap: 6px; height: 18px; flex: none; padding: 0 3px 0 6px; border-radius: 5px; transition: .15s; }
+.elevator .floor .num { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 700; color: #8a7458; text-align: left; }
+.elevator .floor .lamp { width: 8px; height: 8px; border-radius: 50%; background: #4a3d30; box-shadow: inset 0 1px 1px rgba(0,0,0,.5); transition: .15s; }
 .elevator .floor.done .lamp { background: #b9a481; }
 .elevator .floor.ok .lamp { background: #4fc47f; box-shadow: 0 0 8px rgba(79,196,127,.7); }
 .elevator .floor.no .lamp { background: #f0665e; box-shadow: 0 0 8px rgba(240,102,94,.6); }
@@ -818,7 +824,7 @@ body {
 .elevator .floor.cur .lamp { background: #f2c94c; box-shadow: 0 0 10px rgba(242,201,76,.9); }
 .elevator .floor.star .num::after { content: " ★"; font-size: 9px; color: #f3a33c; }
 .elevator .floor:hover { background: rgba(255,240,200,.08); }
-.elevator .car { position: absolute; left: 3px; top: calc(8px + var(--pos) * 30px); width: 3px; height: 26px; border-radius: 2px; background: #f2c94c; box-shadow: 0 0 8px rgba(242,201,76,.9); transition: top .35s cubic-bezier(.3,.9,.3,1); }
+.elevator .car { position: absolute; left: 3px; top: calc(6px + var(--pos) * 20px); width: 3px; height: 18px; border-radius: 2px; background: #f2c94c; box-shadow: 0 0 8px rgba(242,201,76,.9); transition: top .35s cubic-bezier(.3,.9,.3,1); }
 .elevator .tally { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .elevator .tally .pos { display: inline-flex; align-items: baseline; gap: 3px; }
 .elevator .tally .pos b { font-size: 20px; color: var(--ink); }
@@ -843,13 +849,13 @@ body {
 .elevator .shaft::-webkit-scrollbar { display: none; }
 
 /* ---------- 自检修正 ---------- */
-/* 电梯与题卡等高：右列撑满行高，井道占满中段，楼层均分 */
-.prun { align-items: stretch; padding-bottom: 200px; }
+/* 电梯按题数定长，不随题卡拉高；题多时井道内滚动 */
+.prun { align-items: start; padding-bottom: 200px; }
 .prun .pwrap { padding-bottom: 0; }
-.elevator { position: static; height: 100%; box-sizing: border-box; }
-.elevator .shaft { flex: 1; max-height: none; overflow: auto; justify-content: flex-end; }
-.elevator .floor { flex: 1 1 26px; min-height: 26px; max-height: 44px; position: relative; }
-.elevator .floor.cur::before { content: ""; position: absolute; left: -5px; top: 3px; bottom: 3px; width: 3px; border-radius: 2px; background: #f2c94c; box-shadow: 0 0 8px rgba(242,201,76,.9); }
+.elevator { position: sticky; top: 12px; height: auto; box-sizing: border-box; }
+.elevator .shaft { flex: none; max-height: calc(100vh - 280px); overflow: auto; justify-content: flex-end; }
+.elevator .floor { position: relative; }
+.elevator .floor.cur::before { content: ""; position: absolute; left: -4px; top: 2px; bottom: 2px; width: 2px; border-radius: 2px; background: #f2c94c; box-shadow: 0 0 8px rgba(242,201,76,.9); }
 .elevator .car { display: none; }
 /* 侧栏底部：名字区不换行，讲师胶囊靠右 */
 .me { flex-wrap: nowrap; }

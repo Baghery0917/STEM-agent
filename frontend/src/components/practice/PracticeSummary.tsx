@@ -1,4 +1,5 @@
 import type { PracticeItemWithQuestionResponse, PracticeSessionResponse, QuestionPublicResponse } from '@/api/types';
+import MarkdownContent from '@/components/common/MarkdownContent';
 import { parseBody } from './QuestionCard';
 import { fmtDuration } from '@/utils/time';
 import { useStudentStore } from '@/stores/studentStore';
@@ -42,7 +43,8 @@ export default function PracticeSummary({ session, questions, items, scope, onRe
       <div key={q.id} className={`ql ${isStar ? 'starred' : ''}`}>
         <span className={`st ${st}`}>{st === 'skip' ? '跳' : i + 1}</span>
         <span className="t" onClick={() => onReview(i)} title="回看这道题">
-          {isStar ? '★ ' : ''}{parseBody(q.content).split('\n')[0] || q.content}
+          {isStar ? '★ ' : ''}
+          <MarkdownContent content={parseBody(q.content).split('\n')[0] || q.content} inline />
           {st === 'skip' && <span className="muted"> · 跳过，计 0 分</span>}
           {st === 'na' && <span className="muted"> · 未作答</span>}
         </span>

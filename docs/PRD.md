@@ -1,30 +1,33 @@
 # STEM 智能教学系统 — 产品需求文档（PRD）
 
-> 本文档按当前代码实现重写，描述系统「现在是什么」。  
+> 本文档按**当前代码实现**描述系统「现在是什么」（非远期规划）。  
 > - 本系统 REST API：[`api.md`](./api.md)  
-> - 表结构：[`database_schema.md`](./database_schema.md)  
-> - **外部对接总览（发给同事用）**：[`external-interfaces.md`](./external-interfaces.md)
+> - 表结构：[`database_schema.md`](./database_schema.md)（若与 models / Alembic 冲突，**以代码为准**）  
+> - **外部对接总览（发给同事用）**：[`external-interfaces.md`](./external-interfaces.md)（含 §0 同机只读连库）  
+> - 外部只读连库细则：[`design/db-external-access.md`](./design/db-external-access.md)
 
 ---
 
 # 1. 项目概述
 
-STEM 智能教学系统是一个面向学生的物理（STEM）智能辅导产品。学生提交题目后，系统结合知识点分析、学习画像、教学策略与相似题检索，由 LLM 完成个性化讲解；同时提供按知识点抽题练习、情绪感知、学习报告与讲师人格（认可卡）解锁。
+STEM 智能教学系统（前端品牌名 **STEM Agent**）是一个面向学生的物理（STEM）智能辅导产品。学生提交题目后，系统结合知识点分析、学习画像、教学策略与相似题检索，由 LLM 完成个性化讲解；同时提供按知识点抽题练习、情绪感知、学习报告、讲师人格（认可卡）解锁与物理学家徽章。
 
 ## 1.1 当前角色与范围
 
 | 角色 | 入口 | 能力 |
 |------|------|------|
-| **学生** | 姓名登录（无密码；同名复用，新名自动建档） | 教学对话、练习、学习报告、认可卡、设置（讲解风格 / 讲师 / 摄像头） |
-| **管理员** | 登录页「教师」页签 → 共享口令 `ADMIN_PASSWORD` | 知识树、题库、学生 CRUD、数据库只读浏览 |
+| **访客** | `/` 落地页 | 浏览品牌、物理新闻、TBBT trivia / 讲师展示；未登录 |
+| **学生** | 姓名登录（无密码；同名复用，新名自动建档） | 教学对话、练习、学习报告、认可卡 + 徽章、设置（讲解风格 / 讲师 / 摄像头）；进入布局时自动签到 |
+| **管理员** | 登录页「教师」页签 → 共享口令 `ADMIN_PASSWORD` | 知识树、题库、学生 CRUD、物理新闻、数据库只读浏览 |
 
-无独立「教师」业务角色（无班级、布置作业、批改等）。学生侧 API 以 `student_id` 标识身份，不做登录鉴权；管理台 DB 接口需 `X-Admin-Token`。
+无独立「教师」业务角色（无班级、布置作业、批改等）。学生侧 API 以 `student_id` 标识身份，不做登录鉴权；管理台中 **DB / 新闻** 接口需 `X-Admin-Token`，知识树 / 题库 / 学生 CRUD 当前未强制 Token。
 
 ## 1.2 产品形态
 
+- 公开落地页 + 登录后学生端 / 管理端
 - 交互主模式：**教学模式**、**练习模式**（可互相跳转：练习错题 / 星标题 → 教学）
 - 前端主题：TBBT（The Big Bang Theory）风格壳层 + 七位讲师人格
-- 部署：Docker Compose 全栈，或本地前后端分启 + PostgreSQL/pgvector
+- 部署：Docker Compose 全栈（`stem-db` 挂外部网络 `stem-net` 供同机外部服务只读连库），或本地前后端分启 + PostgreSQL/pgvector
 
 ---
 
@@ -33,33 +36,36 @@ STEM 智能教学系统是一个面向学生的物理（STEM）智能辅导产�
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  前端（React 18 + TypeScript + Vite）                                      │
-│  学生端：教学 / 练习 / 报告 / 认可卡 / 设置（自定义 CSS + Zustand）          │
-│  管理端：知识树 / 题库 / 学生 / DB 浏览（Ant Design）                        │
+│  落地页 / 登录                                                             │
+│  学生端：教学 / 练习 / 报告 / 认可卡+徽章 / 设置（自定义 CSS + Zustand）     │
+│  管理端：知识树 / 题库 / 学生 / 新闻 / DB 浏览（Ant Design）                 │
 │  摄像头：可选，发送时截帧 frame_base64 供面部情绪识别                        │
 └─────────────────────────────────┬────────────────────────────────────────┘
                                   │ HTTP / SSE
                                   ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  API 层（FastAPI /api/v1）                                                 │
-│  knowledge · questions · students · teaching · practice · admin · health │
+│  knowledge · questions · students · teaching · practice · news · admin · health │
 └─────────────────────────────────┬────────────────────────────────────────┘
                                   │
                                   ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  服务层                                                                    │
-│  TeachingService（流水线 + 多轮对话）  PracticeService（抽题 / 批改 / 星标） │
-│  EmotionService · ReportService · RecognitionService · QuestionService   │
-│  SessionSearchService · Volume/Chapter/Section CRUD                      │
+│  TeachingService · PracticeService · EmotionService · ReportService        │
+│  RecognitionService · BadgeService · NewsService · QuestionService         │
+│  SessionSearchService · Volume/Chapter/Section CRUD                        │
 └───┬─────────────────────────────┬────────────────────────────┬───────────┘
     │                             │                            │
     ▼                             ▼                            ▼
 ┌───────────────┐    ┌────────────────────────┐    ┌─────────────────────┐
 │ 外部集成       │    │ LLM（OpenAI 兼容）       │    │ PostgreSQL 16        │
-│ 面部情绪 HTTP  │    │ chat / stream / vision │    │ + pgvector           │
-│ 教学策略 MCP   │    │ embed · 人格 prompt     │    │ 业务表 + 向量列       │
-│ 评价处 MCP     │    │ 调用审计 llm_call_logs  │    │                      │
+│ 面部情绪 HTTP  │    │ chat / vision / embed  │    │ + pgvector           │
+│ 教学策略 MCP   │    │ 可分厂商配置            │    │ 业务表 + 向量列       │
+│ 评价处 MCP     │    │ 调用审计 llm_call_logs  │    │ stem-net 只读外连    │
 └───────────────┘    └────────────────────────┘    └─────────────────────┘
 ```
+
+同机外部服务（策略 / 评价）经 Docker 网络 `stem-net` 以角色 `strategy_reader` **直连** `stem-db`，不经 MCP 包库。见 §4.0.1。
 
 ---
 
@@ -155,6 +161,8 @@ STEM 智能教学系统是一个面向学生的物理（STEM）智能辅导产�
 | `explain_style` | 可选讲解风格覆盖：`direct` / `guided` / `hint`；空则完全由策略模块决定 |
 | `persona` | 讲师人格；空等价 `leonard`；未解锁人格不可设置（403） |
 
+七位人格枚举：`leonard` / `penny` / `howard` / `raj` / `bernadette` / `amy` / `sheldon`（只改语气，不改教学决策）。
+
 ### 3.3.2 知识点掌握度（`student_knowledge_summaries`）
 
 按 `(student_id, section_id)` 唯一：
@@ -174,6 +182,13 @@ STEM 智能教学系统是一个面向学生的物理（STEM）智能辅导产�
 | `emotion_logs` | 流水：`mode` = `teaching` \| `practice`，含时段与 `emotion_value` |
 
 情绪量表：**1 = 自信 … 5 = 非常受挫**。
+
+### 3.3.4 签到与收藏集合
+
+| 能力 | API | 说明 |
+|------|-----|------|
+| 签到 | `POST /students/{id}/checkin` | 写入 `student_logins`；驱动登录类徽章；学生布局每会话自动调一次 |
+| 收藏集合 | `GET /students/{id}/cards` | 返回认可卡解锁态 + 物理学家徽章列表与进度 |
 
 ---
 
@@ -240,6 +255,7 @@ STEM 智能教学系统是一个面向学生的物理（STEM）智能辅导产�
 ### 3.4.3 多轮追问
 
 - `POST /teaching/sessions/chat/stream`：SSE 流式（学生端实际使用）
+- 另有非流式 `POST /teaching/sessions/chat`（存在，前端主路径不用）
 - 每轮重新拉取策略与即时情绪；策略写入 system 消息
 - 人格只改语气；学生 `explain_style` 可覆盖辅导风格
 - 当即时情绪 ≥ 3 时，前端可展示安抚动效（Soft Kitty），Prompt 侧放缓节奏（不向学生明示「在观察情绪」）
@@ -259,10 +275,10 @@ STEM 智能教学系统是一个面向学生的物理（STEM）智能辅导产�
 
 ### 3.4.5 会话结束与空闲
 
-| 动作 | 行为 |
-|------|------|
-| 正常结束 | 更新掌握度、情绪回流（EMA）、认可分、写 emotion_log |
-| 取消 | 不回流掌握度 / 情绪档案 |
+| 动作 | API / 行为 |
+|------|------------|
+| 正常结束 | 更新掌握度、情绪回流（EMA）、认可分、写 emotion_log、徽章评估 |
+| 取消 | `POST /teaching/sessions/{id}/cancel`；不回流掌握度 / 情绪档案 |
 | 空闲超时 | 默认 30 分钟无活动自动结束（`end_reason=idle`），后台定时扫描 |
 
 ### 3.4.6 练习 → 教学手递
@@ -304,7 +320,7 @@ STEM 智能教学系统是一个面向学生的物理（STEM）智能辅导产�
         └── star：写入 starred_question_ids，结束后可转教学
         │
         ▼
-   end：未作答自动 skip；聚合计数；情绪回流；认可分
+   end：未作答自动 skip；聚合计数；情绪回流；认可分；徽章评估
         │
         ▼
    总结页：错题 + 星标题 → 一键 / 批量转教学
@@ -323,7 +339,7 @@ STEM 智能教学系统是一个面向学生的物理（STEM）智能辅导产�
 ## 3.6 向量检索
 
 - 存储：`questions.embedding`（pgvector），维度与配置 `pgvector_dimension` / embedding 模型一致（默认 1024）
-- 用途：**教学模式参考题** — `search_by_text`，取 top-1，相似度低于阈值（默认 0.8）则不用
+- 用途：**教学模式参考题** — `search_by_text`，取 top-1，相似度低于阈值（默认 0.8，`TEACHING_REFERENCE_SIMILARITY_THRESHOLD`）则不用
 - 练习出题：SQL 条件过滤 + 随机，不用向量
 - 侧栏会话搜索：教学消息与练习节标题的 **ILIKE 文本检索**，非向量
 
@@ -335,39 +351,62 @@ STEM 智能教学系统是一个面向学生的物理（STEM）智能辅导产�
 
 | 来源 | 时机 | 方式 |
 |------|------|------|
-| 面部 | 教学发送 / 练习提交（带 `frame_base64`） | HTTP `POST {emotion_base_url}/recognize` multipart |
+| 面部 | 教学发送 / 练习提交（带 `frame_base64`） | HTTP `POST {EMOTION_BASE_URL}/recognize`，multipart `image`（可选 form `student_id`） |
 | 文本 | 仅教学 | LLM 对用户文本分类 |
 
-混合（教学）：默认 `0.6 × facial + 0.4 × text`（`emotion_facial_weight`）。失败记空 / 不影响主流程。
+混合（教学）：默认 `0.6 × facial + 0.4 × text`（`EMOTION_FACIAL_WEIGHT`）。失败记空 / 不影响主流程。
 
-五档标签映射到数值 1–5（自信 → 非常受挫）。
+五档标签映射到数值 1–5（自信 → 非常受挫）：`confident` / `slightly_uncertain` / `discouraged` / `frustrated` / `very_frustrated`。
 
 ### 3.7.2 回流档案
 
 会话结束时，用本会话即时情绪均值对涉及知识点做指数平滑：
 
-`新 = 旧 × (1 − α) + 会话均值 × α`（默认 α = 0.3）
+`新 = 旧 × (1 − α) + 会话均值 × α`（默认 α = 0.3，`EMOTION_HISTORY_ALPHA`）
 
-并写入 `emotion_logs`（教学：按知识点；练习：按会话题目涉及知识点聚合）。
+并写入 `emotion_logs`：
+
+- 教学：按知识点一行
+- 练习：作答题情绪均值 → 按会话涉及 section 各写一行
 
 ---
 
 ## 3.8 认可卡（Recognition）
 
-隐藏积分体系，用于线性解锁七位讲师人格。**规则不下发前端**；分数只增不减；按来源幂等记账（`score_events`）。
+隐藏积分体系，用于线性解锁七位讲师人格。**规则不下发前端**；分数只增不减；按来源幂等记账（`score_events`）；解锁写入 `student_cards`。
 
 | 人格 | 解锁条件（概要） |
 |------|------------------|
 | Leonard | 注册即有 |
-| Penny → … → Sheldon | 累计积分达到阈值（150 / 400 / 800 / 1500 / 2600 / 4500） |
+| Penny → Howard → Raj → Bernadette → Amy → Sheldon | 累计积分达到阈值（150 / 400 / 800 / 1500 / 2600 / 4500） |
 
 积分来源示例：练习作答（含正确翻倍、每日递减、计时加成）、教学正常结束与自评、掌握度正增量、星标后去提问、自评「能自己做」后在窗口期内练习正确率达标、连续学习天数加成。
 
-学生可在「认可卡」页查看已获得卡片，并在设置中将已解锁人格设为当前讲师。
+学生可在「认可卡」页查看已获得卡片，并在设置中将已解锁人格设为当前讲师。新解锁可触发翻牌动效（`CardReveal`）。
 
 ---
 
-## 3.9 学生报告
+## 3.9 物理学家徽章（Badges）
+
+与认可卡**独立**：阈值型成就，不解锁讲师、不影响教学策略。规则**下发前端**（有进度条）；徽章只增不减（`student_badges`）。实现：`BadgeService` / `backend/app/services/badges.py`。
+
+| key | 指标（概要） | 阈值 |
+|-----|--------------|------|
+| `newton` | 答完题数 | 1 |
+| `galileo` / `tycho` | 登录次数（`student_logins`） | 10 / 50 |
+| `kepler` | 连续学习天数 | 7 |
+| `curie` / `faraday` | 单次学习分钟（有上限封顶） | 45 / 90 |
+| `einstein` / `hawking` | 累计学习分钟 | 600 / 3000 |
+| `maxwell` | 答完题数 | 200 |
+| `bohr` | 教学会话数 | 20 |
+| `heisenberg` | 星标后追问次数 | 5 |
+| `feynman` | 自评「能讲给别人」次数 | 5 |
+
+教学 / 练习结束与签到后会触发 `evaluate` 补发已达标徽章。前端 `/cards` 同时展示认可卡与徽章墙。
+
+---
+
+## 3.10 学生报告
 
 `GET /students/{id}/report?mode=recent|all`
 
@@ -380,22 +419,51 @@ STEM 智能教学系统是一个面向学生的物理（STEM）智能辅导产�
 
 ---
 
-## 3.10 会话搜索
+## 3.11 会话搜索
 
 `GET /students/{id}/sessions/search?q=`：教学按消息内容、练习按知识点标题全文检索，供侧栏搜索。
 
 ---
 
-## 3.11 管理端
+## 3.12 落地页与物理新闻
 
-| 页面 | 能力 |
+### 3.12.1 落地页 `/`
+
+公开页（无需登录）：品牌 STEM Agent、物理新闻区、TBBT trivia、讲师展示与进入登录 CTA。新闻拉取失败时前端回退主题内静态列表。
+
+### 3.12.2 新闻（`news_items`）
+
+| 字段 | 说明 |
 |------|------|
-| 知识结构 | 树 CRUD + JSON 批量导入（前端顺序创建） |
-| 题库 | 列表筛选、表单编辑（图片为 URL 字段） |
-| 学生 | 姓名 / 性别 CRUD |
-| 数据库 | 只读浏览全部表（需 Admin Token） |
+| `title` / `summary` / `tag` / `source` / `url` | 展示与外链 |
+| `published_on` | 发布日期 |
+| `published` | 是否对公开接口可见 |
+
+| API | 鉴权 | 说明 |
+|-----|------|------|
+| `GET /api/v1/news` | 无 | 仅 `published=true` |
+| `/api/v1/admin/news` CRUD | `X-Admin-Token` | 管理台「新闻」页维护 |
+
+---
+
+## 3.13 管理端
+
+| 页面 | 路由 | 能力 |
+|------|------|------|
+| 知识结构 | `/admin/knowledge` | 树 CRUD + JSON 批量导入（前端顺序创建） |
+| 题库 | `/admin/questions` | 列表筛选、表单编辑（图片为 URL 字段） |
+| 学生 | `/admin/students` | 姓名 / 性别 CRUD |
+| 新闻 | `/admin/news` | 物理新闻 CRUD（需 Token） |
+| 数据库 | `/admin/db` | 只读浏览全部表（需 Token） |
 
 Admin 登录：`POST /admin/login` → token = `sha256("stem-admin:" + password)`；`ADMIN_PASSWORD` 为空则禁止登录。
+
+| 路径前缀 | 是否强制 `X-Admin-Token` |
+|----------|--------------------------|
+| `/api/v1/admin/login` | 否（用口令换 token） |
+| `/api/v1/admin/db/*` | 是 |
+| `/api/v1/admin/news/*` | 是 |
+| 知识树 / 题库 / 学生 CRUD | **否**（当前实现缺口，见 §9） |
 
 ---
 
@@ -406,14 +474,28 @@ Admin 登录：`POST /admin/login` → token = `sha256("stem-admin:" + password)
 
 ## 4.0 外部服务与契约文件对照
 
-| 外部服务 | 协议 | 契约文件（规范正文） | 调用代码 | 假服务 / 联调 |
-|----------|------|----------------------|----------|---------------|
-| **教学策略** | MCP Streamable HTTP | [`design/mcp-strategy-contract.md`](./design/mcp-strategy-contract.md) | `backend/app/external/teaching_strategy.py` | `scripts/fake_strategy_server.py` |
-| **评价处** | MCP Streamable HTTP | [`design/mcp-evaluation-contract.md`](./design/mcp-evaluation-contract.md) | `backend/app/external/evaluation.py` | `scripts/fake_evaluation_server.py` |
-| **面部情绪** | HTTP multipart | [`design/emotion-http-contract.md`](./design/emotion-http-contract.md) | `backend/app/external/emotion.py` | 按契约自起服务 |
+| 能力 | 协议 | 契约文件（规范正文） | 调用代码 / 联调 |
+|------|------|----------------------|-----------------|
+| **STEM 只读库**（共享） | Postgres TCP | [`design/db-external-access.md`](./design/db-external-access.md) | `stem-net` + `strategy_reader`；表见 [`database_schema.md`](./database_schema.md) |
+| **教学策略** | MCP Streamable HTTP | [`design/mcp-strategy-contract.md`](./design/mcp-strategy-contract.md) | `backend/app/external/teaching_strategy.py`；`scripts/fake_strategy_server.py` |
+| **评价处** | MCP Streamable HTTP | [`design/mcp-evaluation-contract.md`](./design/mcp-evaluation-contract.md) | `backend/app/external/evaluation.py`；`scripts/fake_evaluation_server.py` |
+| **面部情绪** | HTTP multipart | [`design/emotion-http-contract.md`](./design/emotion-http-contract.md) | `backend/app/external/emotion.py`（**不连库**） |
 
-只读库表参考：[`database_schema.md`](./database_schema.md)。  
 以下能力**不由外部同事实现**：OpenAI 兼容 LLM、教学路径内的**文本情绪**（本仓库 LLM）、本系统前后端 REST（见 [`api.md`](./api.md)）。
+
+### 4.0.1 同机只读连库（策略 / 评价共用）
+
+策略与评价服务跑在同一台机器时，**直连**本系统 Postgres，不经 MCP 包库。摘要（完整步骤见 [`external-interfaces.md`](./external-interfaces.md) §0）：
+
+| 项 | 值 |
+|----|-----|
+| Host（容器已 join `stem-net`） | `stem-db` |
+| Host（宿主机进程） | `127.0.0.1` |
+| Port / DB | `5432` / `stem_db` |
+| 账号 | `strategy_reader` / `strategy_reader`（只读；生产改密） |
+| 连接串（容器内） | `postgresql://strategy_reader:strategy_reader@stem-db:5432/stem_db` |
+
+`make up` / `make db-up` 会创建 `stem-net`；缺角色时 `make db-grant-reader`。Compose 示例：[`examples/external-service.compose.yml`](../examples/external-service.compose.yml)。
 
 ## 4.1 教学策略（MCP）
 
@@ -424,19 +506,21 @@ Admin 登录：`POST /admin/login` → token = `sha256("stem-admin:" + password)
 | 工具 | `get_teaching_strategy(student_id, session_id, message)` |
 | 调用时机 | **每条学生消息**（含首轮与追问） |
 | 返回 | `{ strategy, reason? }` 短句策略进 Prompt |
+| 鉴权 / 超时 | 可选 `TEACHING_STRATEGY_API_KEY`；默认超时 5s |
 | 失败兜底 | 本地 LLM 生成 → 再失败则硬编码默认策略；不中断会话 |
-
-策略服务可只读连库自行查画像；主系统只传三个入参。
+| 数据 | 按 §4.0.1 只读连库自行查画像；主系统只传三个入参 |
 
 ## 4.2 面部情绪识别（HTTP）
 
 | 项目 | 说明 |
 |------|------|
 | 契约 | **[`design/emotion-http-contract.md`](./design/emotion-http-contract.md)** |
-| 协议 | `POST {EMOTION_BASE_URL}/recognize`，multipart `image`（JPEG） |
+| 协议 | `POST {EMOTION_BASE_URL}/recognize`，multipart `image`（JPEG）+ 可选 `student_id` |
 | 返回 | `{ emotion, confidence? }`，`emotion` 为五档英文枚举 |
 | 时机 | 教学发消息 / 练习提交答案（有 `frame_base64` 时） |
+| 鉴权 / 超时 | 可选 `EMOTION_API_KEY`；默认超时 3s |
 | 失败 | 本帧情绪为空，主流程继续 |
+| 数据 | **不连 STEM 库** |
 
 ## 4.3 文本情绪（LLM，非外部服务）
 
@@ -449,24 +533,28 @@ Admin 登录：`POST /admin/login` → token = `sha256("stem-admin:" + password)
 | 契约 | **[`design/mcp-evaluation-contract.md`](./design/mcp-evaluation-contract.md)** |
 | 工具 | `get_student_evaluation(student_id)` |
 | 返回 | `{ evaluation, highlights? }` |
+| 鉴权 / 超时 | 可选 `EVALUATION_API_KEY`；默认超时 15s |
 | 失败 | `source=unavailable`，报告页其余数据正常 |
+| 数据 | 按 §4.0.1 只读连库；主系统只传 `student_id` |
 
 ---
-
 
 # 5. 前端信息架构
 
 | 路由 | 说明 |
 |------|------|
+| `/` | 公开落地页（新闻 / trivia / 讲师） |
 | `/login` | 学生姓名登录 / 管理员口令 |
+| `/home` | 重定向 → `/teaching` |
 | `/teaching` · `/teaching/:sessionId` | 新会话与进行中教学（流式、自评、结束） |
+| `/practice` | 重定向 → `/practice/new` |
 | `/practice/new` · `/practice/:sessionId` | 练习设置与作答、总结、转教学 |
 | `/report` | 近一周 / 全景报告 + 评价处 |
-| `/cards` | 认可卡图鉴 |
+| `/cards` | 认可卡图鉴 + 物理学家徽章墙 |
 | `/settings` | 切换学生、讲解风格、讲师、摄像头 |
-| `/admin/knowledge` · `questions` · `students` · `db` | 管理台 |
+| `/admin/knowledge` · `questions` · `students` · `news` · `db` | 管理台 |
 
-状态：`studentStore`（当前学生）、`uiStore`（教学/练习模式、摄像头开关）、Admin Token 存 `sessionStorage`。
+状态：`studentStore`（当前学生）、`uiStore`（教学/练习模式、摄像头开关）、Admin Token 存 `sessionStorage`；签到与卡片已读等由布局 / 页面副作用触发。
 
 ---
 
@@ -474,29 +562,56 @@ Admin 登录：`POST /admin/login` → token = `sha256("stem-admin:" + password)
 
 | 层次 | 技术 |
 |------|------|
-| 前端 | React 18 + TypeScript + Vite + Ant Design（管理端）+ Zustand + TanStack Query |
+| 前端 | React 18 + TypeScript + Vite + Ant Design（管理端）+ Zustand + TanStack Query；学生端 Markdown / KaTeX |
 | 后端 | Python 3.12 + FastAPI + SQLAlchemy 2.0（async）+ Pydantic v2 |
 | 数据库 | PostgreSQL 16 + pgvector |
 | 迁移 | Alembic |
-| LLM | OpenAI 兼容 API（chat / vision / embedding），调用写入 `llm_call_logs` |
-| 容器 | Docker + Docker Compose；根目录 Makefile 统一命令 |
+| LLM | OpenAI 兼容；**chat / vision / embedding 可分厂商**（`LLM_*` / `LLM_VISION_*` / `LLM_EMBEDDING_*`），调用写入 `llm_call_logs` |
+| 容器 | Docker + Docker Compose；外部网络 `stem-net`；根目录 Makefile 统一命令 |
 
 ---
 
-# 7. 非功能需求
+# 7. 环境变量与部署（摘要）
+
+完整示例见 `backend/.env.example`。
+
+| 类别 | 变量（代表） |
+|------|----------------|
+| 数据库 | `DATABASE_URL`、`DATABASE_URL_SYNC`、`PGVECTOR_DIMENSION` |
+| 应用 | `APP_ENV`、`DEBUG`、`CORS_ORIGINS`、`ADMIN_PASSWORD` |
+| LLM 对话 | `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL` |
+| LLM 视觉 | `LLM_VISION_*`（未配回退 `LLM_*`） |
+| Embedding | `LLM_EMBEDDING_*`、`LLM_EMBEDDING_DIMENSION` |
+| 面部情绪 | `EMOTION_BASE_URL`、`EMOTION_API_KEY`、`EMOTION_TIMEOUT_SECONDS` |
+| 策略 MCP | `TEACHING_STRATEGY_MCP_URL`、`TEACHING_STRATEGY_API_KEY`、超时 |
+| 评价 MCP | `EVALUATION_MCP_URL`、`EVALUATION_API_KEY`、超时 |
+| 情绪 / 空闲 | `EMOTION_FACIAL_WEIGHT`、`EMOTION_HISTORY_ALPHA`、`TEACHING_IDLE_*`、`TEACHING_REFERENCE_SIMILARITY_THRESHOLD` |
+
+部署要点：
+
+```bash
+make up                 # 自动 ensure stem-net，启 db/backend/frontend
+make db-grant-reader    # 旧卷缺 strategy_reader 时补授权
+```
+
+生产建议：强设 `ADMIN_PASSWORD` 与 `LLM_API_KEY`；`5432` 勿对公网暴露（可绑 `127.0.0.1` 或仅走 `stem-net`）。
+
+---
+
+# 8. 非功能需求
 
 | 类别 | 要求 |
 |------|------|
-| 可扩展性 | 知识树层级、题型、人格、外部 MCP 可独立演进 |
+| 可扩展性 | 知识树层级、题型、人格、徽章规则、外部 MCP 可独立演进 |
 | 可追溯性 | LLM 请求/响应与参数完整落库；教学流水线各步以 system 消息留存 |
-| 容错性 | 策略 / 情绪 / 评价处失败不阻断主路径 |
+| 容错性 | 策略 / 情绪 / 评价处失败不阻断主路径；新闻拉取失败落地页有静态回退 |
 | 数据一致性 | 会话结束时的掌握度、情绪、认可分在服务层事务内更新 |
-| 安全（当前） | 学生无鉴权（开发友好）；生产需强设 `ADMIN_PASSWORD` 与 `LLM_API_KEY`；敏感帧仅作识别、不作为视频流持久化（业务约定） |
+| 安全（当前） | 学生无鉴权（开发友好）；DB / 新闻管理需 Admin Token；生产需强设口令与 LLM Key；敏感帧仅作识别、不作为视频流持久化（业务约定） |
 | 空闲治理 | 教学会话空闲超时自动结束，避免悬挂会话占资源 |
 
 ---
 
-# 8. 与历史设计的主要差异（备忘）
+# 9. 与历史设计的主要差异（备忘）
 
 | 旧 PRD | 当前实现 |
 |--------|----------|
@@ -505,14 +620,16 @@ Admin 登录：`POST /admin/login` → token = `sha256("stem-admin:" + password)
 | 题目以图片为主、LLM 导入匹配知识点 | 文本为主 + 可选图片 URL；管理端手工挂知识点 |
 | 教学策略纯 HTTP | MCP Streamable HTTP + LLM/硬编码兜底 |
 | 练习由「记忆模块」独立出题服务 | 本仓库 `PracticeService` 直接抽题与记账 |
-| 前端「待定」 | React + Vite，学生端 TBBT 主题，管理端 Ant Design |
-| — | 新增：自评、练习手递教学、认可卡 / 人格、流式对话、评价处 MCP、Admin DB、LLM 审计 |
+| 前端「待定」 | React + Vite，落地页 + 学生端 TBBT 主题，管理端 Ant Design |
+| — | 自评、练习手递教学、认可卡 / 人格、流式对话、评价处 MCP、Admin DB、LLM 审计 |
+| — | 物理新闻 + 落地页、物理学家徽章 + 签到、LLM chat/vision/embed 分厂商、同机 `stem-net` 只读连库 |
 
 ---
 
-# 9. 已知缺口（实现现状，非承诺排期）
+# 10. 已知缺口（实现现状，非承诺排期）
 
 - 知识 / 题库无服务端 bulk 导入 API（知识导入靠前端顺序 POST；题库 bulk 助手未挂 UI）
-- 学生无真正身份认证；管理端除 DB 外多数管理 API 未强制带 Admin Token
+- 学生无真正身份认证；知识树 / 题库 / 学生等管理 API **未**强制 Admin Token（新闻与 DB 已强制）
 - 报告「导出 PDF」仅为打印；题目图片为 URL 非本地上传
 - 追问轮次前端关闭图片上传（仅首轮可带图）
+- `docs/database_schema.md` 可能滞后于 models / Alembic，对接以代码与 [`external-interfaces.md`](./external-interfaces.md) 为准

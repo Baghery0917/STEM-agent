@@ -41,14 +41,25 @@ MCP 未配置、连接失败、超时、返回异常：后端用自己的 LLM �
 
 ## 策略服务可读的数据
 
-策略服务加入 docker 网络 `stem-net` 后可直连 `stem-db:5432`，使用只读角色 `strategy_reader`（接入步骤见 [`db-external-access.md`](./db-external-access.md)）。相关表：
+**连库方式（不是 MCP）**：加入 Docker 网络 `stem-net`，用只读角色直连 Postgres。总览见 [`../external-interfaces.md`](../external-interfaces.md) §0；细则见 [`db-external-access.md`](./db-external-access.md)。
+
+| 项 | 值 |
+|----|-----|
+| Host（容器 / `stem-net`） | `stem-db` |
+| Host（宿主机进程） | `127.0.0.1` |
+| Port / Database | `5432` / `stem_db` |
+| User / Password | `strategy_reader` / `strategy_reader` |
+| 连接串（容器内） | `postgresql://strategy_reader:strategy_reader@stem-db:5432/stem_db` |
+| 权限 | 仅 SELECT；禁止写库 |
+
+相关表：
 
 - `students`、`student_knowledge_summaries`：学生档案与知识点掌握度
 - `student_kp_emotions`：学生对每个知识点的历史总体情绪（1 自信 … 5 非常受挫），每次会话结束后指数平滑更新
 - `emotion_logs`：情绪图谱流水，教学模式每个 session 按知识点一行
 - `teaching_sessions`、`teaching_messages`：会话与消息。user 消息上的 `facial_value`、`text_value`、`emotion_value` 是即时情绪
 
-建表语句见 `docs/database_schema.md`。
+表结构见 [`../database_schema.md`](../database_schema.md)。Compose 示例：[`../../examples/external-service.compose.yml`](../../examples/external-service.compose.yml)。
 
 ## 本地联调
 

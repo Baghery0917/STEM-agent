@@ -2,12 +2,14 @@
 
 同一台服务器上的外部服务（教学策略、评价处等）**直接连 PostgreSQL**，不要把数据库包成 MCP。
 
+> **对接同事先看总览摘要**：[`../external-interfaces.md`](../external-interfaces.md) **§0**（连接串 / compose 片段已写在那里）。本文是完整细则。
+
 | 能力 | 协议 | 谁提供 |
 |------|------|--------|
 | 学生画像 / 会话等业务数据 | Postgres 5432（只读角色） | 本仓库 `stem-db` |
 | 教学策略 / 评价点评 | MCP Streamable HTTP | 外部团队各自服务 |
 
-主系统调外部服务用 MCP；外部服务读库用本页约定的连接串。MCP 契约见 [`../external-interfaces.md`](../external-interfaces.md)。
+主系统调外部服务用 MCP；外部服务读库用本页约定的连接串。
 
 ---
 

@@ -42,14 +42,25 @@ MCP 未配置、连接失败、超时、返回异常：`GET /students/{id}/evalu
 
 ## 评价服务可读的数据
 
-与教学策略服务相同，加入 docker 网络 `stem-net` 后直连 `stem-db:5432`，只读角色 `strategy_reader`（接入步骤见 [`db-external-access.md`](./db-external-access.md)）。推荐读取：
+**连库方式（不是 MCP）**：与教学策略相同——`stem-net` + `strategy_reader` 直连 Postgres。总览见 [`../external-interfaces.md`](../external-interfaces.md) §0；细则见 [`db-external-access.md`](./db-external-access.md)。
+
+| 项 | 值 |
+|----|-----|
+| Host（容器 / `stem-net`） | `stem-db` |
+| Host（宿主机进程） | `127.0.0.1` |
+| Port / Database | `5432` / `stem_db` |
+| User / Password | `strategy_reader` / `strategy_reader` |
+| 连接串（容器内） | `postgresql://strategy_reader:strategy_reader@stem-db:5432/stem_db` |
+| 权限 | 仅 SELECT；禁止写库 |
+
+推荐读取：
 
 - `student_knowledge_summaries`：知识点掌握度、练习 / 教学次数
 - `practice_sessions`、`practice_items`：练习记录（`is_skipped` 的题不计入档案；`duration_seconds` 为用时）
 - `teaching_sessions`、`teaching_messages`：会话；assistant 消息上的 `self_rating` 是学生自评（0 还没懂 … 3 能讲给别人）
 - `student_kp_emotions`、`emotion_logs`：历史情绪与流水（`mode` 区分 teaching / practice）
 
-建表语句见 `docs/database_schema.md`。
+表结构见 [`../database_schema.md`](../database_schema.md)。Compose 示例：[`../../examples/external-service.compose.yml`](../../examples/external-service.compose.yml)。
 
 ## 本地联调
 

@@ -34,11 +34,17 @@ class Settings(BaseSettings):
     # CORS — 逗号分隔字符串。dev 默认放开本地 Vite，生产必须显式配置
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
-    # LLM
+    # LLM：对话 / 文本情绪（DeepSeek 等）
     llm_base_url: str = ""
     llm_api_key: str = ""
     llm_model: str = ""
+    # 视觉：可与对话分厂商（如 Qwen / DashScope）；未配则回退到上面的 LLM_*
+    llm_vision_base_url: str = ""
+    llm_vision_api_key: str = ""
     llm_vision_model: str = ""
+    # embedding：默认走 DashScope（可与对话分厂商）；未配则回退 vision → llm
+    llm_embedding_base_url: str = ""
+    llm_embedding_api_key: str = ""
     llm_embedding_model: str = ""
     llm_embedding_dimension: int = 1024
 

@@ -690,7 +690,7 @@ Base URL: `http://localhost:8000/api/v1`
 ## Evaluation（评价处）
 
 #### GET /students/{student_id}/evaluation
-经 MCP 调外部评价服务，只传 `student_id`，评价服务自行读库。契约见 `docs/design/mcp-evaluation-contract.md`。
+经 MCP 调外部评价服务，只传 `student_id`；评价服务自行只读连 STEM 库（`stem-net` + `strategy_reader`，见 [`external-interfaces.md`](./external-interfaces.md) §0）。契约见 `docs/design/mcp-evaluation-contract.md`。
 
 **Response (200):**
 ```json

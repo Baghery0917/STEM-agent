@@ -48,10 +48,17 @@ stem/
 │       ├── styles/          # 样式
 │       └── utils/           # 工具函数
 │
-├── docker-compose.yml       # 全栈编排
+├── docs/                    # PRD / API / 外部对接契约
+│   ├── external-interfaces.md   # 发给对接同事的总览（§0 只读连库）
+│   └── design/db-external-access.md
+├── examples/                # 外部服务 compose 示例（join stem-net）
+├── db/init/                 # Postgres 初始化（含 strategy_reader）
+├── docker-compose.yml       # 全栈编排（db 挂 stem-net）
 ├── Makefile                 # 常用命令（根目录统一管理）
 └── CLAUDE.md
 ```
+
+外部对接：策略/评价用 MCP；同机读库用 `stem-net` + `strategy_reader`（见 `docs/external-interfaces.md` §0），不要把库包成 MCP。
 
 ## 常用命令
 
@@ -59,7 +66,7 @@ stem/
 
 ```bash
 # Docker 全栈
-make up              # 启动所有服务
+make up              # 启动所有服务（自动 ensure stem-net）
 make down            # 停止所有服务
 
 # 后端开发
@@ -72,8 +79,10 @@ make frontend-install # 安装前端依赖
 make frontend-dev    # 启动前端开发服务器
 
 # 数据库
+make network         # 创建 stem-net（供同机外部服务连库）
 make db-up           # 启动数据库容器
 make db-reset        # 重置数据库
+make db-grant-reader # 补建/刷新 strategy_reader 只读权限
 make migrate         # 运行迁移
 make migrate-create msg="描述"  # 生成新迁移
 make db-seed         # 运行种子数据脚本

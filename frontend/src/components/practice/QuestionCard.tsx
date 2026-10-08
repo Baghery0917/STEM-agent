@@ -1,4 +1,5 @@
 import type { QuestionPublicResponse, SubmitAnswerResponse } from '@/api/types';
+import MarkdownContent from '@/components/common/MarkdownContent';
 import { DIFFICULTY_LABEL, QUESTION_TYPE_LABEL } from '@/utils/enums';
 
 export interface Choice { prefix: string; label: string }
@@ -89,7 +90,7 @@ export default function QuestionCard({
       </div>
       <div className="qb">
         <div className="stem">
-          {body}
+          <MarkdownContent content={body} />
           {question.content_image && <img src={question.content_image} alt="题目图片" />}
         </div>
 
@@ -109,7 +110,8 @@ export default function QuestionCard({
                   disabled={locked}
                   onClick={() => (isSingle ? pickSingle(c.prefix) : pickMulti(c.prefix))}
                 >
-                  <span className="l">{c.prefix}</span>{c.label}
+                  <span className="l">{c.prefix}</span>
+                  <MarkdownContent content={c.label} inline className="opt-md" />
                 </button>
               );
             })}
@@ -154,12 +156,16 @@ export default function QuestionCard({
               <div>
                 <b>{state.feedback.is_correct ? '回答正确' : '回答错误'}</b>
                 <div className="why">
-                  你的答案：{state.answer || '（空）'}　·　正确答案：<b>{state.feedback.correct_answer}</b>
+                  你的答案：{state.answer || '（空）'}　·　正确答案：
+                  <b><MarkdownContent content={state.feedback.correct_answer || ''} inline /></b>
                 </div>
               </div>
             </div>
             {state.feedback.analysis && (
-              <div className="sol"><b>解析</b>　{state.feedback.analysis}</div>
+              <div className="sol">
+                <b>解析</b>
+                <MarkdownContent content={state.feedback.analysis} />
+              </div>
             )}
             {state.feedback.analysis_image && (
               <img src={state.feedback.analysis_image} alt="解析图片" style={{ maxWidth: '100%', borderRadius: 8, marginTop: 8 }} />

@@ -1,10 +1,11 @@
 # 外部团队（策略 / 评价等）可复制此片段到自己的 docker-compose.yml。
-# 前提：本机已执行 make network && make db-up（或 make up），stem-db 在跑。
+# 文档：docs/external-interfaces.md §0 、 docs/design/db-external-access.md
+# 前提：本机已 make up（或 make db-up），stem-db 在跑且已 join stem-net。
 #
 # 用法示例：
 #   docker compose -f examples/external-service.compose.yml up -d
 #
-# 说明：下面用 alpine 仅演示能 ping 通库；请换成你们自己的服务镜像与命令。
+# 说明：下面用 postgres 客户端镜像仅演示能连上库；请换成你们自己的服务镜像与命令。
 
 services:
   example-external:

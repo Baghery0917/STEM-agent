@@ -55,8 +55,8 @@ services:
 volumes:
   pgdata:
 
-# stem-net：供同一台机器上其他 compose 项目（教学策略服务等）直连 stem-db:5432
-# 首次使用先执行: docker network create stem-net
+# stem-net：同机外部服务（策略/评价）直连 stem-db:5432
+# 文档：docs/external-interfaces.md §0 ；make up / make network 会创建该网络
 networks:
   stem-net:
     external: true

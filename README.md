@@ -51,7 +51,17 @@ cp backend/.env.example backend/.env
 make up
 ```
 
-同机外部服务（策略 / 评价）只读连库说明：[`docs/design/db-external-access.md`](./docs/design/db-external-access.md)。
+**外部对接（发给同事）**：[`docs/external-interfaces.md`](./docs/external-interfaces.md)  
+其中 §0 是同机只读连库（Postgres，不是 MCP）：
+
+| 项 | 值 |
+|----|-----|
+| Host（容器 / `stem-net`） | `stem-db` |
+| Port / DB | `5432` / `stem_db` |
+| 账号 | `strategy_reader` / `strategy_reader`（只读） |
+| 连接串 | `postgresql://strategy_reader:strategy_reader@stem-db:5432/stem_db` |
+
+细则：[`docs/design/db-external-access.md`](./docs/design/db-external-access.md)；Compose 示例：[`examples/external-service.compose.yml`](./examples/external-service.compose.yml)。
 
 启动完成后访问：
 
@@ -166,14 +176,16 @@ LLM_EMBEDDING_MODEL=text-embedding-v4
 LLM_EMBEDDING_DIMENSION=1024
 ```
 
-教学策略服务（可选）：
+教学策略 / 评价处（可选，MCP）：
 
 ```bash
-TEACHING_STRATEGY_BASE_URL=https://your-strategy-service.com
-TEACHING_STRATEGY_API_KEY=sk-xxxxxxxx
+TEACHING_STRATEGY_MCP_URL=http://127.0.0.1:8100/mcp
+TEACHING_STRATEGY_API_KEY=
+EVALUATION_MCP_URL=http://127.0.0.1:8200/mcp
+EVALUATION_API_KEY=
 ```
 
-如未配置教学策略服务，系统会自动使用 LLM 作为 fallback。
+未配置策略 MCP 时系统用 LLM fallback。外部服务如何只读连本库见 [`docs/external-interfaces.md`](./docs/external-interfaces.md) §0。
 
 ---
 
@@ -228,6 +240,11 @@ stem/
 │   ├── Dockerfile
 │   └── nginx.conf
 │
+├── docs/                       # PRD、API、外部对接契约
+│   ├── external-interfaces.md  # 对接总览（含 §0 只读连库）
+│   └── design/db-external-access.md
+├── examples/                   # 外部服务 join stem-net 示例
+├── db/init/                    # Postgres init（strategy_reader）
 ├── Makefile                    # 常用命令
 ├── docker-compose.yml          # 一键编排
 └── README.md                   # 本文件

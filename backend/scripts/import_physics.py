@@ -40,14 +40,27 @@ def embed_texts(texts: list[str]) -> list[list[float] | None]:
     from dotenv import dotenv_values
     from openai import OpenAI
     cfg = dotenv_values(BACKEND_ENV) if BACKEND_ENV.exists() else {}
-    key, base, model = cfg.get("LLM_API_KEY"), cfg.get("LLM_BASE_URL"), cfg.get("LLM_EMBEDDING_MODEL", "text-embedding-v4")
+    # text-embedding-v4 在 DashScope；优先 embedding → vision → 主 LLM
+    key = (
+        cfg.get("LLM_EMBEDDING_API_KEY")
+        or cfg.get("LLM_VISION_API_KEY")
+        or cfg.get("LLM_API_KEY")
+    )
+    base = (
+        cfg.get("LLM_EMBEDDING_BASE_URL")
+        or cfg.get("LLM_VISION_BASE_URL")
+        or cfg.get("LLM_BASE_URL")
+    )
+    model = cfg.get("LLM_EMBEDDING_MODEL") or "text-embedding-v4"
+    dim = int(cfg.get("LLM_EMBEDDING_DIMENSION") or "1024")
     if not key:
-        print("  no LLM_API_KEY in backend/.env, skipping embeddings"); return [None] * len(texts)
+        print("  no embedding API key in backend/.env, skipping embeddings")
+        return [None] * len(texts)
     client = OpenAI(api_key=key, base_url=base)
     out: list[list[float] | None] = []
     for i in range(0, len(texts), 10):
         batch = [strip_math(t)[:2000] or " " for t in texts[i:i + 10]]
-        r = client.embeddings.create(model=model, input=batch, dimensions=1024)
+        r = client.embeddings.create(model=model, input=batch, dimensions=dim)
         out += [d.embedding for d in r.data]
         if (i // 10) % 20 == 0:
             print(f"  embedded {min(i + 10, len(texts))}/{len(texts)}", flush=True)
@@ -107,11 +120,14 @@ def main():
     for q, vec in zip(questions, vectors):
         sid = ids[(q["section_key"], "section")]
         vec_s = None if vec is None else "[" + ",".join(f"{x:.6f}" for x in vec) + "]"
+        # PostgreSQL enums store member names (SHORT_ANSWER), jsonl stores values (short_answer).
+        q_type = q["type"].upper()
+        q_difficulty = q["difficulty"].upper()
         qid = upsert("question", q["key"],
                      "INSERT INTO questions(type, content, content_image, answer, answer_image, analysis, difficulty, embedding) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
-                     (q["type"], q["content"], q["content_image"], q["answer"], q["answer_image"], q["analysis"], q["difficulty"], vec_s),
+                     (q_type, q["content"], q["content_image"], q["answer"], q["answer_image"], q["analysis"], q_difficulty, vec_s),
                      "UPDATE questions SET type=%s, content=%s, content_image=%s, answer=%s, answer_image=%s, analysis=%s, difficulty=%s, embedding=COALESCE(%s, embedding), updated_at=now() WHERE id=%s",
-                     (q["type"], q["content"], q["content_image"], q["answer"], q["answer_image"], q["analysis"], q["difficulty"], vec_s))
+                     (q_type, q["content"], q["content_image"], q["answer"], q["answer_image"], q["analysis"], q_difficulty, vec_s))
         cur.execute("DELETE FROM question_knowledge_points WHERE question_id=%s", (qid,))
         cur.execute("INSERT INTO question_knowledge_points(question_id, section_id) VALUES (%s,%s)", (qid, sid))
     conn.commit()

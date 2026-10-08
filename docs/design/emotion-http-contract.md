@@ -3,6 +3,8 @@
 教学 / 练习流程在拿到摄像头截帧后，调用外部情绪识别服务，得到五档分类，映射为数值 1–5 写入消息或练习明细。
 调用方是 `backend/app/external/emotion.py`。
 
+> 本服务**不连 STEM 数据库**；只需实现 HTTP `/recognize`。对接总览见 [`../external-interfaces.md`](../external-interfaces.md) §3。策略 / 评价服务的只读连库见该文档 §0。
+
 ## 传输
 
 - 协议：HTTP `POST`
