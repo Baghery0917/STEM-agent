@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Rail from '@/components/shell/Rail';
 import Toasts from '@/components/shell/Toasts';
@@ -11,6 +11,7 @@ import { toast } from '@/stores/toastStore';
 import { badgeByKey } from '@/theme/badges';
 import CardReveal from '@/components/theme/CardReveal';
 import type { PersonaKey } from '@/theme/personas';
+import { useScrollScene } from '@/hooks/useScrollScene';
 
 /** 学生端壳子：左侧会话栏 + 右侧主区。顶栏由各页面自己渲染（需要页面级上下文） */
 export default function StudentLayout() {
@@ -22,6 +23,8 @@ export default function StudentLayout() {
   const cards = useCards(student?.id);
   const qc = useQueryClient();
   const [reveal, setReveal] = useState<PersonaKey | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  useScrollScene(mainRef);
 
   // 签到：每次打开应用记一次登录，顺手领已达标的徽章
   useEffect(() => {
@@ -96,7 +99,7 @@ export default function StudentLayout() {
     <div className="agent">
       <div className="app">
         <Rail />
-        <main className="main">
+        <main className="main" ref={mainRef}>
           <div className="page-transition" key={location.pathname}>
             <Outlet />
           </div>

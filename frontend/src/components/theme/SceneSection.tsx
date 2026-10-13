@@ -22,7 +22,7 @@ export default function SceneSection({
   style,
 }: Props) {
   return (
-    <section className={`scene-section ${tone} ${className}`} style={style}>
+    <section className={`scene-section ${tone} ${className}`} style={style} data-reveal>
       <div className="scene-heading">
         <div>
           <div className="scene-kicker">{number && <span>{number}</span>}{eyebrow}</div>

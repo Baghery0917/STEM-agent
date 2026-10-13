@@ -26,7 +26,7 @@ export default function ChapterHero({
   const today = todayTheme();
 
   return (
-    <header className={`chapter-hero ${art ? 'with-art' : ''}`}>
+    <header className={`chapter-hero ${art ? 'with-art' : ''}`} data-scroll="leave">
       <div className="chapter-copy">
         <div className="chapter-meta">
           {chapter && <span className="chapter-no">{chapter}</span>}

@@ -130,7 +130,7 @@ export default function Cards() {
             style={{ ['--wall-art' as string]: tbbtCssUrl('backgrounds/sheldon-stencil-paper.jpg') }}
           >
             <div className="badge-grid">
-              {BADGES.map((b) => {
+              {BADGES.map((b, bi) => {
                 const got = ownedBadges.get(b.key);
                 const p = progress.get(b.key);
                 const pct = p ? Math.min(100, Math.round((p.value / p.threshold) * 100)) : 0;
@@ -139,7 +139,7 @@ export default function Cards() {
                     type="button"
                     key={b.key}
                     className={`badge ${got ? 'got' : ''}`}
-                    style={{ ['--bc' as string]: b.color }}
+                    style={{ ['--bc' as string]: b.color, ['--bi' as string]: bi }}
                     onClick={() => setOpenBadge(b.key)}
                     title={got ? `${b.title} · ${dayjs(got).format('M 月 D 日')}` : badgeHow(b, p?.threshold ?? 0)}
                   >

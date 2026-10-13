@@ -103,7 +103,7 @@ export default function Report() {
               <div className="report-flow">
                 <SceneSection number="03.1" eyebrow="Whiteboard evidence" title="知识点掌握度" aside={`活跃 ${active} 个 · 点薄弱项直接练习`}>
                     {r.knowledge_points.length === 0 && <div className="empty-note">还没有知识点数据</div>}
-                    {r.knowledge_points.map((k) => {
+                    {r.knowledge_points.map((k, ri) => {
                       const pct = Math.round(k.mastery_level * 100);
                       const low = pct < 60;
                       return (
@@ -111,6 +111,7 @@ export default function Report() {
                           type="button"
                           className="mrow"
                           key={k.section_id}
+                          style={{ ['--ri' as string]: Math.min(ri, 12) }}
                           onClick={() => navigate('/practice/new', { state: { preselect: [k.section_id] } })}
                           title={`练习 ${k.section_title}`}
                         >
