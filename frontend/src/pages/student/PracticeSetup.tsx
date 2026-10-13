@@ -9,6 +9,7 @@ import { useKnowledgeTree } from '@/hooks/useKnowledgeTree';
 import TopBar from '@/components/shell/TopBar';
 import SetupPanel from '@/components/practice/SetupPanel';
 import { shortTime } from '@/utils/time';
+import EtchedApparatus from '@/components/theme/EtchedApparatus';
 
 export default function PracticeSetup() {
   const student = useStudentStore((s) => s.current)!;
@@ -43,22 +44,23 @@ export default function PracticeSetup() {
   return (
     <>
       <TopBar crumb="新练习" />
-      <section className="stage">
-        <div className="psetup">
+      <section className="stage paper">
+        <div className="psetup psetup-v2">
           <div className="left">
             <div className="kicker">Chapter 02 · Whiteboard session</div>
-            <h1 className="hi">今晚，白板归你。</h1>
+            <h1 className="hi">今晚，<br />白板归你。</h1>
             <p>选好实验范围和节奏，电梯会带你逐层完成题目。卡住可以先做标记，不计时时还能随时敲开教学房间追问。</p>
             {recentList.length > 0 && (
               <>
-                <div className="grp">Recent · 最近的练习</div>
+                <div className="grp"><span>Lab notebook</span>最近的练习</div>
                 <div className="recent col1">
-                  {recentList.map((s) => {
+                  {recentList.map((s, si) => {
                     const names = s.knowledge_point_ids.map((id) => tree.data?.sectionById.get(id)?.title).filter(Boolean) as string[];
                     const answered = s.correct_count + s.wrong_count;
                     const rate = answered ? `正确率 ${Math.round((s.correct_count / answered) * 100)}%` : '未作答';
                     return (
                       <button type="button" key={s.id} className="rc" onClick={() => navigate(`/practice/${s.id}`)}>
+                        <em>№ {String(si + 1).padStart(2, '0')}</em>
                         <b>{names.slice(0, 2).join('、') || '练习'} · {s.total_count} 题</b>
                         <span className="m">{shortTime(s.started_at)} · {s.timed ? '计时' : '不计时'} · {s.ended_at ? rate : '进行中'}</span>
                       </button>
@@ -67,11 +69,10 @@ export default function PracticeSetup() {
                 </div>
               </>
             )}
-            <img
-              className="art"
-              src={`${import.meta.env.BASE_URL}tbbt/apartment/kitchen-render.jpg`}
-              alt="Apartment 4A 厨房练习场景"
-            />
+            <figure className="etched-plate">
+              <EtchedApparatus />
+              <figcaption><span>Plate 02</span>斜面 · 滑轮 · 弹簧 · 抛体</figcaption>
+            </figure>
           </div>
           <div className="right">
             <SetupPanel

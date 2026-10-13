@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Difficulty, QuestionType, StartPracticeRequest } from '@/api/types';
 import { matchPractice } from '@/api/practice';
@@ -60,25 +60,32 @@ export default function SetupPanel({ studentId, suggested, preselect, loading, o
   const canStart = ids.length > 0 && difficulty.size > 0 && types.size > 0 && (matched ?? 1) > 0 && !loading;
   const instantEffective = timed ? false : instant;
 
-  let summary: string;
+  let summary: React.ReactNode;
   if (ids.length === 0) summary = '先选一个范围';
   else if (match.isFetching) summary = '匹配中…';
   else if (matched == null) summary = '';
   else if (matched === 0) summary = '题库里没有符合条件的题';
-  else summary = `题库匹配 ${matched} 题 · 本次出 ${effective} 题${timed ? ` · 预计 ${Math.max(1, Math.round(effective * 1.2))} 分钟` : ''}`;
+  else summary = (
+    <>
+      <span className="tk"><b>{matched}</b>题库匹配</span>
+      <span className="tk"><b>{effective}</b>本次出题</span>
+      {timed && <span className="tk"><b>{Math.max(1, Math.round(effective * 1.2))}</b>预计分钟</span>}
+    </>
+  );
 
   return (
     <div className={inline ? 'setup-inline' : 'composer-wrap'}>
       <div className={inline ? '' : 'composer wide'}>
         <div className={`setup-panel ${inline ? 'with-cover' : ''}`}>
-          {inline && <img className="cover" src={`${import.meta.env.BASE_URL}tbbt/backgrounds/four-heads-cream.jpg`} alt="" draggable={false} />}
+          {inline && <div className="ruler" aria-hidden="true" />}
           <div className="sh">
             <b>练习参数</b>
             <span className="sp">范围按薄弱点预选，可改</span>
+            {inline && suggested.length > 0 && <span className="sticker hand">薄弱点<br />已预选</span>}
           </div>
 
           <div className="sp-row">
-            <div className="sp-lbl">范围</div>
+            <div className="sp-lbl"><em>01</em>范围</div>
             <div className="sp-body">
               <div className="tags">
                 {suggested.map((s) => (
@@ -120,7 +127,7 @@ export default function SetupPanel({ studentId, suggested, preselect, loading, o
 
           <div className="sp-grid">
             <div className="sp-row">
-              <div className="sp-lbl">题数</div>
+              <div className="sp-lbl"><em>02</em>题数</div>
               <div className="sp-body">
                 <div className="radio">
                   {COUNT_PRESETS.map((n) => (
@@ -141,7 +148,7 @@ export default function SetupPanel({ studentId, suggested, preselect, loading, o
               </div>
             </div>
             <div className="sp-row">
-              <div className="sp-lbl">难度</div>
+              <div className="sp-lbl"><em>03</em>难度</div>
               <div className="sp-body">
                 <div className="tags">
                   {DIFFICULTY_OPTIONS.map((d) => (
@@ -151,7 +158,7 @@ export default function SetupPanel({ studentId, suggested, preselect, loading, o
               </div>
             </div>
             <div className="sp-row">
-              <div className="sp-lbl">题型</div>
+              <div className="sp-lbl"><em>04</em>题型</div>
               <div className="sp-body">
                 <div className="tags">
                   {QUESTION_TYPE_OPTIONS.map((t) => (
@@ -161,7 +168,7 @@ export default function SetupPanel({ studentId, suggested, preselect, loading, o
               </div>
             </div>
             <div className="sp-row">
-              <div className="sp-lbl">节奏</div>
+              <div className="sp-lbl"><em>05</em>节奏</div>
               <div className="sp-body">
                 <div className="radio">
                   <button type="button" className={timed ? 'on' : ''} onClick={() => setTimed(true)}>计时</button>

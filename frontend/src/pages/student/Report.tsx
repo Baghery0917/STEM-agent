@@ -11,6 +11,8 @@ import { shortTime } from '@/utils/time';
 import ChapterHero from '@/components/theme/ChapterHero';
 import SceneSection from '@/components/theme/SceneSection';
 import PersonaCallout from '@/components/theme/PersonaCallout';
+import Scoreboard from '@/components/report/Scoreboard';
+import CrowdFooter from '@/components/report/CrowdFooter';
 
 const WEEKDAY = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -37,8 +39,8 @@ export default function Report() {
   return (
     <>
       <TopBar crumb="学习报告" showSeg={false} back />
-      <section className="stage">
-        <div className="report">
+      <section className="stage paper">
+        <div className="report report-v2">
           <ChapterHero
             chapter="03"
             eyebrow="Apartment weekly log"
@@ -63,6 +65,8 @@ export default function Report() {
 
           {r && (
             <>
+              <Scoreboard report={r} mode={mode} onPractice={(id) => navigate('/practice/new', { state: { preselect: [id] } })} />
+
               <div className="report-dispatch" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}tbbt/backgrounds/starfield.jpg)` }}>
                 <PersonaCallout
                   persona={student.persona}
@@ -103,27 +107,36 @@ export default function Report() {
               <div className="report-flow">
                 <SceneSection number="03.1" eyebrow="Whiteboard evidence" title="知识点掌握度" aside={`活跃 ${active} 个 · 点薄弱项直接练习`}>
                     {r.knowledge_points.length === 0 && <div className="empty-note">还没有知识点数据</div>}
+                    {r.knowledge_points.length > 0 && (
+                      <div className="gauge-head" aria-hidden="true">
+                        <span />
+                        <div className="gauge-scale"><i style={{ left: '0%' }}>0</i><i style={{ left: '60%' }}>60</i><i style={{ left: '100%' }}>100</i></div>
+                      </div>
+                    )}
                     {r.knowledge_points.map((k, ri) => {
                       const pct = Math.round(k.mastery_level * 100);
                       const low = pct < 60;
                       return (
                         <button
                           type="button"
-                          className="mrow"
+                          className={`gauge ${low ? 'low' : ''}`}
                           key={k.section_id}
-                          style={{ ['--ri' as string]: Math.min(ri, 12) }}
+                          style={{ ['--ri' as string]: Math.min(ri, 12), ['--v' as string]: pct }}
                           onClick={() => navigate('/practice/new', { state: { preselect: [k.section_id] } })}
                           title={`练习 ${k.section_title}`}
                         >
-                          <div>
-                            {k.section_title}
-                            <div className="sub">
+                          <div className="gauge-name">
+                            <b>{k.section_title}</b>
+                            <span>
                               练 {mode === 'recent' ? k.recent_practice_count : k.total_practice_count} · 讲 {mode === 'recent' ? k.recent_teaching_count : k.total_teaching_count}
                               {k.total_practice_count > 0 && ` · 正确率 ${Math.round((k.correct_count / k.total_practice_count) * 100)}%`}
-                            </div>
+                            </span>
                           </div>
-                          <div className="bar"><i className={low ? 'low' : ''} style={{ width: `${pct}%` }} /></div>
-                          <div className="pct">{pct}%</div>
+                          <div className="gauge-track">
+                            <i className="gauge-fill" />
+                            <i className="gauge-mark"><b>{pct}</b></i>
+                          </div>
+                          <span className="gauge-go">去练 →</span>
                         </button>
                       );
                     })}
@@ -131,7 +144,8 @@ export default function Report() {
 
                 <div className="report-side">
                   <SceneSection number="03.2" eyebrow="Room temperature" title="学习状态" aside="来自情绪识别 · 近 7 天">
-                      <div className="spark">
+                      <div className="spark etched-spark">
+                        <span className="y-top">自信</span><span className="y-bot">受挫</span>
                         {r.emotion_days.map((d) => (
                           <i
                             key={d.date}
@@ -151,7 +165,7 @@ export default function Report() {
                       </div>
                   </SceneSection>
                   <SceneSection number="03.3" eyebrow="Door log" title="最近记录">
-                    <div className="logs">
+                    <div className="logs door-log">
                       {r.emotion_logs.length === 0 && <div className="empty-note">暂无记录</div>}
                       {r.emotion_logs.slice(0, 8).map((l, i) => (
                         <div key={i}>
@@ -168,6 +182,7 @@ export default function Report() {
             </>
           )}
         </div>
+        {r && <CrowdFooter persona={student.persona} onPractice={() => navigate('/practice/new')} />}
       </section>
     </>
   );

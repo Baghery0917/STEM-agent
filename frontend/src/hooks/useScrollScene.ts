@@ -14,7 +14,7 @@ import { useEffect, type RefObject } from 'react';
  *   data-spy="id"        视口中线所在的板块 id 写到 scope 的 data-section 上（导航高亮）
  * scope 自身被写入 --page-p：最近一个滚动容器的整体滚动进度。
  *
- * 监听 scope 上捕获阶段的 scroll，嵌套的滚动容器（.stage）也能收到；
+ * 监听 scope 上捕获阶段的 scroll（嵌套的 .stage 也能收到）和 window 的 scroll（窄屏整页滚动）；
  * 内容异步渲染（查询返回后）由 MutationObserver 重新收集元素。
  * 系统开启「减弱动态效果」时只处理 reveal（直接显示），不写进度。
  */
@@ -31,7 +31,20 @@ export function useScrollScene(scope: RefObject<HTMLElement>) {
     let lastSection = '';
 
     const clamp = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
-    const scrollerOf = (el: HTMLElement) => (el.closest('.stage, .landing') as HTMLElement | null) ?? root;
+    /**
+     * 元素所在的滚动视窗。宽屏是 .stage / .landing；窄屏（≤900px）学生端改由整页文档滚动，
+     * .stage 不再产生滚动，这时退回到文档视口。
+     */
+    const frameOf = (el: HTMLElement) => {
+      const box = el.closest('.stage, .landing') as HTMLElement | null;
+      if (box && box.scrollHeight > box.clientHeight + 1) {
+        const r = box.getBoundingClientRect();
+        return { top: r.top, height: r.height, rest: box.scrollHeight - box.scrollTop - box.clientHeight, pos: box.scrollTop, max: box.scrollHeight - box.clientHeight };
+      }
+      const doc = document.scrollingElement ?? document.documentElement;
+      const max = doc.scrollHeight - window.innerHeight;
+      return { top: 0, height: window.innerHeight, rest: max - doc.scrollTop, pos: doc.scrollTop, max };
+    };
 
     const collect = () => {
       linked = reduced ? [] : Array.from(root.querySelectorAll<HTMLElement>('[data-scroll]'));
@@ -52,7 +65,7 @@ export function useScrollScene(scope: RefObject<HTMLElement>) {
 
       for (const el of linked) {
         const r = el.getBoundingClientRect();
-        const sc = scrollerOf(el).getBoundingClientRect();
+        const sc = frameOf(el);
         let p = 0;
         switch (el.dataset.scroll) {
           case 'pin': {
@@ -63,20 +76,15 @@ export function useScrollScene(scope: RefObject<HTMLElement>) {
           case 'view': p = clamp((vh - r.top) / (vh + r.height)); break;
           case 'enter': p = clamp((vh - r.top) / (vh * 0.65)); break;
           case 'leave': p = clamp((sc.top - r.top) / Math.max(1, r.height)); break;
-          case 'tail': {
-            const box = scrollerOf(el);
-            const rest = box.scrollHeight - box.scrollTop - box.clientHeight;
-            p = clamp(1 - rest / Math.max(1, r.height));
-            break;
-          }
+          case 'tail': p = clamp(1 - sc.rest / Math.max(1, r.height)); break;
         }
         el.style.setProperty('--p', p.toFixed(4));
       }
 
-      const scroller = root.matches('.landing, .stage') ? root : root.querySelector<HTMLElement>('.landing, .stage');
-      if (scroller) {
-        const max = scroller.scrollHeight - scroller.clientHeight;
-        root.style.setProperty('--page-p', max > 0 ? clamp(scroller.scrollTop / max).toFixed(4) : '0');
+      const anchor = root.matches('.landing, .stage') ? root : root.querySelector<HTMLElement>('.landing, .stage');
+      if (anchor) {
+        const f = frameOf(anchor);
+        root.style.setProperty('--page-p', f.max > 0 ? clamp(f.pos / f.max).toFixed(4) : '0');
       }
 
       if (spies.length) {
@@ -105,6 +113,8 @@ export function useScrollScene(scope: RefObject<HTMLElement>) {
     mo.observe(root, { childList: true, subtree: true });
 
     root.addEventListener('scroll', schedule, { capture: true, passive: true });
+    // 窄屏下滚动的是文档本身，事件不经过 root
+    window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
 
     return () => {
@@ -112,6 +122,7 @@ export function useScrollScene(scope: RefObject<HTMLElement>) {
       cancelAnimationFrame(frame);
       cancelAnimationFrame(mutFrame);
       root.removeEventListener('scroll', schedule, { capture: true });
+      window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
     };
   }, [scope]);
