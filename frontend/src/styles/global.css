@@ -1073,7 +1073,7 @@ body {
 .flip.sheldon .back .atom-mark { display: none; }
 
 /* =====================================================================
-   落地页：长滚动叙事。--p / --page-p / --dx 由 useScrollScene 每帧写入
+   落地页：长滚动叙事。--p / --page-p 由 useScrollScene 每帧写入；--tp 是冷知识轨道的横向进度
    ===================================================================== */
 .landing {
   --ease-apple: cubic-bezier(.22, 1, .36, 1);
@@ -1193,16 +1193,14 @@ body {
 .news-list .src i { font-style: normal; display: inline-block; transition: transform .35s var(--ease-apple); }
 .news-list a:hover .src i { transform: translate(3px, -3px); }
 
-/* 02 冷知识：宽屏下纵向滚动驱动横向轨道（.pinned 由脚本加）；窄屏原生横滑 + 吸附 */
-.trivia-pin { position: relative; padding-top: 96px; }
-.trivia-pin.pinned { padding-top: 0; }
-.trivia-pin.pinned .trivia-stick { position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; justify-content: center; padding-top: 48px; overflow: hidden; }
-.trivia-pin .sec-head { max-width: 1120px; margin: 0 auto 36px; padding: 0 32px; }
-.trivia-track { overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-left: max(32px, calc((100vw - 1120px) / 2 + 32px)); scrollbar-width: none; overscroll-behavior-x: contain; }
+/* 02 冷知识：原生横向滚动 + 吸附；鼠标拖拽时临时关闭吸附（.dragging） */
+.trivia-sec { position: relative; padding-top: 96px; --gutter: max(32px, calc((100vw - 1120px) / 2 + 32px)); }
+.trivia-sec .sec-head { max-width: 1120px; margin: 0 auto 36px; padding: 0 32px; }
+.trivia-track { overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-padding-left: var(--gutter); scrollbar-width: none; overscroll-behavior-x: contain; cursor: grab; outline: none; }
 .trivia-track::-webkit-scrollbar { display: none; }
-.trivia-pin.pinned .trivia-track { overflow: hidden; scroll-snap-type: none; }
-.trivia-rail { display: grid; grid-auto-flow: column; grid-auto-columns: 320px; gap: 20px; width: max-content; padding: 8px max(32px, calc((100vw - 1120px) / 2 + 32px)) 28px; }
-.trivia-pin.pinned .trivia-rail { transform: translate3d(calc(var(--p, 0) * var(--dx, 0px) * -1), 0, 0); will-change: transform; }
+.trivia-track.dragging { scroll-snap-type: none; cursor: grabbing; user-select: none; }
+.trivia-track.dragging .trivia-card { pointer-events: none; }
+.trivia-rail { display: grid; grid-auto-flow: column; grid-auto-columns: 320px; gap: 20px; width: max-content; padding: 8px var(--gutter) 28px; }
 .trivia-card { scroll-snap-align: start; display: flex; flex-direction: column; gap: 10px; min-height: 300px; padding: 26px 24px 22px; border-radius: 22px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
 .trivia-card.in { transition: opacity .7s var(--ease-out), transform .5s var(--ease-apple), box-shadow .5s var(--ease-apple); transition-delay: var(--d, 0ms), 0ms, 0ms; }
 .trivia-card.in:hover { transform: translateY(-6px) rotate(-.4deg); box-shadow: 0 28px 48px -26px rgba(60,40,10,.4); }
@@ -1210,10 +1208,15 @@ body {
 .trivia-card h3 { margin: 4px 0 0; font: 600 17px/1.3 var(--font-ui); letter-spacing: -.2px; }
 .trivia-card p { margin: 0; color: var(--ink-2); font-size: 13.5px; line-height: 1.7; flex: 1; }
 .trivia-card .ref { font: 500 10.5px var(--font-mono); letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-3); padding-top: 8px; border-top: 1px dashed var(--line); }
-.trivia-meter { display: none; }
-.trivia-pin.pinned .trivia-meter { display: flex; align-items: center; gap: 12px; width: min(320px, 60vw); margin: 8px auto 0; font: 500 10.5px var(--font-mono); letter-spacing: 1.2px; color: var(--ink-3); }
+.trivia-ctrl { display: flex; align-items: center; justify-content: space-between; gap: 24px; max-width: 1120px; margin: 4px auto 0; padding: 0 32px; }
+.trivia-meter { display: flex; align-items: center; gap: 12px; width: min(320px, 50vw); font: 500 10.5px var(--font-mono); letter-spacing: 1.2px; color: var(--ink-3); }
 .trivia-meter i { position: relative; flex: 1; height: 2px; border-radius: 2px; background: var(--line); overflow: hidden; }
-.trivia-meter b { position: absolute; inset: 0; background: var(--ink); transform-origin: left; transform: scaleX(var(--p, 0)); }
+.trivia-arrows { display: flex; gap: 8px; }
+.trivia-arrows button { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--ink); color: var(--ink); font-size: 16px; transition: background .3s var(--ease-apple), color .3s, opacity .3s, transform .35s var(--ease-apple); }
+.trivia-arrows button:hover:not(:disabled) { background: var(--ink); color: var(--bg); }
+.trivia-arrows button:active:not(:disabled) { transform: scale(.92); }
+.trivia-arrows button:disabled { opacity: .25; cursor: default; }
+.trivia-meter b { position: absolute; inset: 0; background: var(--ink); transform-origin: left; transform: scaleX(var(--tp, 0)); transition: transform .15s linear; }
 
 /* 03 讲师：每张卡按各自速度视差，背景大字随板块横移 */
 .land-sec.tutors { position: relative; padding-bottom: 140px; }
@@ -1263,10 +1266,11 @@ body {
   .land-sec { padding: 64px 16px 24px; }
   .land-sec.news { grid-template-columns: 1fr; gap: 28px; }
   .news .sec-head { position: static; }
-  .trivia-pin { padding-top: 64px; }
-  .trivia-pin .sec-head { padding: 0 16px; }
-  .trivia-track { scroll-padding-left: 16px; }
-  .trivia-rail { grid-auto-columns: 82vw; padding-left: 16px; padding-right: 16px; }
+  .trivia-sec { padding-top: 64px; --gutter: 16px; }
+  .trivia-sec .sec-head { padding: 0 16px; }
+  .trivia-rail { grid-auto-columns: 82vw; }
+  .trivia-ctrl { padding: 0 16px; }
+  .trivia-arrows { display: none; }
   .sec-head { grid-template-columns: 1fr; }
   .sec-head .num { grid-row: auto; font-size: 44px; margin-bottom: 8px; }
   .sec-head .lede { grid-column: 1; }

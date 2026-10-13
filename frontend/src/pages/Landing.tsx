@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { listPublicNews } from '@/api/news';
@@ -25,7 +25,7 @@ const SECTIONS = [
  * 开场  大字墙固定在视口里，滚动时九行向两侧拉开、整体放大淡出，标题卡后退
  * 宣言  固定居中的一句话，随滚动逐词点亮
  * 01    物理新闻：左侧标题吸顶，右侧条目进入视口时依次划线展开
- * 02    冷知识：纵向滚动驱动横向卡片轨道（窄屏退回原生横滑 + 吸附）
+ * 02    冷知识：原生横向滚动 + 吸附；触控板/触屏横滑，鼠标可拖拽或点两侧箭头
  * 03    讲师：七张卡不同速度视差，背景大字横移
  * 页脚  幕布式：内容层滚走后露出固定在底部的页脚
  */
@@ -37,6 +37,63 @@ export default function Landing() {
   const newsQuery = useQuery({ queryKey: ['public-news'], queryFn: () => listPublicNews(8), staleTime: 300_000, retry: 0 });
   const news = newsQuery.data?.length ? newsQuery.data.map((n) => ({ date: n.published_on, tag: n.tag, title: n.title, summary: n.summary, source: n.source, url: n.url })) : PHYSICS_NEWS;
   useScrollScene(root);
+
+  // 冷知识横向轨道：进度写 CSS 变量，箭头可用状态进 state
+  const track = useRef<HTMLDivElement>(null);
+  const [edge, setEdge] = useState({ start: true, end: false });
+  const syncTrack = useCallback(() => {
+    const el = track.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    el.parentElement?.style.setProperty('--tp', max > 0 ? (el.scrollLeft / max).toFixed(4) : '0');
+    const start = el.scrollLeft < 4, end = el.scrollLeft > max - 4;
+    setEdge((e) => (e.start === start && e.end === end ? e : { start, end }));
+  }, []);
+  useEffect(() => {
+    syncTrack();
+    window.addEventListener('resize', syncTrack);
+    return () => window.removeEventListener('resize', syncTrack);
+  }, [syncTrack]);
+  const page = (dir: 1 | -1) => {
+    const el = track.current;
+    const card = el?.querySelector<HTMLElement>('.trivia-card');
+    if (!el || !card) return;
+    const step = card.offsetWidth + 20;
+    // 一次翻过可见区内的整卡数，至少一张
+    el.scrollBy({ left: dir * step * Math.max(1, Math.floor(el.clientWidth / step) - 1), behavior: 'smooth' });
+  };
+  // 鼠标拖拽：只处理 mouse，触控与触控板走原生
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+  const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    drag.current = { x: e.clientX, left: e.currentTarget.scrollLeft, moved: false };
+  };
+  const onDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.x;
+    if (!d.moved && Math.abs(dx) > 4) {
+      d.moved = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      e.currentTarget.classList.add('dragging');
+    }
+    if (d.moved) e.currentTarget.scrollLeft = d.left - dx;
+  };
+  const onUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d?.moved) return;
+    const el = e.currentTarget;
+    // 先记下位置再恢复吸附，否则浏览器会立刻跳到吸附点，没有过渡
+    const left = el.scrollLeft;
+    el.classList.remove('dragging');
+    el.scrollLeft = left;
+    const card = el.querySelector<HTMLElement>('.trivia-card');
+    if (card) {
+      const step = card.offsetWidth + 20;
+      el.scrollTo({ left: Math.round(left / step) * step, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const el = root.current;
@@ -153,30 +210,44 @@ export default function Landing() {
             </ol>
           </section>
 
-          <section className="trivia-pin" id="trivia" data-scroll="hpin" data-spy="trivia">
-            <div className="trivia-stick">
-              <div className="sec-head" data-reveal>
-                <div className="num">02</div>
-                <div>
-                  <div className="kicker">Things you didn't know about 4A</div>
-                  <h2>生活大爆炸冷知识</h2>
-                </div>
-                <p className="lede">一部分来自剧集，一部分来自科学顾问的访谈，有几条是我们自己从全剧台词里数出来的。</p>
+          <section className="trivia-sec" id="trivia" data-spy="trivia">
+            <div className="sec-head" data-reveal>
+              <div className="num">02</div>
+              <div>
+                <div className="kicker">Things you didn't know about 4A</div>
+                <h2>生活大爆炸冷知识</h2>
               </div>
-              <div className="trivia-track" data-htrack>
-                <div className="trivia-rail">
-                  {TBBT_TRIVIA.map((t, i) => (
-                    <article key={t.head} className="trivia-card" data-reveal style={{ ['--d' as string]: `${(i % 4) * 70}ms`, ['--k' as string]: i / (TBBT_TRIVIA.length - 1) }}>
-                      <div className="idx">{String(i + 1).padStart(2, '0')}</div>
-                      <h3>{t.head}</h3>
-                      <p>{t.body}</p>
-                      <div className="ref">{t.ref}</div>
-                    </article>
-                  ))}
-                </div>
+              <p className="lede">一部分来自剧集，一部分来自科学顾问的访谈，有几条是我们自己从全剧台词里数出来的。</p>
+            </div>
+            <div
+              className="trivia-track"
+              ref={track}
+              onScroll={syncTrack}
+              onPointerDown={onDown}
+              onPointerMove={onDragMove}
+              onPointerUp={onUp}
+              onPointerCancel={onUp}
+              tabIndex={0}
+              aria-label="冷知识卡片，可左右滑动"
+            >
+              <div className="trivia-rail">
+                {TBBT_TRIVIA.map((t, i) => (
+                  <article key={t.head} className="trivia-card" data-reveal style={{ ['--d' as string]: `${(i % 4) * 70}ms`, ['--k' as string]: i / (TBBT_TRIVIA.length - 1) }}>
+                    <div className="idx">{String(i + 1).padStart(2, '0')}</div>
+                    <h3>{t.head}</h3>
+                    <p>{t.body}</p>
+                    <div className="ref">{t.ref}</div>
+                  </article>
+                ))}
               </div>
+            </div>
+            <div className="trivia-ctrl">
               <div className="trivia-meter" aria-hidden="true">
                 <span>01</span><i><b /></i><span>{String(TBBT_TRIVIA.length).padStart(2, '0')}</span>
+              </div>
+              <div className="trivia-arrows">
+                <button type="button" onClick={() => page(-1)} disabled={edge.start} aria-label="上一组">←</button>
+                <button type="button" onClick={() => page(1)} disabled={edge.end} aria-label="下一组">→</button>
               </div>
             </div>
           </section>

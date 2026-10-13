@@ -6,8 +6,6 @@ import { useEffect, type RefObject } from 'react';
  *
  * 标记：
  *   data-scroll="pin"    高容器 + 内部 sticky。--p：容器顶到达滚动区顶部为 0，容器底到达滚动区底部为 1
- *   data-scroll="hpin"   同 pin，额外把内部 [data-htrack] 的溢出宽度写进 --dx，并把容器高度设成「视口高 + 溢出宽」，
- *                        纵向滚动距离等于横向位移距离。窄屏（≤760px）不接管，交给原生横滑
  *   data-scroll="view"   --p：元素顶部进入视口底边为 0，元素底部离开视口顶边为 1
  *   data-scroll="enter"  --p：元素顶部从视口底边走到视口 35% 处，0→1
  *   data-scroll="leave"  --p：元素顶部从滚动区顶边往上移出自身高度，0→1（页头视差用）
@@ -25,7 +23,6 @@ export function useScrollScene(scope: RefObject<HTMLElement>) {
     const root = scope.current;
     if (!root) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const narrow = window.matchMedia('(max-width: 760px)');
 
     let linked: HTMLElement[] = [];
     let reveals = new Set<HTMLElement>();
@@ -36,29 +33,10 @@ export function useScrollScene(scope: RefObject<HTMLElement>) {
     const clamp = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
     const scrollerOf = (el: HTMLElement) => (el.closest('.stage, .landing') as HTMLElement | null) ?? root;
 
-    const layoutPins = () => {
-      for (const el of linked) {
-        if (el.dataset.scroll !== 'hpin') continue;
-        const track = el.querySelector<HTMLElement>('[data-htrack]');
-        if (!track || reduced || narrow.matches) {
-          el.style.removeProperty('height');
-          el.style.removeProperty('--dx');
-          el.classList.remove('pinned');
-          continue;
-        }
-        const dx = Math.max(0, track.scrollWidth - track.clientWidth);
-        const vh = scrollerOf(el).clientHeight;
-        el.style.setProperty('--dx', `${dx}px`);
-        el.style.height = `${vh + dx}px`;
-        el.classList.add('pinned');
-      }
-    };
-
     const collect = () => {
       linked = reduced ? [] : Array.from(root.querySelectorAll<HTMLElement>('[data-scroll]'));
       spies = Array.from(root.querySelectorAll<HTMLElement>('[data-spy]'));
       reveals = new Set(Array.from(root.querySelectorAll<HTMLElement>('[data-reveal]:not(.in)')));
-      layoutPins();
     };
 
     const update = () => {
@@ -77,8 +55,7 @@ export function useScrollScene(scope: RefObject<HTMLElement>) {
         const sc = scrollerOf(el).getBoundingClientRect();
         let p = 0;
         switch (el.dataset.scroll) {
-          case 'pin':
-          case 'hpin': {
+          case 'pin': {
             const span = r.height - sc.height;
             p = span > 0 ? clamp((sc.top - r.top) / span) : 0;
             break;
@@ -116,7 +93,6 @@ export function useScrollScene(scope: RefObject<HTMLElement>) {
     };
 
     const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
-    const relayout = () => { layoutPins(); schedule(); };
 
     collect();
     update();
@@ -129,19 +105,14 @@ export function useScrollScene(scope: RefObject<HTMLElement>) {
     mo.observe(root, { childList: true, subtree: true });
 
     root.addEventListener('scroll', schedule, { capture: true, passive: true });
-    window.addEventListener('resize', relayout);
-    narrow.addEventListener('change', relayout);
-    // 图片加载完会改变横向轨道宽度
-    root.addEventListener('load', relayout, true);
+    window.addEventListener('resize', schedule);
 
     return () => {
       mo.disconnect();
       cancelAnimationFrame(frame);
       cancelAnimationFrame(mutFrame);
       root.removeEventListener('scroll', schedule, { capture: true });
-      window.removeEventListener('resize', relayout);
-      narrow.removeEventListener('change', relayout);
-      root.removeEventListener('load', relayout, true);
+      window.removeEventListener('resize', schedule);
     };
   }, [scope]);
 }
