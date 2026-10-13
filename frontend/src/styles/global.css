@@ -1156,16 +1156,6 @@ body {
 .hero-foot .cue i::after { content: ""; position: absolute; left: 0; top: -40%; width: 1px; height: 40%; background: var(--ink); animation: cue 1.8s var(--ease-apple) infinite; }
 @keyframes cue { to { top: 100%; } }
 
-/* 宣言：固定居中，随滚动逐词点亮。词 i 的亮度 = clamp(0, t·n − i, 1)，t 是 --p 在 [.12, .82] 区间的归一化 */
-.statement-pin { height: 260vh; }
-.statement { position: sticky; top: 0; height: 100vh; height: 100dvh; display: grid; place-items: center; padding: 0 32px; }
-.statement p {
-  margin: 0; max-width: 13em; font: 500 clamp(30px, 5vw, 68px)/1.22 var(--font-display); font-variation-settings: "opsz" 144; letter-spacing: -.02em; color: var(--ink);
-  transform: translate3d(0, calc((1 - min(var(--p, 1) * 6, 1)) * 40px), 0);
-}
-.statement span { opacity: calc(.13 + .87 * clamp(0, (var(--p, 1) - .12) / .7 * var(--n) - var(--i), 1)); }
-.statement span.em { margin: 0 .22em; font-style: italic; color: var(--brick); }
-
 /* 板块通用 */
 .land-sec { max-width: 1120px; margin: 0 auto; padding: 96px 32px 40px; }
 .sec-head { display: grid; grid-template-columns: 64px 1fr; gap: 0 20px; align-items: end; margin-bottom: 36px; }
@@ -1261,8 +1251,6 @@ body {
   .land-hero { padding: 64px 16px 48px; }
   .hero-pin { height: 180vh; }
   .hero-copy { padding: 28px 18px; }
-  .statement-pin { height: 220vh; }
-  .statement { padding: 0 20px; }
   .land-sec { padding: 64px 16px 24px; }
   .land-sec.news { grid-template-columns: 1fr; gap: 28px; }
   .news .sec-head { position: static; }
@@ -1284,9 +1272,8 @@ body {
   .foot-meta { text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-pin, .statement-pin { height: auto; }
-  .land-hero, .statement { position: relative; }
-  .statement { height: auto; padding: 120px 32px; }
+  .hero-pin { height: auto; }
+  .land-hero { position: relative; }
   .wall .row span { animation: none; }
   .land-foot { position: relative; }
 }

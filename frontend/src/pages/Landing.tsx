@@ -10,8 +10,6 @@ import { useScrollScene } from '@/hooks/useScrollScene';
 
 const WORD = 'STEM AGENT';
 const ROWS = 9;
-/** 宣言逐词点亮：按词切分，标点跟随前一个词 */
-const STATEMENT = '七位 讲师， 教法 相同， 只是 语气 不同。 你从 Leonard 开始， 一路 把 其余 六个人 的 认可卡 拿到手。';
 /** 讲师卡视差速度（px），相邻卡错开，避免整排同步移动 */
 const TUTOR_SPEED = [40, 96, 18, 72, 30, 110, 54];
 const SECTIONS = [
@@ -23,7 +21,6 @@ const SECTIONS = [
 /**
  * 落地页：长滚动叙事。滚动效果全部由 useScrollScene 写 CSS 变量驱动，滚动期间不重渲染。
  * 开场  大字墙固定在视口里，滚动时九行向两侧拉开、整体放大淡出，标题卡后退
- * 宣言  固定居中的一句话，随滚动逐词点亮
  * 01    物理新闻：左侧标题吸顶，右侧条目进入视口时依次划线展开
  * 02    冷知识：原生横向滚动 + 吸附；触控板/触屏横滑，鼠标可拖拽或点两侧箭头
  * 03    讲师：七张卡不同速度视差，背景大字横移
@@ -121,7 +118,6 @@ export default function Landing() {
 
   const goLogin = () => navigate('/login');
   const base = import.meta.env.BASE_URL;
-  const words = STATEMENT.split(' ');
 
   return (
     <div className="agent">
@@ -170,16 +166,6 @@ export default function Landing() {
                 <span>{dayjs().format('YYYY.MM.DD')}</span>
               </div>
             </section>
-          </div>
-
-          <div className="statement-pin" data-scroll="pin">
-            <div className="statement">
-              <p style={{ ['--n' as string]: words.length }}>
-                {words.map((w, i) => (
-                  <span key={i} className={w === 'Leonard' ? 'em' : ''} style={{ ['--i' as string]: i }}>{w}</span>
-                ))}
-              </p>
-            </div>
           </div>
 
           <section className="land-sec news" id="news" data-spy="news">
