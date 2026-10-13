@@ -1,7 +1,13 @@
+from typing import Annotated
+
 from pydantic import BaseModel, Field
 
 from app.models.student import ExplainStyle, Gender, Persona
 from app.schemas.base import BaseSchema, TimestampSchema
+
+
+# 只接受 M/L/Q 命令和数字，避免把任意文本当路径存进来
+SignaturePath = Annotated[str, Field(min_length=3, max_length=20000, pattern=r"^[MLQ0-9.\s-]+$")]
 
 
 class StudentBase(BaseSchema):
@@ -10,7 +16,7 @@ class StudentBase(BaseSchema):
 
 
 class StudentCreate(StudentBase):
-    pass
+    signature: SignaturePath | None = None
 
 
 class StudentUpdate(BaseModel):
@@ -18,9 +24,11 @@ class StudentUpdate(BaseModel):
     gender: Gender | None = None
     explain_style: ExplainStyle | None = None
     persona: Persona | None = None
+    signature: SignaturePath | None = None
 
 
 class StudentResponse(StudentBase, TimestampSchema):
     id: int
     explain_style: ExplainStyle | None = None
     persona: Persona | None = None
+    signature: str | None = None

@@ -7,7 +7,7 @@
 const now = () => new Date().toISOString();
 const ago = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
 
-const students: any[] = [{ id: 1, name: '林小雨', gender: 'female', explain_style: null, persona: 'leonard', created_at: now(), updated_at: now() }];
+const students: any[] = [{ id: 1, name: '林小雨', gender: 'female', explain_style: null, persona: 'leonard', signature: 'M18 50 Q24 30 30 22 Q36 16 34 30 Q32 44 26 54 Q22 60 30 52 L36 44 M40 30 Q46 40 50 50 Q52 56 56 46 Q60 34 64 40 Q68 48 72 46 M84 24 Q80 40 82 56 M78 38 Q90 34 100 36 M104 52 Q120 46 140 48 Q170 50 210 44', created_at: now(), updated_at: now() }];
 // 认可卡：预览里已有 Penny，结束一次练习或会话就发下一张
 const CARD_ORDER = ['penny', 'howard', 'raj', 'bernadette', 'amy', 'sheldon'];
 const cards: any[] = [{ card_key: 'penny', acquired_at: ago(48) }];
@@ -110,7 +110,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function handle(method: string, path: string, search: URLSearchParams, body: any): Promise<Response> {
   let m: RegExpMatchArray | null;
   if (path === '/students' && method === 'GET') return json(students);
-  if (path === '/students' && method === 'POST') { const s = { id: ++nextId, ...body, explain_style: null, persona: null, created_at: now(), updated_at: now() }; students.push(s); return json(s, 201); }
+  if (path === '/students' && method === 'POST') { const s = { id: ++nextId, ...body, explain_style: null, persona: null, signature: body.signature ?? null, created_at: now(), updated_at: now() }; students.push(s); return json(s, 201); }
   if ((m = path.match(/^\/students\/(\d+)\/cards$/))) { grantBadges(); return json({ cards, unlocked: ['leonard', ...cards.map((c) => c.card_key)], badges, badge_progress: badgeProgress() }); }
   if ((m = path.match(/^\/students\/(\d+)\/checkin$/))) { metrics.logins += 1; return json({ login_count: metrics.logins, new_badges: grantBadges() }); }
   if ((m = path.match(/^\/students\/(\d+)\/report$/))) { await delay(300); return json(report(search.get('mode') || 'recent')); }

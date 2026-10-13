@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import String, Enum
+from sqlalchemy import String, Enum, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
@@ -43,3 +43,5 @@ class Student(BaseModel):
     )
     # 为空等于 Leonard
     persona: Mapped[Persona | None] = mapped_column(Enum(Persona), nullable=True)
+    # 室友协议签名：SVG path 的 d 属性，坐标系 viewBox 0 0 260 80，前端按笔画重放
+    signature: Mapped[str | None] = mapped_column(Text, nullable=True)

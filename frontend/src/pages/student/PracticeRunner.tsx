@@ -18,6 +18,7 @@ import ProgressBar from '@/components/practice/ProgressBar';
 import PracticeSummary from '@/components/practice/PracticeSummary';
 import AtomSpinner from '@/components/theme/AtomSpinner';
 import Modal from '@/components/shell/Modal';
+import { burst, enterOnce, gsap, useSmoothStage, useStageMotion } from '@/hooks/useStageMotion';
 
 export default function PracticeRunner() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -102,6 +103,8 @@ export default function PracticeRunner() {
   }, [session?.timed, session?.started_at, session?.ended_at]);
 
   const current = questions[index];
+  const stageRef = useRef<HTMLElement>(null);
+  const prevIndex = useRef(index);
   const curState: ItemState = current ? states[current.id] ?? { kind: 'pending' } : { kind: 'pending' };
   const starred = useMemo(() => new Set(session?.starred_question_ids ?? []), [session?.starred_question_ids]);
 
@@ -174,6 +177,57 @@ export default function PracticeRunner() {
 
   const busy = submit.isPending || skip.isPending;
 
+  const ended = !!session?.ended_at;
+  const inSummary = ended && (showSummary || !current);
+  useSmoothStage(stageRef, [inSummary, !!session]);
+
+  // 切题像电梯换层：往上一层题卡从下方升入，往回从上方落下；选项随后依次出现
+  useStageMotion(stageRef, ({ root }) => {
+    const card = root.querySelector('.prun .qcard');
+    if (!card) return;
+    const dir = index >= prevIndex.current ? 1 : -1;
+    const first = prevIndex.current === index;
+    prevIndex.current = index;
+    gsap.timeline()
+      .from(card, { y: first ? 24 : 70 * dir, autoAlpha: 0, rotateX: first ? 0 : -8 * dir, transformPerspective: 900, duration: 0.6, ease: 'expo.out', clearProps: 'transform,opacity,visibility' })
+      .from(card.querySelectorAll('.stem, .opts .opt, .answer'), { y: 12, autoAlpha: 0, duration: 0.45, ease: 'power2.out', stagger: 0.05, clearProps: 'transform,opacity,visibility' }, 0.12);
+    const lamp = root.querySelector('.elevator .floor.cur .lamp');
+    if (lamp) gsap.fromTo(lamp, { scale: 2.4 }, { scale: 1, duration: 0.6, ease: 'elastic.out(1, 0.4)', clearProps: 'transform' });
+  }, [current?.id, inSummary]);
+
+  // 判题结果：答对喷礼花，答错题卡左右一抖
+  const feedbackKey = current && curState.kind === 'answered' ? `${current.id}:${curState.feedback.is_correct}` : '';
+  const lastFeedback = useRef('');
+  useStageMotion(stageRef, ({ root }) => {
+    if (!feedbackKey || feedbackKey === lastFeedback.current) return;
+    lastFeedback.current = feedbackKey;
+    // 只给刚提交的这道题播，翻回已做过的题不重播
+    if (!submit.isSuccess || submit.variables?.id !== current?.id) return;
+    const fb = root.querySelector('.qcard .fb');
+    if (!fb) return;
+    gsap.from(fb, { y: -10, scale: 0.96, autoAlpha: 0, duration: 0.5, ease: 'back.out(2)', clearProps: 'all' });
+    if (fb.classList.contains('ok')) burst(fb.querySelector('.ic') ?? fb, ['#1e8c4a', '#d9a520', '#ffd84a', '#4fc47f']);
+    if (fb.classList.contains('no')) gsap.fromTo(root.querySelector('.prun .qcard'), { x: 0 }, { keyframes: { x: [-10, 9, -6, 4, 0] }, duration: 0.45, ease: 'power2.out', clearProps: 'transform' });
+    gsap.from(root.querySelectorAll('.qcard .sol'), { y: 14, autoAlpha: 0, duration: 0.6, delay: 0.2, ease: 'power2.out', clearProps: 'all' });
+  }, [feedbackKey]);
+
+  // 总结页：场景图视差，四个数字从 0 数上来，题目列表依次滑入
+  useStageMotion(stageRef, ({ root, scroller }) => {
+    const scene = root.querySelector<HTMLElement>('.summary-scene');
+    if (!scene) return;
+    gsap.from(scene, { clipPath: 'inset(0 0 100% 0 round 20px)', duration: 1, ease: 'expo.inOut', clearProps: 'clipPath' });
+    gsap.from(scene.querySelectorAll('span, strong'), { y: 20, autoAlpha: 0, duration: 0.7, stagger: 0.1, delay: 0.55, ease: 'power3.out' });
+    gsap.fromTo(scene, { backgroundPositionY: '40%' }, { backgroundPositionY: '75%', ease: 'none', scrollTrigger: { trigger: scene, scroller, start: 'top top', end: 'bottom top', scrub: true } });
+    root.querySelectorAll<HTMLElement>('.stats .stat .v').forEach((v, i) => {
+      const m = v.textContent?.match(/^(\d+)(.*)$/);
+      if (!m) return;
+      const o = { n: 0 };
+      gsap.to(o, { n: Number(m[1]), duration: 1.2, delay: 0.5 + i * 0.08, ease: 'power3.out', onUpdate: () => { v.textContent = `${Math.round(o.n)}${m[2]}`; } });
+    });
+    gsap.from(root.querySelectorAll('.stats .stat'), { y: 16, autoAlpha: 0, duration: 0.5, stagger: 0.07, delay: 0.4, ease: 'back.out(1.6)', clearProps: 'all' });
+    enterOnce(root.querySelectorAll('.qlist .ql'), { x: -16, autoAlpha: 0, duration: 0.45, stagger: 0.05, delay: 0.7, ease: 'power2.out' });
+  }, [inSummary]);
+
   const askThis = (q: QuestionPublicResponse) => {
     const pos = questions.findIndex((x) => x.id === q.id) + 1;
     navigate('/teaching', {
@@ -229,12 +283,11 @@ export default function PracticeRunner() {
     .map((id) => tree.data?.sectionById.get(id)?.title)
     .filter(Boolean) as string[];
   const scope = scopeNames.slice(0, 2).join('、') || '练习';
-  const ended = !!session.ended_at;
-  if (ended && (showSummary || !current)) {
+  if (inSummary) {
     return (
       <>
         <TopBar crumb={<><b>{scope} · {session.total_count} 题</b> · 已完成</>} right={emotionBadge} />
-        <section className="stage">
+        <section className="stage paper" ref={stageRef}>
           <PracticeSummary
             session={session}
             questions={questions}
@@ -267,7 +320,7 @@ export default function PracticeRunner() {
         crumb={<><b>{scope} · {session.total_count} 题</b> · {session.timed ? '计时' : '不计时'} · {ended ? '回顾' : '进行中'}</>}
         right={emotionBadge}
       />
-      <section className="stage">
+      <section className="stage paper" ref={stageRef}>
         <div className="prun">
         <div className="pwrap">
           {current && (

@@ -181,3 +181,125 @@ class TestStudentAPI:
             "gender": Gender.MALE.value,
         })
         assert response.status_code == 422
+
+
+SIGNATURE = "M10 40 L20 30 Q30 20 40 40"
+
+
+class TestStudentSignature:
+    """Tests for the student roommate-agreement signature field"""
+
+    async def test_create_student_with_signature(self, client: AsyncClient):
+        """Golden path: create with a valid signature echoes it, GET returns it"""
+        response = await client.post(STUDENTS_URL, json={
+            "name": "Alice",
+            "gender": Gender.FEMALE.value,
+            "signature": SIGNATURE,
+        })
+        assert response.status_code == 201
+        data = response.json()
+        assert data["signature"] == SIGNATURE
+
+        get_response = await client.get(f"{STUDENTS_URL}/{data['id']}")
+        assert get_response.status_code == 200
+        assert get_response.json()["signature"] == SIGNATURE
+
+    async def test_create_student_without_signature(self, client: AsyncClient):
+        """Golden path: create without signature -> signature is null"""
+        created = await create_test_student(client)
+        assert created["signature"] is None
+
+        get_response = await client.get(f"{STUDENTS_URL}/{created['id']}")
+        assert get_response.json()["signature"] is None
+
+    async def test_update_signature(self, client: AsyncClient):
+        """Golden path: PUT sets the signature"""
+        created = await create_test_student(client)
+        new_signature = "M0 0 L260 80"
+
+        response = await client.put(f"{STUDENTS_URL}/{created['id']}", json={
+            "signature": new_signature,
+        })
+        assert response.status_code == 200
+        assert response.json()["signature"] == new_signature
+
+        get_response = await client.get(f"{STUDENTS_URL}/{created['id']}")
+        assert get_response.json()["signature"] == new_signature
+
+    async def test_update_other_fields_keeps_signature(self, client: AsyncClient):
+        """Golden path: PUT without signature leaves it unchanged"""
+        created = await create_test_student(client, signature=SIGNATURE)
+
+        response = await client.put(f"{STUDENTS_URL}/{created['id']}", json={
+            "name": "Renamed",
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Renamed"
+        assert data["signature"] == SIGNATURE
+
+    async def test_create_with_decimal_and_negative_coords(self, client: AsyncClient):
+        """Edge: decimals and negative numbers are accepted"""
+        signature = "M10.5 40.25 L-1 30 Q30.0 20 40 40"
+        created = await create_test_student(client, signature=signature)
+        assert created["signature"] == signature
+
+    async def test_create_with_min_length_signature(self, client: AsyncClient):
+        """Edge: 3-character signature (boundary) is accepted"""
+        created = await create_test_student(client, signature="M10")
+        assert created["signature"] == "M10"
+
+    async def test_create_with_max_length_signature(self, client: AsyncClient):
+        """Edge: 20000-character signature (boundary) is accepted"""
+        signature = "M" + "1" * 19999
+        created = await create_test_student(client, signature=signature)
+        assert created["signature"] == signature
+
+    async def test_create_with_script_tag_signature(self, client: AsyncClient):
+        """Edge: signature containing <script> -> 422"""
+        response = await client.post(STUDENTS_URL, json={
+            "name": "Mallory",
+            "gender": Gender.MALE.value,
+            "signature": "M10 40 <script>alert(1)</script>",
+        })
+        assert response.status_code == 422
+
+    async def test_create_with_disallowed_path_command(self, client: AsyncClient):
+        """Edge: signature using Z or C commands -> 422"""
+        for signature in ("M10 40 L20 30 Z", "M10 40 C20 30 30 20 40 40"):
+            response = await client.post(STUDENTS_URL, json={
+                "name": "Alice",
+                "gender": Gender.FEMALE.value,
+                "signature": signature,
+            })
+            assert response.status_code == 422, signature
+
+    async def test_create_with_signature_too_short(self, client: AsyncClient):
+        """Edge: signature under 3 chars -> 422"""
+        response = await client.post(STUDENTS_URL, json={
+            "name": "Alice",
+            "gender": Gender.FEMALE.value,
+            "signature": "M1",
+        })
+        assert response.status_code == 422
+
+    async def test_create_with_signature_too_long(self, client: AsyncClient):
+        """Edge: signature over 20000 chars -> 422"""
+        response = await client.post(STUDENTS_URL, json={
+            "name": "Alice",
+            "gender": Gender.FEMALE.value,
+            "signature": "M" + "1" * 20000,
+        })
+        assert response.status_code == 422
+
+    async def test_update_with_invalid_signature(self, client: AsyncClient):
+        """Edge: PUT with invalid signature -> 422 and stored value unchanged"""
+        created = await create_test_student(client, signature=SIGNATURE)
+
+        response = await client.put(f"{STUDENTS_URL}/{created['id']}", json={
+            "signature": "M10 40 Z",
+        })
+        assert response.status_code == 422
+
+        get_response = await client.get(f"{STUDENTS_URL}/{created['id']}")
+        assert get_response.json()["signature"] == SIGNATURE

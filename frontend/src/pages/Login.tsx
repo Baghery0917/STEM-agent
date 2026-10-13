@@ -12,6 +12,7 @@ import { LOGIN } from '@/theme/copy';
 import BrandMark from '@/components/theme/BrandMark';
 import WeekdayIcon from '@/components/theme/WeekdayIcon';
 import { todayTheme } from '@/theme/weekday';
+import SignaturePad from '@/components/theme/SignaturePad';
 
 type Tab = 'student' | 'admin';
 type Phase = 'idle' | 'knocking' | 'opening';
@@ -27,6 +28,7 @@ const ENTER_AT = OPEN_AT + 1100;
 /**
  * 登录页：卡片就是电梯门。走廊照片按 cover 铺满，卡片用图中坐标贴在木门上，
  * 字像写在门上。输入名字后敲三下门（门板震动、涟漪、喊名字），门打开进入。
+ * 名字没登记过的，先在门上签室友协议，签名随建档一起存下。
  */
 export default function Login() {
   const navigate = useNavigate();
@@ -37,6 +39,9 @@ export default function Login() {
   const [gender, setGender] = useState<Gender>('male');
   const [password, setPassword] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
+  // 新住户先在门上签室友协议，再建档敲门
+  const [signing, setSigning] = useState(false);
+  const [signature, setSignature] = useState('');
   const [knocks, setKnocks] = useState(0);
   const [scale, setScale] = useState(1);
   const timers = useRef<number[]>([]);
@@ -60,12 +65,17 @@ export default function Login() {
   };
 
   const enter = useMutation({
-    mutationFn: async (): Promise<StudentResponse> => {
+    mutationFn: async (): Promise<StudentResponse | null> => {
       const nm = name.trim();
-      const found = (await listStudents({ limit: 500 })).find((s) => s.name === nm);
-      return found ?? createStudent({ name: nm, gender });
+      return (await listStudents({ limit: 500 })).find((s) => s.name === nm) ?? null;
     },
-    onSuccess: knockAndOpen,
+    onSuccess: (found) => (found ? knockAndOpen(found) : setSigning(true)),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const register = useMutation({
+    mutationFn: () => createStudent({ name: name.trim(), gender, signature }),
+    onSuccess: (s) => { setSigning(false); knockAndOpen(s); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -77,7 +87,7 @@ export default function Login() {
 
   const base = import.meta.env.BASE_URL;
   const today = todayTheme();
-  const busy = enter.isPending || phase !== 'idle';
+  const busy = enter.isPending || register.isPending || phase !== 'idle';
   const canEnter = name.trim().length > 0 && !busy;
   const who = name.trim() || '…';
 
@@ -109,14 +119,28 @@ export default function Login() {
             <div className="face">
               <div className="kicker">{LOGIN.title}</div>
               <div className="today"><WeekdayIcon day={today.key} /><span>{today.en}</span></div>
-              <h1>{tab === 'student' ? LOGIN.headline : LOGIN.teacherTab}</h1>
+              <h1>{tab === 'student' ? (signing ? '签署室友协议' : LOGIN.headline) : LOGIN.teacherTab}</h1>
               <div className="tabs">
                 <button type="button" className={tab === 'student' ? 'on' : ''} disabled={busy} onClick={() => setTab('student')}>学生</button>
-                <button type="button" className={tab === 'admin' ? 'on' : ''} disabled={busy} onClick={() => setTab('admin')}>教师</button>
+                <button type="button" className={tab === 'admin' ? 'on' : ''} disabled={busy || signing} onClick={() => setTab('admin')}>教师</button>
               </div>
 
               <div className="body">
-                {tab === 'student' ? (
+                {tab === 'student' && signing ? (
+                  <div className="agree">
+                    <p className="sub">{name.trim()}，第一次来 4A？进门前按 Sheldon 的规矩，先签一份室友协议。</p>
+                    <ol className="agree-terms">
+                      <li>讲解方式、讲师、提醒都写在协议里，随时可以改。</li>
+                      <li>摄像头只用来判断学习状态，画面不上传、不保存。</li>
+                      <li>不会的题尽管问，问题没有笨的。</li>
+                    </ol>
+                    <SignaturePad value={signature} onChange={setSignature} disabled={register.isPending} />
+                    <button type="button" className="enter" disabled={signature.length < 3 || busy} onClick={() => register.mutate()}>
+                      {register.isPending ? '登记中…' : '签字并敲门'}
+                    </button>
+                    <button type="button" className="agree-back" disabled={busy} onClick={() => { setSigning(false); setSignature(''); }}>‹ 改名字</button>
+                  </div>
+                ) : tab === 'student' ? (
                   <>
                     <label className="fld">
                       <span>你的名字</span>
@@ -154,7 +178,7 @@ export default function Login() {
                   </>
                 )}
               </div>
-              <div className="ooo">{LOGIN.outOfOrder}</div>
+              {!signing && <div className="ooo">{LOGIN.outOfOrder}</div>}
             </div>
           </div>
 

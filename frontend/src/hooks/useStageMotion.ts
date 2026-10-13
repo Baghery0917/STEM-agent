@@ -23,16 +23,18 @@ export interface StageMotion {
  * 由 GSAP ticker 驱动并通知 ScrollTrigger。Lenis 写的是原生 scrollTop，useScrollScene 照常工作。
  * 系统开启「减弱动态效果」时不启用。
  */
-export function useSmoothStage(stage: RefObject<HTMLElement>) {
+export function useSmoothStage(stage: RefObject<HTMLElement>, deps: DependencyList = []) {
+  const lenisRef = useRef<Lenis | null>(null);
   useLayoutEffect(() => {
     const el = stage.current;
     if (!el) return;
     const mm = gsap.matchMedia();
     mm.add({ wide: WIDE, motion: MOTION }, (ctx) => {
       if (!ctx.conditions?.motion) return;
-      const lenis = new Lenis(ctx.conditions.wide
-        ? { wrapper: el, content: el.firstElementChild ?? el, autoRaf: false, lerp: 0.11 }
-        : { autoRaf: false, lerp: 0.11 });
+      // allowNestedScroll：电梯井道、公式、代码块等内层滚动区照常原生滚动
+      const opts = { autoRaf: false, lerp: 0.11, allowNestedScroll: true };
+      const lenis = new Lenis(ctx.conditions.wide ? { ...opts, wrapper: el, content: el.firstElementChild ?? el } : opts);
+      lenisRef.current = lenis;
       const tick = (t: number) => lenis.raf(t * 1000);
       lenis.on('scroll', ScrollTrigger.update);
       gsap.ticker.add(tick);
@@ -52,10 +54,14 @@ export function useSmoothStage(stage: RefObject<HTMLElement>) {
         gsap.ticker.remove(tick);
         gsap.ticker.lagSmoothing(500, 33);
         lenis.destroy();
+        lenisRef.current = null;
       };
     });
     return () => mm.revert();
-  }, [stage]);
+    // stage 元素可能随页面状态替换（如新对话 → 会话），deps 让 Lenis 重新绑定
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, ...deps]);
+  return lenisRef;
 }
 
 /**
@@ -111,6 +117,43 @@ export function riseHeroTitle(root: HTMLElement) {
   gsap.from(split.chars, {
     yPercent: 70, rotate: 8, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.035, delay: 0.12,
   });
+}
+
+/** 新出现的元素（消息、题卡）入场：只对还没播过的 el 播一次 */
+const played = new WeakSet<Element>();
+export function enterOnce(els: Iterable<Element>, vars: gsap.TweenVars) {
+  const fresh = Array.from(els).filter((el) => !played.has(el));
+  if (!fresh.length || !window.matchMedia(MOTION).matches) { fresh.forEach((el) => played.add(el)); return; }
+  fresh.forEach((el) => played.add(el));
+  gsap.from(fresh, { clearProps: 'transform,opacity,visibility,filter', ...vars });
+}
+
+/** 标记为已播放但不播：流式输出过的内容已经"逐字出现"过，不要再整段浮现一次 */
+export function markPlayed(els: Iterable<Element>) {
+  for (const el of els) played.add(el);
+}
+
+/** 正确作答的小礼花：从 origin 中心向外喷出几粒圆点 */
+export function burst(origin: Element, colors: string[]) {
+  if (!window.matchMedia(MOTION).matches) return;
+  const r = origin.getBoundingClientRect();
+  const layer = document.createElement('div');
+  layer.className = 'burst-layer';
+  layer.style.left = `${r.left + r.width / 2}px`;
+  layer.style.top = `${r.top + r.height / 2}px`;
+  document.body.appendChild(layer);
+  const dots = Array.from({ length: 14 }, (_, i) => {
+    const d = document.createElement('i');
+    d.style.background = colors[i % colors.length];
+    layer.appendChild(d);
+    return d;
+  });
+  gsap.timeline({ onComplete: () => layer.remove() })
+    .to(dots, {
+      x: () => gsap.utils.random(-70, 70), y: () => gsap.utils.random(-70, 30), scale: () => gsap.utils.random(0.6, 1.4),
+      duration: 0.7, ease: 'expo.out',
+    })
+    .to(dots, { y: '+=36', autoAlpha: 0, duration: 0.5, ease: 'power1.in' }, 0.45);
 }
 
 export { gsap, ScrollTrigger, SplitText };

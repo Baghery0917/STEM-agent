@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
@@ -14,14 +14,11 @@ import { toast } from '@/stores/toastStore';
 import TopBar from '@/components/shell/TopBar';
 import { GENDER_LABEL } from '@/utils/enums';
 import ChapterHero from '@/components/theme/ChapterHero';
+import SignaturePad, { SIGN_H, SIGN_W, splitStrokes } from '@/components/theme/SignaturePad';
 import SceneSection from '@/components/theme/SceneSection';
 import { gsap, onEnter, riseHeroTitle, useSmoothStage, useStageMotion } from '@/hooks/useStageMotion';
 
-/** 手写签名笔迹，viewBox 0 0 260 80；第二段是收尾下划线 */
-const SIGN_RESIDENT = [
-  'M14 52 C 22 22, 40 12, 38 34 C 36 52, 22 60, 30 48 C 40 34, 52 28, 56 40 C 60 52, 50 58, 62 50 C 74 42, 78 26, 88 30 C 96 34, 86 54, 98 52 C 112 50, 116 30, 126 34 C 134 38, 128 54, 140 50 C 152 46, 160 36, 170 40 C 178 44, 174 56, 186 52 C 198 48, 206 38, 218 42',
-  'M30 66 C 90 60, 170 62, 238 56',
-];
+/** Sheldon 的签名笔迹，viewBox 0 0 260 80；第二段是收尾下划线 */
 const SIGN_SHELDON = [
   'M20 44 C 30 16, 58 14, 50 32 C 44 46, 22 46, 30 58 C 38 68, 60 60, 66 44 C 70 34, 70 22, 76 22 C 80 22, 74 48, 76 56 C 80 42, 88 36, 94 42 C 98 48, 94 56, 102 54 C 112 52, 114 38, 124 40 C 132 42, 126 56, 136 54 C 146 52, 150 30, 156 20 C 160 30, 154 52, 162 54 C 172 56, 178 40, 188 42 C 196 44, 192 56, 202 54 C 214 52, 222 40, 236 36',
   'M40 70 C 100 62, 160 72, 226 64 C 232 63, 236 66, 230 68',
@@ -49,6 +46,14 @@ export default function Settings() {
   const cards = useCards(student.id);
   const unlocked = new Set<string>(cards.data?.unlocked ?? ['leonard']);
 
+  const [draftSign, setDraftSign] = useState('');
+  const signMutation = useMutation({
+    mutationFn: (signature: string) => updateStudent(student.id, { signature }),
+    onSuccess: (s) => { setCurrent(s); setDraftSign(''); toast.info('签名已存入协议'); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const residentStrokes = student.signature ? splitStrokes(student.signature) : [];
+
   const stageRef = useRef<HTMLElement>(null);
   useSmoothStage(stageRef);
   useStageMotion(stageRef, ({ root, scroller }) => {
@@ -64,13 +69,16 @@ export default function Settings() {
     const sign = root.querySelector<HTMLElement>('.agreement-sign');
     if (!sign) return;
     const [resident, sheldon] = Array.from(sign.querySelectorAll('.sign-pad'));
+    // 住户签名按真实笔画数重放，总时长约 1.6 秒
+    const strokes = resident.querySelectorAll('svg.replay path');
+    const per = strokes.length ? Math.min(0.7, 1.6 / strokes.length) : 0;
     gsap.timeline({ scrollTrigger: onEnter(sign, scroller, 'top 85%') })
-      .from(resident.querySelectorAll('path'), { drawSVG: 0, duration: 1.1, ease: 'power1.inOut', stagger: 0.9 }, 0.2)
+      .from(strokes, { drawSVG: 0, duration: per * 1.4, ease: 'power1.inOut', stagger: per }, 0.2)
       .from(resident.querySelector('figcaption'), { autoAlpha: 0, y: 6, duration: 0.4 }, '-=0.4')
       .from(sheldon.querySelectorAll('path'), { drawSVG: 0, duration: 1.1, ease: 'power1.inOut', stagger: 0.9 }, '-=0.1')
       .from(sheldon.querySelector('figcaption'), { autoAlpha: 0, y: 6, duration: 0.4 }, '-=0.4')
       .from(sign.querySelector('.sign-seal'), { scale: 2, rotate: -40, autoAlpha: 0, duration: 0.55, ease: 'back.out(2.4)' }, '-=0.1');
-  }, []);
+  }, [student.signature]);
 
   const styleMutation = useMutation({
     mutationFn: (explain_style: ExplainStyle | null) => updateStudent(student.id, { explain_style }),
@@ -152,8 +160,15 @@ export default function Settings() {
             <p>改条款不用重签，下一次会话自动按新条款执行。</p>
             <div className="sign-row">
               <figure className="sign-pad">
-                <svg viewBox="0 0 260 80" aria-hidden="true">{SIGN_RESIDENT.map((d) => <path key={d} d={d} />)}</svg>
-                <figcaption><b>{student.name}</b><span>住户 · 学号 #{student.id}</span></figcaption>
+                {residentStrokes.length ? (
+                  <svg className="replay" viewBox={`0 0 ${SIGN_W} ${SIGN_H}`} aria-label={`${student.name} 的签名`}>{residentStrokes.map((d, i) => <path key={i} d={d} />)}</svg>
+                ) : (
+                  <div className="sign-now">
+                    <SignaturePad value={draftSign} onChange={setDraftSign} disabled={signMutation.isPending} />
+                    <button type="button" className="btn pri sm" disabled={draftSign.length < 3 || signMutation.isPending} onClick={() => signMutation.mutate(draftSign)}>签字</button>
+                  </div>
+                )}
+                <figcaption><b>{student.name}</b><span>{residentStrokes.length ? '住户' : '住户 · 还没签字'} · 学号 #{student.id}</span></figcaption>
               </figure>
               <figure className="sign-pad">
                 <svg viewBox="0 0 260 80" aria-hidden="true">{SIGN_SHELDON.map((d) => <path key={d} d={d} />)}</svg>

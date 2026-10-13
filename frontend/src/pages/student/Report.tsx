@@ -196,7 +196,7 @@ export default function Report() {
             </>
           )}
         </div>
-        {r && <CrowdFooter persona={student.persona} onPractice={() => navigate('/practice/new')} />}
+        {r && <CrowdFooter onPractice={() => navigate('/practice/new')} />}
       </section>
     </>
   );

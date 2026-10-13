@@ -120,11 +120,14 @@ export interface StudentResponse extends Timestamps {
   gender: Gender;
   explain_style?: ExplainStyle | null;
   persona?: Persona | null;
+  /** 室友协议签名：SVG path d，viewBox 0 0 260 80 */
+  signature?: string | null;
 }
 
 export interface StudentCreate {
   name: string;
   gender: Gender;
+  signature?: string | null;
 }
 
 export type StudentUpdate = Partial<StudentCreate> & { explain_style?: ExplainStyle | null; persona?: Persona | null };

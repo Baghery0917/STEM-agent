@@ -28,6 +28,7 @@ import WeekdayIcon from '@/components/theme/WeekdayIcon';
 import { DEFAULT_PERSONA, PERSONA_COPY, personaByKey, personaFigure, type PersonaKey } from '@/theme/personas';
 import PersonaAvatar from '@/components/theme/PersonaAvatar';
 import SoftKitty from '@/components/theme/SoftKitty';
+import { enterOnce, gsap, markPlayed, SplitText, useSmoothStage, useStageMotion } from '@/hooks/useStageMotion';
 
 interface HandoffState {
   practiceSessionId: number;
@@ -105,9 +106,64 @@ export default function Teaching() {
     [session?.messages],
   );
 
+  const stageRef = useRef<HTMLElement>(null);
+  const lenis = useSmoothStage(stageRef, [sid, !!session]);
+  const streamed = useRef(false);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, streamingText]);
+    const el = bottomRef.current;
+    if (!el) return;
+    if (lenis.current) lenis.current.scrollTo(el, { offset: 0, duration: 0.9 });
+    else el.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length, streamingText, lenis]);
+
+  useStageMotion(stageRef, ({ root, scroller }) => {
+    // 新对话空状态：问候逐字升起，讲师立绘浮动，入口卡片依次弹出并跟随指针
+    const hi = root.querySelector('.hero .hi');
+    if (hi) {
+      const split = SplitText.create(hi, { type: 'chars' });
+      gsap.from(split.chars, { yPercent: 60, autoAlpha: 0, duration: 0.8, ease: 'expo.out', stagger: 0.025, delay: 0.1 });
+      gsap.from(root.querySelectorAll('.hero .weekday, .hero p'), { y: 14, autoAlpha: 0, duration: 0.6, stagger: 0.08, delay: 0.45, clearProps: 'all' });
+      gsap.from(root.querySelectorAll('.hero .chip'), { y: 18, scale: 0.94, autoAlpha: 0, duration: 0.6, ease: 'back.out(1.8)', stagger: 0.07, delay: 0.6, clearProps: 'all' });
+      const fig = root.querySelector('.hero .figure');
+      if (fig) gsap.to(fig, { y: -10, rotate: 1.2, duration: 2.6, ease: 'sine.inOut', repeat: -1, yoyo: true });
+      const offs = Array.from(root.querySelectorAll<HTMLElement>('.hero .chip')).map((c) => {
+        const qx = gsap.quickTo(c, 'x', { duration: 0.5, ease: 'power3.out' });
+        const qy = gsap.quickTo(c, 'y', { duration: 0.5, ease: 'power3.out' });
+        const move = (e: PointerEvent) => { const r = c.getBoundingClientRect(); qx((e.clientX - r.left - r.width / 2) * 0.12); qy((e.clientY - r.top - r.height / 2) * 0.25); };
+        const leave = () => { qx(0); qy(0); };
+        c.addEventListener('pointermove', move);
+        c.addEventListener('pointerleave', leave);
+        return () => { c.removeEventListener('pointermove', move); c.removeEventListener('pointerleave', leave); };
+      });
+      return () => offs.forEach((off) => off());
+    }
+
+    // 会话：左侧进度线随阅读位置画下去
+    const thread = root.querySelector('.thread');
+    if (thread) {
+      gsap.fromTo(thread, { scaleY: 0 }, {
+        scaleY: 1, ease: 'none',
+        scrollTrigger: { trigger: root.querySelector('.col'), scroller, start: 'top 55%', end: 'bottom bottom', scrub: 0.5 },
+      });
+    }
+
+    // 流式输出过的回答已经逐字出现过；refetch 落地成正式消息后不再整段浮现
+    if (sending) streamed.current = true;
+    if (streamed.current) {
+      const ais = root.querySelectorAll('.msg.ai');
+      if (ais.length) markPlayed(ais[ais.length - 1].querySelectorAll('.md > *'));
+      if (!sending && messages[messages.length - 1]?.role === 'assistant') streamed.current = false;
+    }
+
+    enterOnce(root.querySelectorAll('.msg.user .body'), { x: 28, autoAlpha: 0, duration: 0.55, ease: 'power3.out', stagger: 0.08 });
+    enterOnce(root.querySelectorAll('.msg .who'), { scale: 0, duration: 0.5, ease: 'back.out(2.2)', stagger: 0.08 });
+    enterOnce(root.querySelectorAll('.trace'), { y: 10, autoAlpha: 0, duration: 0.5, ease: 'power2.out' });
+    enterOnce(root.querySelectorAll('.trace .step'), { x: -10, autoAlpha: 0, duration: 0.4, stagger: 0.07, delay: 0.15 });
+    // 讲解按段落浮现：先模糊再对焦
+    enterOnce(root.querySelectorAll('.msg.ai .md > *'), { y: 12, autoAlpha: 0, filter: 'blur(5px)', duration: 0.7, ease: 'power2.out', stagger: 0.09, delay: 0.2 });
+    enterOnce(root.querySelectorAll('.comfort'), { scale: 0.9, autoAlpha: 0, duration: 0.6, ease: 'back.out(1.6)' });
+  }, [sid, !!session, messages.length, sending]);
 
   const latestEmotion = useMemo(() => {
     const u = [...messages].reverse().find((m) => m.role === 'user' && m.emotion_value != null);
@@ -162,7 +218,7 @@ export default function Teaching() {
     return (
       <>
         <TopBar crumb={handoff ? <><b>{handoff.label}</b> · 新会话</> : '新对话'} right={emotionBadge} />
-        <section className="stage">
+        <section className="stage paper" ref={stageRef}>
           <EmptyHero studentId={student.id} studentName={student.name} persona={student.persona} />
         </section>
         <Composer
@@ -219,10 +275,12 @@ export default function Teaching() {
           </>
         }
       />
-      <section className="stage">
+      <section className="stage paper whiteboard" ref={stageRef}>
         <div className="col">
+          <div className="thread" aria-hidden="true" />
+          {/* 下标作 key：乐观插入的用户消息换成服务端消息时 DOM 不重建，入场动画不重播 */}
           {groups.map((g, gi) => (
-            <div key={g.user.id}>
+            <div key={gi}>
               <Message
                 role="user"
                 who={student.name.slice(0, 1)}

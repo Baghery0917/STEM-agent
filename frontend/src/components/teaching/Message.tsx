@@ -24,7 +24,7 @@ export default function Message({ role, who, content, streaming, before, after, 
       <div className="body">
         {before}
         {content != null && (role === 'ai'
-          ? <MarkdownContent content={content} />
+          ? <MarkdownContent content={content} className="md" />
           : <div className="pre">{content}</div>)}
         {streaming && <span className="cursor" />}
         {image && (
