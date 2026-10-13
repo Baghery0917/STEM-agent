@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import type { ReportMode, StudentReport } from '@/api/types';
+import CountUp from '@/components/theme/CountUp';
 
 interface Props {
   report: StudentReport;
@@ -20,7 +21,7 @@ function starPoints(n: number, R: number, r: number) {
 const STAR = starPoints(18, 49, 43);
 
 /**
- * 战报：红框三栏黄底。左栏数量，中栏缎带 + 正确率印章，右栏最稳 / 最该回头看的知识点。
+ * 战报：纸面外框三栏，中栏芥末黄。左栏数量，中栏缎带 + 正确率印章，右栏最稳 / 最该回头看的知识点。
  * 只展示接口里有的数字，不推断进步幅度。
  */
 export default function Scoreboard({ report: r, mode, onPractice }: Props) {
@@ -38,9 +39,9 @@ export default function Scoreboard({ report: r, mode, onPractice }: Props) {
       <div className="sb-panel sb-stats">
         <div className="sb-cap">Tally · 计数</div>
         <dl>
-          <div><dt>作答</dt><dd><b>{r.answered_count}</b><span>题</span></dd><small>答对 {r.correct_count}</small></div>
-          <div><dt>讲题</dt><dd><b>{r.teaching_count}</b><span>道</span></dd><small>一题一会话</small></div>
-          <div><dt>练习</dt><dd><b>{r.practice_count}</b><span>组</span></dd><small>计时与不计时合计</small></div>
+          <div><dt>作答</dt><dd><b><CountUp value={r.answered_count} /></b><span>题</span></dd><small>答对 {r.correct_count}</small></div>
+          <div><dt>讲题</dt><dd><b><CountUp value={r.teaching_count} delay={0.35} /></b><span>道</span></dd><small>一题一会话</small></div>
+          <div><dt>练习</dt><dd><b><CountUp value={r.practice_count} delay={0.45} /></b><span>组</span></dd><small>计时与不计时合计</small></div>
         </dl>
       </div>
 
@@ -60,7 +61,7 @@ export default function Scoreboard({ report: r, mode, onPractice }: Props) {
         <div className="sb-seal">
           <svg viewBox="0 0 100 100" aria-hidden="true"><polygon points={STAR} /></svg>
           <div>
-            <b>{rate == null ? '—' : rate}<i>{rate == null ? '' : '%'}</i></b>
+            <b>{rate == null ? '—' : <><CountUp value={rate} delay={0.6} /><i>%</i></>}</b>
             <span>正确率</span>
           </div>
         </div>
@@ -73,13 +74,13 @@ export default function Scoreboard({ report: r, mode, onPractice }: Props) {
             <div className="sb-kp">
               <span className="sticker good">最稳</span>
               <b>{best.section_title}</b>
-              <em>{pct(best.mastery_level)}<i>%</i></em>
+              <em><CountUp value={pct(best.mastery_level)} delay={0.4} /><i>%</i></em>
             </div>
             {weakest && (
               <div className="sb-kp">
                 <span className="sticker warn">回头看</span>
                 <b>{weakest.section_title}</b>
-                <em>{pct(weakest.mastery_level)}<i>%</i></em>
+                <em><CountUp value={pct(weakest.mastery_level)} delay={0.5} /><i>%</i></em>
                 <button type="button" className="sb-go" onClick={() => onPractice(weakest.section_id)}>去练这一节 →</button>
               </div>
             )}

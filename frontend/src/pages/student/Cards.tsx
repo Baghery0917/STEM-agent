@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { updateStudent } from '@/api/students';
@@ -14,6 +14,7 @@ import BadgeGlyph from '@/components/theme/BadgeGlyph';
 import { CARD_ORDER, CARD_QUOTE, CARD_SPOT, PERSONAS, personaByKey, personaFigure, type PersonaKey } from '@/theme/personas';
 import { BADGES, badgeByKey, badgeHow, badgeProgressText, type BadgeKey } from '@/theme/badges';
 import { tbbtCssUrl } from '@/theme/assets';
+import { gsap, onEnter, riseHeroTitle, useFlipIn, useSmoothStage, useStageMotion } from '@/hooks/useStageMotion';
 
 /** 收藏页：认可卡落在户型图的房间上；物理学家徽章按阈值点亮 */
 export default function Cards() {
@@ -56,10 +57,45 @@ export default function Cards() {
   const selBadge = openBadge ? badgeByKey(openBadge) : null;
   const selBadgeProgress = openBadge ? progress.get(openBadge) : undefined;
 
+  const stageRef = useRef<HTMLElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  useSmoothStage(stageRef);
+  useStageMotion(stageRef, ({ root }) => riseHeroTitle(root), []);
+  useStageMotion(stageRef, ({ root, scroller }) => {
+    // 户型图自上而下铺开，七个房间的头像按顺序弹出
+    const floor = root.querySelector<HTMLElement>('.floor');
+    if (floor) {
+      gsap.timeline({ scrollTrigger: onEnter(floor, scroller, 'top 85%') })
+        .fromTo(floor, { clipPath: 'inset(0% 0% 100% 0% round 14px)' }, { clipPath: 'inset(0% 0% 0% 0% round 14px)', duration: 1.1, ease: 'expo.inOut', clearProps: 'clipPath' })
+        .from(floor.querySelectorAll('.spot .pavatar'), { scale: 0, duration: 0.6, ease: 'back.out(2.4)', stagger: 0.07, clearProps: 'transform' }, '-=0.35')
+        .from(floor.querySelectorAll('.spot .lbl'), { y: -6, autoAlpha: 0, duration: 0.35, stagger: 0.07, clearProps: 'all' }, '<0.2');
+    }
+
+    // 徽章跟随指针轻微倾斜
+    const offs = Array.from(root.querySelectorAll<HTMLElement>('.badge-grid .badge')).map((b) => {
+      gsap.set(b, { transformPerspective: 600 });
+      const rx = gsap.quickTo(b, 'rotationX', { duration: 0.4, ease: 'power3.out' });
+      const ry = gsap.quickTo(b, 'rotationY', { duration: 0.4, ease: 'power3.out' });
+      const lift = gsap.quickTo(b, 'y', { duration: 0.4, ease: 'power3.out' });
+      const move = (e: PointerEvent) => {
+        const r = b.getBoundingClientRect();
+        ry(((e.clientX - r.left) / r.width - 0.5) * 22);
+        rx(((e.clientY - r.top) / r.height - 0.5) * -22);
+        lift(-4);
+      };
+      const leave = () => { rx(0); ry(0); lift(0); };
+      b.addEventListener('pointermove', move);
+      b.addEventListener('pointerleave', leave);
+      return () => { b.removeEventListener('pointermove', move); b.removeEventListener('pointerleave', leave); };
+    });
+    return () => offs.forEach((off) => off());
+  }, [cards.isSuccess]);
+  useFlipIn(modalRef, [open, openBadge]);
+
   return (
     <>
       <TopBar crumb="公寓钥匙" showSeg={false} back />
-      <section className="stage">
+      <section className="stage" ref={stageRef}>
         <div className="cards cards-chapter">
           <ChapterHero
             chapter="05"
@@ -157,7 +193,7 @@ export default function Cards() {
 
       {sel && (
         <div className="cmodal" onClick={() => setOpen(null)}>
-          <div className={`ccard ${unlocked.has(sel.key) ? '' : 'locked'}`} style={{ ['--pc' as string]: sel.color }} onClick={(e) => e.stopPropagation()}>
+          <div ref={modalRef} className={`ccard flip ${unlocked.has(sel.key) ? '' : 'locked'}`} style={{ ['--pc' as string]: sel.color }} onClick={(e) => e.stopPropagation()}>
             <div className="art">
               <img src={personaFigure(sel.key as PersonaKey)} alt="" className={unlocked.has(sel.key) ? '' : 'sil'} />
             </div>
@@ -191,7 +227,7 @@ export default function Cards() {
 
       {selBadge && (
         <div className="cmodal" onClick={() => setOpenBadge(null)}>
-          <div className={`bcard ${ownedBadges.has(selBadge.key) ? 'got' : ''}`} style={{ ['--bc' as string]: selBadge.color }} onClick={(e) => e.stopPropagation()}>
+          <div ref={modalRef} className={`bcard flip ${ownedBadges.has(selBadge.key) ? 'got' : ''}`} style={{ ['--bc' as string]: selBadge.color }} onClick={(e) => e.stopPropagation()}>
             <span className="medal big"><BadgeGlyph glyph={selBadge.glyph} width={34} height={34} /></span>
             <div className="kicker">{selBadge.name}</div>
             <h2>{selBadge.title}</h2>

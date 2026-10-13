@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -10,9 +10,10 @@ import { emotionBarHeight, emotionTone } from '@/utils/emotion';
 import { shortTime } from '@/utils/time';
 import ChapterHero from '@/components/theme/ChapterHero';
 import SceneSection from '@/components/theme/SceneSection';
-import PersonaCallout from '@/components/theme/PersonaCallout';
 import Scoreboard from '@/components/report/Scoreboard';
 import CrowdFooter from '@/components/report/CrowdFooter';
+import Dispatch from '@/components/report/Dispatch';
+import { gsap, onEnter, riseHeroTitle, SplitText, useSmoothStage, useStageMotion } from '@/hooks/useStageMotion';
 
 const WEEKDAY = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -35,11 +36,31 @@ export default function Report() {
     : '';
   const active = r?.knowledge_points.filter((k) => k.recent_practice_count + k.recent_teaching_count > 0).length ?? 0;
   const lowDays = r?.emotion_days.filter((d) => d.value != null && d.value >= 3) ?? [];
+  const summary = !r ? ''
+    : r.summary
+      ?? (r.practice_count + r.teaching_count === 0
+        ? '这段时间还没有学习记录。发一道题，或者开始一组练习，报告就会有内容了。'
+        : `这段时间你练了 ${r.answered_count} 题（对 ${r.correct_count}）、讲了 ${r.teaching_count} 道。`);
+
+  const stageRef = useRef<HTMLElement>(null);
+  useSmoothStage(stageRef);
+  useStageMotion(stageRef, ({ root }) => riseHeroTitle(root), []);
+  useStageMotion(stageRef, ({ root, scroller }) => {
+    const letter = root.querySelector<HTMLElement>('.dispatch');
+    if (!letter) return;
+    // 来信像电报一样逐字到达，邮戳最后盖下
+    const split = SplitText.create(letter.querySelector('.dispatch-text'), { type: 'chars' });
+    gsap.timeline({ scrollTrigger: onEnter(letter, scroller, 'top 78%') })
+      .from(letter.querySelector('.dispatch-head'), { x: -18, autoAlpha: 0, duration: 0.6, ease: 'power3.out' }, 0.15)
+      .from(split.chars, { autoAlpha: 0, y: 6, duration: 0.35, ease: 'power2.out', stagger: 0.012 }, 0.3)
+      .from(letter.querySelector('.dispatch-foot'), { autoAlpha: 0, y: 10, duration: 0.5 }, '-=0.2')
+      .from(letter.querySelector('.dispatch-stamp'), { scale: 1.9, rotate: -32, autoAlpha: 0, duration: 0.55, ease: 'back.out(2.2)' }, '-=0.3');
+  }, [summary]);
 
   return (
     <>
       <TopBar crumb="学习报告" showSeg={false} back />
-      <section className="stage paper">
+      <section className="stage paper" ref={stageRef}>
         <div className="report report-v2">
           <ChapterHero
             chapter="03"
@@ -67,23 +88,16 @@ export default function Report() {
             <>
               <Scoreboard report={r} mode={mode} onPractice={(id) => navigate('/practice/new', { state: { preselect: [id] } })} />
 
-              <div className="report-dispatch" style={{ backgroundImage: `url(${import.meta.env.BASE_URL}tbbt/backgrounds/starfield.jpg)` }}>
-                <PersonaCallout
-                  persona={student.persona}
-                  dark
-                  label="Tonight's transmission"
-                  action={(
-                    <button type="button" className="btn" disabled={evaluation.isPending} onClick={() => evaluation.mutate()}>
-                      {evaluation.isPending ? '评价处生成中…' : ev ? '再要一份评价' : '让评价处点评'}
-                    </button>
-                  )}
-                >
-                  {r.summary
-                    ?? (r.practice_count + r.teaching_count === 0
-                      ? '这段时间还没有学习记录。发一道题，或者开始一组练习，报告就会有内容了。'
-                      : `这段时间你练了 ${r.answered_count} 题（对 ${r.correct_count}）、讲了 ${r.teaching_count} 道。`)}
-                </PersonaCallout>
-              </div>
+              <Dispatch
+                persona={student.persona}
+                date={r.range_end}
+                text={summary}
+                action={(
+                  <button type="button" className="btn pri" disabled={evaluation.isPending} onClick={() => evaluation.mutate()}>
+                    {evaluation.isPending ? '评价处生成中…' : ev ? '再要一份评价' : '让评价处点评'}
+                  </button>
+                )}
+              />
 
               {(ev || evaluation.isError) && (
                 <SceneSection number="03.A" eyebrow="The review office" title="评价处来信" aside="外部评价服务 · 只传学号">
