@@ -93,13 +93,17 @@ export default function Composer({
             {leading}
             {allowImage && (
               <>
-                <button type="button" className="iconbtn" title="上传图片 / 拍照" onClick={() => fileRef.current?.click()} disabled={disabled}>⊕</button>
+                <button type="button" className="iconbtn" title="上传图片 / 拍照" onClick={() => fileRef.current?.click()} disabled={disabled}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="3" /><circle cx="9" cy="10" r="1.6" /><path d="m20.5 15.5-4.8-4.6L7 19" /></svg>
+                </button>
                 <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && pickFile(e.target.files[0])} />
               </>
             )}
             {modeHint && <span className="modehint">{modeHint}</span>}
             <button type="button" className="send" title="发送（↵）" disabled={!canSend} onClick={send}>
-              {loading ? <span className="spin-sm" /> : '↑'}
+              {loading ? <span className="spin-sm" /> : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M6 11l6-6 6 6" /></svg>
+              )}
             </button>
           </div>
         </div>

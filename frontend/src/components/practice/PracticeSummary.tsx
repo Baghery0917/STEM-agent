@@ -5,7 +5,7 @@ import { fmtDuration } from '@/utils/time';
 import { useStudentStore } from '@/stores/studentStore';
 import { DEFAULT_PERSONA, PERSONA_COPY, type PersonaKey } from '@/theme/personas';
 import PersonaAvatar from '@/components/theme/PersonaAvatar';
-import SoftKitty from '@/components/theme/SoftKitty';
+import KittySticker from './KittySticker';
 
 interface Props {
   session: PracticeSessionResponse;
@@ -34,6 +34,8 @@ export default function PracticeSummary({ session, questions, items, scope, onRe
   const rate = session.correct_count + session.wrong_count > 0
     ? Math.round((session.correct_count / (session.correct_count + session.wrong_count)) * 100)
     : null;
+  // 至少错 2 道且正确率不到一半才出猫，错 1 道不算"错太多"
+  const tooManyWrong = session.wrong_count >= 2 && rate != null && rate < 50;
 
   const row = (q: QuestionPublicResponse, i: number) => {
     const it = byQ.get(q.id);
@@ -62,6 +64,7 @@ export default function PracticeSummary({ session, questions, items, scope, onRe
       >
         <span>Apartment 4A · Mission complete</span>
         <strong>{voice === 'high' ? 'Bazinga. 这次实验成立。' : '白板已归档，下一轮会更准。'}</strong>
+        {tooManyWrong && <KittySticker />}
       </div>
       <div className="qcard">
         <div className="qh">
@@ -72,7 +75,7 @@ export default function PracticeSummary({ session, questions, items, scope, onRe
           {totalSec != null && <span className="muted">· 共 {fmtDuration(totalSec)}</span>}
         </div>
         <div className="qb">
-          <div className="voice"><PersonaAvatar persona={persona} size={26} /><span>{copy.summary[voice]}</span>{voice === 'low' && <SoftKitty compact variant="cushion" />}</div>
+          <div className="voice"><PersonaAvatar persona={persona} size={26} /><span>{copy.summary[voice]}</span></div>
           <div className="stats">
             <div className="stat ok"><div className="v">{session.correct_count}</div><div className="k">正确{rate != null ? ` · ${rate}%` : ''}</div></div>
             <div className="stat no"><div className="v">{session.wrong_count}</div><div className="k">错误</div></div>

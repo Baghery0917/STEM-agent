@@ -73,6 +73,13 @@ const practiceSessions: any[] = [
       { id: 5, practice_session_id: 5, student_id: 1, question_id: 102, user_answer: '10', sequence: 2, is_correct: true, is_skipped: false, started_at: ago(30), ended_at: ago(30), duration_seconds: 22 },
       { id: 6, practice_session_id: 5, student_id: 1, question_id: 103, user_answer: '', sequence: 3, is_correct: false, is_skipped: true, started_at: ago(30), ended_at: ago(30), duration_seconds: 5 },
     ] },
+  { id: 3, student_id: 1, timed: true, instant_feedback: false, knowledge_point_ids: [3, 4], difficulty_range: ['medium', 'hard'], total_count: 4, question_ids: [102, 103, 101, 104], starred_question_ids: [], started_at: ago(52), ended_at: ago(51.8), skip_count: 0, correct_count: 1, wrong_count: 3, created_at: ago(52), updated_at: ago(51.8),
+    items: [
+      { id: 7, practice_session_id: 3, student_id: 1, question_id: 102, user_answer: '12', sequence: 0, is_correct: false, is_skipped: false, started_at: ago(52), ended_at: ago(52), duration_seconds: 96 },
+      { id: 8, practice_session_id: 3, student_id: 1, question_id: 103, user_answer: '3 m', sequence: 1, is_correct: true, is_skipped: false, started_at: ago(52), ended_at: ago(52), duration_seconds: 40 },
+      { id: 9, practice_session_id: 3, student_id: 1, question_id: 101, user_answer: 'A', sequence: 2, is_correct: false, is_skipped: false, started_at: ago(52), ended_at: ago(52), duration_seconds: 75 },
+      { id: 10, practice_session_id: 3, student_id: 1, question_id: 104, user_answer: 'A', sequence: 3, is_correct: false, is_skipped: false, started_at: ago(52), ended_at: ago(52), duration_seconds: 130 },
+    ] },
 ];
 const withQ = (it: any) => ({ ...it, question: questions.find((q) => q.id === it.question_id) });
 const sessPublic = ({ items: _items, ...s }: any) => s;
