@@ -454,18 +454,6 @@ body {
 .srow .ctl { margin-left: auto; flex: none; }
 
 /* ---------- login ---------- */
-.login { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-.login .card { width: 440px; max-width: 100%; }
-.login h1 { font-size: 20px; margin: 0 0 4px; }
-.login .sub { color: var(--ink-3); font-size: 13px; margin-bottom: 16px; }
-.login .pick { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); margin-bottom: 8px; width: 100%; text-align: left; }
-.login .pick:hover { border-color: var(--ink-3); background: var(--panel-2); }
-.login .pick .nm { font-weight: 500; } .login .pick .d { font-size: 12px; color: var(--ink-3); }
-.login .field { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-.login .field input[type=text] { min-width: 160px; }
-.login input[type=text], .login input[type=password] { flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font: inherit; background: var(--panel-2); color: var(--ink); outline: 0; }
-.login input[type=text]:focus, .login input[type=password]:focus { border-color: var(--ink-3); }
-
 /* ---------- toast ---------- */
 .toasts { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toast { background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 10px; font-size: 13px; box-shadow: var(--shadow); animation: pop .2s; }
@@ -549,124 +537,222 @@ body {
 .kitty.compact { padding: 18px 8px 10px; }
 .kitty.compact img { width: 96px; }
 
-/* ---------- 登录页：卡片即电梯门 ---------- */
-.login.scene-wrap { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #2a2118; }
-.scene { position: absolute; }
-.scene .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; user-select: none; }
-.scene .veil {
-  position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(180deg, rgba(30,20,10,.25) 0%, rgba(30,20,10,0) 35%, rgba(30,20,10,.3) 100%);
+/* ---------- 登录页：走廊里的电梯 ---------- */
+/* 走廊和电梯全部用 CSS 画，不贴照片，就没有对不到位的问题 */
+.login.lobby {
+  position: relative; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 84px 40px 64px; overflow: hidden; isolation: isolate;
+  background:
+    radial-gradient(120% 70% at 50% -12%, rgba(255,226,160,.5), rgba(255,226,160,0) 62%),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.045) 0 1px, transparent 1px 34px),
+    linear-gradient(180deg, #2a2018 0%, #1b140e 58%, #120d09 100%);
+  color: #fff6dc;
 }
-.scene .topline {
-  cursor: pointer; background: none; border: 0; padding: 0;
-  position: absolute; top: calc(28px * var(--s)); left: calc(36px * var(--s)); display: flex; align-items: center; gap: 10px;
-  color: #fff3d6; font-weight: 600; font-size: calc(14px * var(--s)); text-shadow: 0 1px 2px rgba(0,0,0,.5);
-}
-.scene .topline .brandmark { width: calc(30px * var(--s)); height: calc(30px * var(--s)); border-radius: 9px; background: var(--lantern); color: #fffdf8; display: grid; place-items: center; box-shadow: 0 6px 16px -6px rgba(0,0,0,.6); }
-.scene .topline .brandmark svg { width: 60%; height: 60%; }
 
-/* 门：所有尺寸用 --s 缩放，保证两个页签同一尺寸 */
-.door { position: absolute; overflow: hidden; border-radius: calc(3px * var(--s)); box-shadow: inset 0 0 0 1px rgba(255,235,200,.08); }
-.door .leaf {
+/* 走廊：护墙板 + 两盏壁灯 + 地毯 */
+.hall { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
+.hall-walls {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(20,12,6,.72) 0%, rgba(20,12,6,.2) 26%, rgba(20,12,6,0) 46%),
+    linear-gradient(180deg, transparent 68%, rgba(20,12,6,.55) 100%);
+  box-shadow: inset 0 0 160px 40px rgba(8,4,2,.85);
+}
+.hall-carpet {
+  position: absolute; left: 50%; bottom: 0; width: min(1240px, 150%); height: 34%; transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(31,74,52,.5), rgba(18,44,31,.85));
+  mask-image: linear-gradient(180deg, transparent, #000 40%);
+}
+.hall-light {
+  position: absolute; top: 22%; width: min(150px, 14vw); height: 30%; opacity: .42;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,214,140,.7), rgba(255,214,140,0) 70%);
+}
+.hall-light.l { left: 3%; }
+.hall-light.r { right: 3%; }
+.lobby-brand {
+  position: absolute; top: 24px; left: 26px; z-index: 3; display: flex; align-items: center; gap: 10px;
+  background: none; border: 0; padding: 0; cursor: pointer; color: #fff6dc;
+}
+.lobby-brand .wordmark { text-shadow: 0 1px 3px rgba(0,0,0,.55); }
+.lobby-brand .wordmark .w1 { color: #fff6dc; }
+.lobby-brand .wordmark .w2 { color: #f2c94c; }
+
+/* 电梯轿厢：门缝里那条光、门框、楼层屏 */
+/* 宽屏：电梯在左、登记台在右，两侧高度都压得住，不用把表单挤到屏幕外 */
+.login.lobby > .cab { grid-area: cab; }
+.login.lobby > .lobby-say { grid-area: say; justify-self: end; }
+.login.lobby > .board { grid-area: board; }
+.login.lobby {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 430px); grid-template-rows: auto auto;
+  grid-template-areas: "cab board" "say board"; gap: 18px 56px; align-content: center; align-items: center;
+}
+.cab {
+  position: relative; z-index: 1; justify-self: end; width: min(600px, 100%); height: clamp(300px, 40vh, 396px); border-radius: 12px;
+  background: linear-gradient(180deg, #5d554b, #241f1a); padding: 13px 14px 18px; display: flex; flex-direction: column; gap: 11px;
+  box-shadow: 0 60px 100px -50px rgba(0,0,0,.98), inset 0 0 0 1px rgba(255,235,200,.12), inset 0 -10px 20px rgba(0,0,0,.55);
+}
+/* 门槛：门下方那条磨亮的金属条 */
+.cab::after {
+  content: ""; position: absolute; left: 14px; right: 14px; bottom: 6px; height: 4px; border-radius: 2px;
+  background: linear-gradient(180deg, #9a938a, #554f47); box-shadow: 0 1px 2px rgba(0,0,0,.7);
+}
+/* 门缝里透出来的暖光：亮起来就是要进门了 */
+.cab-spill {
+  position: absolute; left: 50%; top: calc(50% + clamp(150px, 20vh, 210px)); width: min(560px, 92vw); height: 200px; transform: translate(-50%, -50%);
+  z-index: 0; opacity: 0; pointer-events: none; transition: opacity .7s ease;
+  background: radial-gradient(ellipse at 50% 40%, rgba(255,232,176,.7), rgba(255,232,176,0) 72%);
+}
+.lobby.phase-arriving .cab-spill { opacity: 1; }
+
+.cab-faceplate {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 2px 6px 0;
+  color: #e8d6b4;
+}
+.cab-faceplate .floor-no { font: 500 26px/1 var(--font-fun); letter-spacing: -1px; }
+.cab-faceplate .floor-name { font: 700 9.5px var(--font-mono); letter-spacing: 2.4px; text-transform: uppercase; color: #a8977a; }
+
+/* 楼层屏：琥珀点阵，滚动的是住户名单，名字停在屏中央就是电梯停在哪层 */
+.cab-roster {
+  position: relative; height: 62px; border-radius: 6px; overflow: hidden;
+  background: linear-gradient(180deg, #140f0a, #0b0806);
+  border: 1px solid rgba(255,208,120,.22);
+  box-shadow: inset 0 0 22px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,208,120,.06);
+  mask-image: linear-gradient(180deg, transparent, #000 26%, #000 74%, transparent);
+}
+.cab-roster .roster-cap {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%); z-index: 2;
+  font: 700 8.5px var(--font-mono); letter-spacing: 1.8px; text-transform: uppercase; color: #c69a3f; opacity: .8;
+}
+.cab-roster .roll { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: grid; }
+.cab-roster .floor-tag {
+  height: 40px; display: grid; place-items: center;
+  font: 700 26px/1 var(--font-mono); letter-spacing: 6px; color: #ffc75a; text-transform: uppercase;
+  text-shadow: 0 0 12px rgba(255,180,60,.55), 0 0 34px rgba(255,150,40,.3);
+}
+.cab-roster .roll.go { animation-timing-function: cubic-bezier(.16,1,.3,1); animation-fill-mode: both; }
+
+.cab-doors { position: relative; flex: 1; border-radius: 4px; overflow: hidden; background: radial-gradient(ellipse at 50% 88%, #e8b559 0%, #8a5c22 32%, #2c1c0c 68%, #100a06 100%); }
+.cab-doors .panel {
   position: absolute; top: 0; bottom: 0; width: 50%;
-  background: linear-gradient(180deg, rgba(30,18,9,.86), rgba(24,14,7,.92));
-  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
-  transition: transform 1s cubic-bezier(.6,0,.3,1);
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,.03) 1px 2px, rgba(255,255,255,0) 2px 6px),
+    repeating-linear-gradient(180deg, rgba(0,0,0,0) 0 1px, rgba(0,0,0,.3) 1px 2px, rgba(255,255,255,.06) 2px 3px, rgba(0,0,0,0) 3px 118px),
+    linear-gradient(90deg, rgba(0,0,0,.35), rgba(0,0,0,0) 14%, rgba(0,0,0,0) 86%, rgba(0,0,0,.28)),
+    linear-gradient(180deg, #8e8b84, #605a51 58%, #4a453d);
+  transition: transform 1s cubic-bezier(.5,0,.2,1);
 }
-.door .leaf.l { left: 0; border-right: 1px solid rgba(255,235,200,.12); }
-.door .leaf.r { right: 0; }
-.door .glow {
-  position: absolute; inset: 0; opacity: 0; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 60%, #fff6dc 0%, #f2c96c 35%, rgba(242,201,108,0) 75%);
-  transition: opacity .9s ease;
+.cab-doors::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 8px 18px rgba(0,0,0,.55), inset 0 -8px 18px rgba(0,0,0,.4); }
+.cab-doors .panel.l { left: 0; border-right: 1px solid rgba(255,240,200,.35); }
+.cab-doors .panel.r { right: 0; }
+/* 门上那道细细的分光，开门时被推开 */
+.cab-doors .seam {
+  position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; z-index: 1;
+  background: linear-gradient(180deg, rgba(255,232,176,0), rgba(255,232,176,.55), rgba(255,232,176,0));
+  opacity: 0; transition: opacity .7s ease;
 }
-.door .ripple {
-  position: absolute; left: 50%; top: 42%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
-  border: 2px solid rgba(255,240,200,.9); opacity: 0; pointer-events: none;
-}
-.door .ripple.go { animation: ripple .9s ease-out forwards; }
-@keyframes ripple { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(28); } }
-.door.k1, .door.k2, .door.k3 { animation: knock .34s cubic-bezier(.3,1.4,.5,1); }
-.door.k2 { animation-name: knock2; } .door.k3 { animation-name: knock3; }
-@keyframes knock  { 0% { transform: none; } 20% { transform: translateX(-1.2%) rotate(-.35deg); } 45% { transform: translateX(.9%) rotate(.25deg); } 70% { transform: translateX(-.4%); } 100% { transform: none; } }
-@keyframes knock2 { 0% { transform: none; } 20% { transform: translateX(-1.4%) rotate(-.4deg); } 45% { transform: translateX(1%) rotate(.3deg); } 70% { transform: translateX(-.4%); } 100% { transform: none; } }
-@keyframes knock3 { 0% { transform: none; } 20% { transform: translateX(-1.8%) rotate(-.5deg); } 45% { transform: translateX(1.3%) rotate(.35deg); } 70% { transform: translateX(-.5%); } 100% { transform: none; } }
+.lobby.phase-arriving .cab-doors .panel.l { transform: translateX(-100%); }
+.lobby.phase-arriving .cab-doors .panel.r { transform: translateX(100%); }
+.lobby.phase-arriving .cab-doors .seam { opacity: 1; animation: seam-out .9s ease forwards; }
+@keyframes seam-out { to { transform: scaleX(34); opacity: 0; } }
 
-.phase-opening .door .leaf.l { transform: translateX(-100%); }
-.phase-opening .door .leaf.r { transform: translateX(100%); }
-.phase-opening .door .glow { opacity: 1; }
-.phase-opening .door .face { opacity: 0; transform: scale(.96); }
+/* 门上方喊一声，声音落在名字上 */
+.lobby-say {
+  position: relative; z-index: 1; margin: 0; font: 500 clamp(20px, 3.4vw, 30px)/1.2 var(--font-display); letter-spacing: -.5px;
+  color: #fff6dc; text-shadow: 0 2px 10px rgba(0,0,0,.7); transition: color .3s;
+}
+.lobby.phase-arriving .lobby-say { color: #ffe6a8; }
 
-/* 门上的字 */
-.door .face {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  padding: calc(26px * var(--s)) calc(22px * var(--s)) calc(18px * var(--s));
-  color: #f6e9cf; transition: opacity .5s, transform .5s;
+/* 门厅登记台：真正的表单 */
+.board {
+  position: relative; z-index: 1; width: min(460px, 92vw); padding: 22px 24px 18px; border-radius: 18px;
+  background: var(--paper-grain), var(--panel); color: var(--ink); border: 1px solid var(--line);
+  box-shadow: 0 40px 80px -40px rgba(0,0,0,.95), 0 2px 0 rgba(255,255,255,.6) inset;
+  transition: opacity .35s var(--ease-out), transform .45s var(--ease-out);
 }
-.door .face .kicker { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: calc(9.5px * var(--s)); font-weight: 700; letter-spacing: 2.2px; text-transform: uppercase; color: #e2b24a; margin-bottom: calc(8px * var(--s)); }
-.door .face h1 {
-  font-family: var(--font-display); font-variation-settings: "opsz" 72;
-  font-size: calc(24px * var(--s)); font-weight: 500; letter-spacing: -.2px; line-height: 1.15; margin: 0 0 calc(12px * var(--s)); color: #fff6dc;
-  min-height: calc(28px * var(--s));
+.lobby.phase-checking .board, .lobby.phase-arriving .board { opacity: 0; transform: translateY(14px) scale(.97); pointer-events: none; }
+.board-cap { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.board-cap .kicker { font: 700 10px var(--font-mono); letter-spacing: 2px; text-transform: uppercase; color: var(--ink-3); }
+.board-cap .today { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-2); }
+.board-title { margin: 0 0 4px; font: 500 24px/1.15 var(--font-display); letter-spacing: -.4px; }
+.board .sub { margin: 0 0 16px; font-size: 13px; line-height: 1.6; color: var(--ink-3); }
+
+.board .tabs { display: flex; gap: 4px; padding: 3px; margin-bottom: 16px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line-2); }
+.board .tabs button { flex: 1; padding: 8px 12px; border-radius: 999px; font-size: 13px; color: var(--ink-3); transition: .18s; }
+.board .tabs button:hover:not(:disabled) { color: var(--ink); }
+.board .tabs button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(60,40,10,.14); }
+.board .tabs button:disabled { opacity: .5; }
+
+.board .fld { display: block; margin-bottom: 14px; }
+.board .fld > span { display: block; margin-bottom: 6px; font: 600 11px var(--font-mono); letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink-3); }
+.board .fld input[type=text], .board .fld input[type=password] {
+  width: 100%; padding: 12px 14px; border-radius: 12px; font: inherit; font-size: 16.5px; color: var(--ink); outline: 0;
+  background: var(--panel-2); border: 1px solid var(--line); transition: border-color .18s, box-shadow .2s, background .18s;
 }
-.door .face .tabs { display: flex; gap: 2px; padding: 2px; border-radius: 999px; background: rgba(255,240,200,.1); margin-bottom: calc(12px * var(--s)); }
-.door .face .tabs button { flex: 1; padding: calc(5px * var(--s)); border-radius: 999px; font-size: calc(12px * var(--s)); font-weight: 500; color: #d9c7a3; transition: .15s; }
-.door .face .tabs button.on { background: rgba(255,240,200,.18); color: #fff6dc; }
-.door .face .body { flex: 1; display: flex; flex-direction: column; }
-.door .face .sub { font-size: calc(11.5px * var(--s)); color: #cdb995; margin: 0 0 calc(12px * var(--s)); line-height: 1.5; }
-.door .face .fld { display: flex; flex-direction: column; gap: calc(5px * var(--s)); margin-bottom: calc(11px * var(--s)); }
-.door .face .fld > span { font-size: calc(9.5px * var(--s)); font-weight: 600; color: #b9a481; letter-spacing: 1px; text-transform: uppercase; }
-.door .face .fld input {
-  width: 100%; padding: calc(9px * var(--s)) calc(13px * var(--s)); border-radius: 999px; font: inherit; font-size: calc(13.5px * var(--s)); color: #fff6dc; outline: 0;
-  background: rgba(255,240,200,.1); border: 1px solid rgba(255,240,200,.22); transition: .15s;
+.board .fld input::placeholder { color: var(--ink-3); }
+.board .fld input:focus { background: var(--panel); border-color: color-mix(in srgb, var(--lantern) 45%, var(--line)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lantern) 12%, transparent); }
+.board .fld input:disabled { opacity: .6; }
+.board .seg3 { display: flex; gap: 4px; padding: 3px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line-2); }
+.board .seg3 button { flex: 1; padding: 9px; border-radius: 9px; font-size: 13.5px; color: var(--ink-2); transition: .18s; }
+.board .seg3 button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(60,40,10,.14); }
+
+.board .cta {
+  width: 100%; margin-top: 18px; padding: 14px; border-radius: 13px; font-size: 15px; font-weight: 600; letter-spacing: .4px;
+  color: #fff6dc; background: linear-gradient(180deg, #c8463c, #a83028);
+  box-shadow: 0 12px 26px -12px rgba(168,48,40,.85), inset 0 1px 0 rgba(255,235,200,.28);
+  transition: transform .18s var(--ease-out), box-shadow .2s, filter .2s;
 }
-.door .face .fld input::placeholder { color: #a8946f; }
-.door .face .fld input:focus { border-color: #e2b24a; background: rgba(255,240,200,.16); box-shadow: 0 0 0 3px rgba(226,178,74,.18); }
-.door .face .fld input:disabled { opacity: .6; }
-.door .face .seg3 { display: flex; gap: 2px; padding: 2px; border-radius: 999px; background: rgba(255,240,200,.1); }
-.door .face .seg3 button { flex: 1; padding: calc(5px * var(--s)); border-radius: 999px; font-size: calc(11.5px * var(--s)); color: #d9c7a3; }
-.door .face .seg3 button.on { background: rgba(255,240,200,.18); color: #fff6dc; }
-.door .face .enter {
-  width: 100%; padding: calc(10px * var(--s)); margin-top: auto; border-radius: 999px; font-size: calc(13px * var(--s)); font-weight: 600; letter-spacing: .3px;
-  color: #2a2118; background: #e2b24a; box-shadow: 0 10px 24px -10px rgba(226,178,74,.9); transition: .15s;
-}
-.door .face .enter:hover:not(:disabled) { transform: translateY(-1px); background: #f0c25a; }
-.door .face .enter:disabled { opacity: .45; cursor: default; }
-.door .face .hint { font-size: calc(10px * var(--s)); color: #b9a481; margin-top: calc(8px * var(--s)); }
-.door .face .ooo {
-  margin-top: calc(14px * var(--s)); padding: calc(4px * var(--s)) 8px; text-align: center; border-radius: 4px;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: calc(8.5px * var(--s)); font-weight: 700; letter-spacing: 1.4px;
-  color: #2a2118; background: repeating-linear-gradient(135deg, #f2c94c 0 10px, #2a2118 10px 20px);
+.board .cta:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+.board .cta:active:not(:disabled) { transform: translateY(1px); }
+.board .cta:disabled { filter: grayscale(.5) brightness(.92); opacity: .5; cursor: default; }
+.board .hint { margin-top: 10px; font-size: 11.5px; color: var(--ink-3); text-align: center; }
+.board .back { display: block; margin: 10px auto 0; font-size: 12.5px; color: var(--ink-3); }
+.board .back:hover:not(:disabled) { color: var(--ink); }
+.board .agree-terms { margin: 0 0 14px; padding-left: 18px; font-size: 12.5px; line-height: 1.7; color: var(--ink-2); }
+.board .sigpad { margin-bottom: 4px; }
+
+.board .ooo {
+  width: fit-content; max-width: 100%; margin: 16px auto 0; padding: 5px 14px; border-radius: 5px;
+  font: 700 9px var(--font-mono); letter-spacing: 1.6px; color: #1b140e;
+  background: repeating-linear-gradient(135deg, #f2c94c 0 10px, #1b140e 10px 20px);
   text-shadow: 0 0 3px #f2c94c, 0 0 3px #f2c94c, 0 0 5px #f2c94c;
 }
+.lobby-foot { position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; font: 500 11px var(--font-mono); letter-spacing: 1.2px; color: rgba(255,240,200,.42); }
 
-/* 门上的室友协议：签名板浅色衬底，像贴在门上的一张纸 */
-.door .face .agree { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.door .face .agree .sub { margin-bottom: calc(8px * var(--s)); }
-.agree-terms { margin: 0 0 calc(10px * var(--s)); padding-left: calc(16px * var(--s)); font-size: calc(10.5px * var(--s)); line-height: 1.55; color: #d9c7a3; }
-.door .sigpad { margin-bottom: calc(10px * var(--s)); }
-.agree-back { margin-top: calc(8px * var(--s)); font-size: calc(11px * var(--s)); color: #b9a481; align-self: center; }
-.agree-back:hover:not(:disabled) { color: #fff6dc; }
-
-.sigpad { position: relative; border-radius: 12px; background: var(--paper-grain), #fbf5e6; box-shadow: inset 0 0 0 1px rgba(42,33,24,.12), 0 10px 20px -14px rgba(0,0,0,.6); }
-.sigpad svg { display: block; width: 100%; height: auto; touch-action: none; cursor: crosshair; }
-.sigpad.disabled svg { cursor: default; }
-.sigpad .baseline { stroke: color-mix(in srgb, var(--ink) 28%, transparent); stroke-width: 1; stroke-dasharray: 3 4; }
-.sigpad path { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.sigpad-hint { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); pointer-events: none; font: italic 400 15px var(--font-display); color: var(--ink-3); }
-.sigpad-clear { position: absolute; top: 6px; right: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11px; color: var(--ink-2); background: rgba(255,253,248,.8); box-shadow: 0 0 0 1px var(--line); }
-.sigpad-clear:hover { color: var(--ink); }
-
-/* 喊名字：三声，一声比一声大 */
-.scene .call { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; gap: calc(2px * var(--s)); pointer-events: none; }
-.scene .call span {
-  font-family: "Iowan Old Style", "Palatino", "Songti SC", "Noto Serif SC", Georgia, serif; font-style: italic; color: #fff6dc;
-  text-shadow: 0 2px 6px rgba(0,0,0,.7); opacity: 0; transform: translateY(6px) scale(.9); white-space: nowrap;
+@media (max-width: 1000px) {
+  .login.lobby {
+    grid-template-columns: minmax(0, 1fr); grid-template-areas: "cab" "say" "board";
+    gap: 12px; justify-items: center; padding: 78px 18px 52px;
+  }
+  .cab, .login.lobby > .cab { justify-self: center; }
+  .lobby-say { text-align: center; }
+  .board { width: min(460px, 100%); }
 }
-.scene .call span.on { animation: call .6s cubic-bezier(.2,.9,.3,1.2) forwards; }
-.scene .call .c1 { font-size: calc(15px * var(--s)); } .scene .call .c2 { font-size: calc(19px * var(--s)); } .scene .call .c3 { font-size: calc(24px * var(--s)); font-weight: 600; }
-@keyframes call { to { opacity: 1; transform: none; } }
-
+@media (max-width: 560px) {
+  .login.lobby { padding: 74px 14px 46px; }
+  .cab { width: 94vw; height: clamp(190px, 26vh, 240px); }
+  .cab-roster { height: 52px; }
+  .cab-roster .floor-tag { height: 34px; font-size: 21px; }
+  .cab-spill { top: calc(50% + clamp(120px, 17vh, 160px)); }
+  .board { width: 100%; padding: 18px 16px 14px; border-radius: 16px; }
+  .board-title { font-size: 21px; }
+  .board .cta { margin-top: 14px; }
+  .lobby-brand { top: 18px; left: 16px; }
+  .lobby-foot { bottom: 10px; }
+}
+@media (max-height: 720px) {
+  .login.lobby { gap: 10px; padding-top: 70px; padding-bottom: 46px; }
+  .cab { height: clamp(150px, 22vh, 200px); }
+  .cab { height: clamp(150px, 22vh, 200px); }
+  .cab-roster { height: 46px; }
+  .cab-roster .floor-tag { height: 30px; font-size: 19px; }
+  .board { padding: 18px 20px 14px; }
+  .board .sub { margin-bottom: 12px; }
+  .board .cta { margin-top: 12px; padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cab-spill, .board, .cab-doors .panel, .cab-doors .seam { transition-duration: .01ms; }
+  .cab-roster .roll.go { animation-duration: 1ms; }
+}
 /* ---------- 404：薛定谔的猫箱 ---------- */
 .notfound { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; padding: 24px; }
 .notfound .box { position: relative; width: 120px; height: 84px; margin-bottom: 14px; border-radius: 8px; background: #b98b4a; box-shadow: inset 0 -8px 0 #8f6a33; }

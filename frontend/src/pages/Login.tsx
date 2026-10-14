@@ -15,20 +15,28 @@ import { todayTheme } from '@/theme/weekday';
 import SignaturePad from '@/components/theme/SignaturePad';
 
 type Tab = 'student' | 'admin';
-type Phase = 'idle' | 'knocking' | 'opening';
+/** idle 正常；checking 电梯在查住户名单并下行；arriving 电梯到达，门要开了 */
+type Phase = 'idle' | 'checking' | 'arriving';
 
-/** 走廊照片的原始尺寸与电梯木门在图中的位置（像素） */
-const SCENE = { w: 1456, h: 914 };
-const DOOR = { x: 626, y: 139, w: 274, h: 506 };
-
-const KNOCK_GAP = 720;      // 每下敲门的间隔
-const OPEN_AT = 3 * KNOCK_GAP + 300;
-const ENTER_AT = OPEN_AT + 1100;
+const CHECK_MS = 1200;         // 查名单 + 电梯下行
+const ARRIVE_MS = 1150;        // 到站、开门、跳转
 
 /**
- * 登录页：卡片就是电梯门。走廊照片按 cover 铺满，卡片用图中坐标贴在木门上，
- * 字像写在门上。输入名字后敲三下门（门板震动、涟漪、喊名字），门打开进入。
- * 名字没登记过的，先在门上签室友协议，签名随建档一起存下。
+ * 楼层屏滚动的关键帧。行高随屏幕变，所以位移一律用百分比：
+ * 一行占 roll 总高的 100/total，第一行本来就居中，往下停一行就多走一格。
+ */
+const rollKeyframes = (key: string, total: number, index: number | null) => {
+  if (index == null || total < 2) return `@keyframes ${key} { 0%, 100% { transform: translateY(0); } }`;
+  const cell = 100 / total;
+  // -50% 对齐的是整块名单的中心，所以还要按行索引补上相对中心的偏移
+  const at = (i: number) => `calc(-50% + ${((i - (total - 1) / 2) * cell).toFixed(3)}%)`;
+  return `@keyframes ${key} { 0% { transform: translateY(-50%); } 62% { transform: translateY(${at(index - 0.42)}); animation-timing-function: cubic-bezier(.16,1,.3,1); } 100% { transform: translateY(${at(index)}); } }`;
+};
+
+/**
+ * 登录页：门厅电梯。走廊用纯 CSS 搭，不依赖照片，因此没有贴图对位的麻烦。
+ * 电梯门就是表单本身——楼层屏显示住户名单滚动到的楼层，门上方是当天日程。
+ * 确认进入后电梯下行、到站、双扇门滑开，走进 4A。
  */
 export default function Login() {
   const navigate = useNavigate();
@@ -39,156 +47,196 @@ export default function Login() {
   const [gender, setGender] = useState<Gender>('male');
   const [password, setPassword] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
-  // 新住户先在门上签室友协议，再建档敲门
+  // 新住户先在门厅登记表上签室友协议，再建档
   const [signing, setSigning] = useState(false);
+  // 名单里没有的名字：滚动目标要在电梯启动前就定好，所以跟"显示协议"分开
+  const [isNew, setIsNew] = useState(false);
   const [signature, setSignature] = useState('');
-  const [knocks, setKnocks] = useState(0);
-  const [scale, setScale] = useState(1);
+  const [roster, setRoster] = useState<string[]>([]);
+  // 每次提交自增，动画只在自增时启动（pending 翻回 false 不会中断它）
+  const [launch, setLaunch] = useState(0);
   const timers = useRef<number[]>([]);
 
-  // 场景缩放：等价于 background-size: cover
-  useEffect(() => {
-    const calc = () => setScale(Math.max(window.innerWidth / SCENE.w, window.innerHeight / SCENE.h));
-    calc();
-    window.addEventListener('resize', calc);
-    return () => window.removeEventListener('resize', calc);
-  }, []);
-
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const wait = (ms: number) => new Promise((r) => { timers.current.push(window.setTimeout(r, ms)); });
 
-  const knockAndOpen = (s: StudentResponse) => {
-    setPhase('knocking');
-    setKnocks(0);
-    timers.current = [1, 2, 3].map((n) => window.setTimeout(() => setKnocks(n), n * KNOCK_GAP));
-    timers.current.push(window.setTimeout(() => setPhase('opening'), OPEN_AT));
-    timers.current.push(window.setTimeout(() => { setCurrent(s); navigate('/teaching', { replace: true }); }, ENTER_AT));
-  };
-
+  // 住户名单：名单越靠前的住户楼层越高，电梯下行层数就越多
   const enter = useMutation({
     mutationFn: async (): Promise<StudentResponse | null> => {
-      const nm = name.trim();
-      return (await listStudents({ limit: 500 })).find((s) => s.name === nm) ?? null;
+      const students = await listStudents({ limit: 500 });
+      setRoster(students.map((s) => s.name));
+      return students.find((s) => s.name === name.trim()) ?? null;
     },
-    onSuccess: (found) => (found ? knockAndOpen(found) : setSigning(true)),
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: async (found) => {
+      setIsNew(!found);
+      setLaunch((n) => n + 1);
+      await wait(CHECK_MS + ARRIVE_MS);
+      if (!found) {
+        setSigning(true);
+        setPhase('idle');
+        return;
+      }
+      setCurrent(found);
+      navigate('/teaching', { replace: true });
+    },
+    onError: (e: Error) => { toast.error(e.message); resetLobby(); },
   });
 
   const register = useMutation({
     mutationFn: () => createStudent({ name: name.trim(), gender, signature }),
-    onSuccess: (s) => { setSigning(false); knockAndOpen(s); },
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: async (s) => { setSigning(false); setLaunch((n) => n + 1); await wait(CHECK_MS + ARRIVE_MS); setCurrent(s); navigate('/teaching', { replace: true }); },
+    onError: (e: Error) => { toast.error(e.message); resetLobby(); },
   });
 
   const admin = useMutation({
     mutationFn: () => adminLogin(password),
-    onSuccess: () => navigate('/admin/knowledge', { replace: true }),
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: async () => { setLaunch((n) => n + 1); await wait(CHECK_MS + ARRIVE_MS); navigate('/admin/knowledge', { replace: true }); },
+    onError: (e: Error) => { toast.error(e.message); resetLobby(); },
   });
 
-  const base = import.meta.env.BASE_URL;
   const today = todayTheme();
+  const base = import.meta.env.BASE_URL;
   const busy = enter.isPending || register.isPending || phase !== 'idle';
   const canEnter = name.trim().length > 0 && !busy;
   const who = name.trim() || '…';
 
-  const sceneStyle = {
-    width: SCENE.w * scale, height: SCENE.h * scale,
-    left: (window.innerWidth - SCENE.w * scale) / 2, top: (window.innerHeight - SCENE.h * scale) / 2,
-    ['--s' as string]: scale,
+  // 名单越靠前的住户住得越高，电梯要下行更多层才接到人；签协议时停在「新住户」
+  const lines = isNew || signing ? [...roster, '新住户'] : roster;
+  const found = lines.findIndex((r) => r === name.trim());
+  const rollIndex = isNew || signing ? lines.length - 1 : found < 0 ? null : found;
+  const rollKey = `roll-${lines.length}-${rollIndex ?? 'idle'}`;
+  const onStudentSubmit = () => {
+    setRoster([]);
+    enter.mutate();
   };
-  const doorStyle = { left: DOOR.x * scale, top: DOOR.y * scale, width: DOOR.w * scale, height: DOOR.h * scale };
+
+  // 回退到登记台：楼层屏也跟着退回大厅
+  const resetLobby = () => { setPhase('idle'); setLaunch(0); setIsNew(false); };
+
+  // 一提交就把登记台收起来、电梯开始下行；到站后再开门
+  useEffect(() => {
+    if (!launch) return;
+    setPhase('checking');
+    const t = window.setTimeout(() => setPhase('arriving'), CHECK_MS);
+    return () => clearTimeout(t);
+  }, [launch]);
 
   return (
     <div className="agent">
-      <div className={`login scene-wrap phase-${phase}`}>
-        <div className="scene" style={sceneStyle}>
-          <img className="bg" src={`${base}tbbt/apartment/hallway-set-photo.jpg`} alt="" draggable={false} />
-          <div className="veil" />
-          <button type="button" className="topline" onClick={() => navigate('/')} title="回到首页">
-            <BrandMark size={34} />
-            <span className="wordmark"><span className="w1">STEM</span><span className="w2">Agent</span></span>
-          </button>
+      <style>{`
+        .cab-roster .roll.go { animation-name: ${rollKey}; animation-duration: ${CHECK_MS}ms; }
+        ${rollKeyframes(rollKey, lines.length, rollIndex)}
+      `}</style>
+      <div className={`login lobby phase-${phase}`}>
+        <div className="hall" aria-hidden="true">
+          <div className="hall-walls" />
+          <div className="hall-carpet" />
+          <div className="hall-light l" /><div className="hall-light r" />
+        </div>
 
-          <div className={`door ${knocks ? `k${knocks}` : ''}`} style={doorStyle}>
-            {/* 两扇门板：开门时左右滑开 */}
-            <div className="leaf l" /><div className="leaf r" />
-            <div className="glow" />
-            {/* 敲门涟漪 */}
-            {[1, 2, 3].map((n) => <span key={n} className={`ripple ${knocks >= n ? 'go' : ''}`} />)}
+        <button type="button" className="lobby-brand" onClick={() => navigate('/')} title="回到首页">
+          <BrandMark size={34} />
+          <span className="wordmark"><span className="w1">STEM</span><span className="w2">Agent</span></span>
+        </button>
 
-            <div className="face">
-              <div className="kicker">{LOGIN.title}</div>
-              <div className="today"><WeekdayIcon day={today.key} /><span>{today.en}</span></div>
-              <h1>{tab === 'student' ? (signing ? '签署室友协议' : LOGIN.headline) : LOGIN.teacherTab}</h1>
-              <div className="tabs">
-                <button type="button" className={tab === 'student' ? 'on' : ''} disabled={busy} onClick={() => setTab('student')}>学生</button>
-                <button type="button" className={tab === 'admin' ? 'on' : ''} disabled={busy || signing} onClick={() => setTab('admin')}>教师</button>
-              </div>
+        <div className="cab">
+          <div className="cab-faceplate">
+            <span className="floor-no">4A</span>
+            <span className="floor-name">Learning Lab</span>
+          </div>
 
-              <div className="body">
-                {tab === 'student' && signing ? (
-                  <div className="agree">
-                    <p className="sub">{name.trim()}，第一次来 4A？进门前按 Sheldon 的规矩，先签一份室友协议。</p>
-                    <ol className="agree-terms">
-                      <li>讲解方式、讲师、提醒都写在协议里，随时可以改。</li>
-                      <li>摄像头只用来判断学习状态，画面不上传、不保存。</li>
-                      <li>不会的题尽管问，问题没有笨的。</li>
-                    </ol>
-                    <SignaturePad value={signature} onChange={setSignature} disabled={register.isPending} />
-                    <button type="button" className="enter" disabled={signature.length < 3 || busy} onClick={() => register.mutate()}>
-                      {register.isPending ? '登记中…' : '签字并敲门'}
-                    </button>
-                    <button type="button" className="agree-back" disabled={busy} onClick={() => { setSigning(false); setSignature(''); }}>‹ 改名字</button>
-                  </div>
-                ) : tab === 'student' ? (
-                  <>
-                    <label className="fld">
-                      <span>你的名字</span>
-                      <input
-                        type="text" value={name} placeholder="报上名来" maxLength={100} autoFocus disabled={busy}
-                        onChange={(e) => setName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && canEnter && enter.mutate()}
-                      />
-                    </label>
-                    <div className="fld">
-                      <span>第一次来的话</span>
-                      <div className="seg3">
-                        {GENDER_OPTIONS.map((g) => (
-                          <button type="button" key={g.value} className={gender === g.value ? 'on' : ''} disabled={busy} onClick={() => setGender(g.value)}>{g.label}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <button type="button" className="enter" disabled={!canEnter} onClick={() => enter.mutate()}>
-                      {phase === 'idle' ? (enter.isPending ? '查看信箱…' : '敲门') : phase === 'knocking' ? '敲门中…' : '门开了'}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="sub">{LOGIN.teacherSub}</p>
-                    <label className="fld">
-                      <span>口令</span>
-                      <input
-                        type="password" value={password} placeholder={LOGIN.passwordPlaceholder} autoFocus
-                        onChange={(e) => setPassword(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && password && admin.mutate()}
-                      />
-                    </label>
-                    <button type="button" className="enter" disabled={!password || admin.isPending} onClick={() => admin.mutate()}>签署并进入</button>
-                    <div className="hint">口令由后端环境变量 ADMIN_PASSWORD 设置。</div>
-                  </>
-                )}
-              </div>
-              {!signing && <div className="ooo">{LOGIN.outOfOrder}</div>}
+          <div className="cab-roster" aria-hidden="true">
+            <span className="roster-cap">Residents</span>
+            <div className={`roll ${launch ? 'go' : ''}`}>
+              <span className="floor-tag">大厅</span>
+              {lines.map((nm) => <span key={nm} className="floor-tag">{nm}</span>)}
             </div>
           </div>
 
-          {/* 敲门时在门上方喊名字，一声比一声大 */}
-          <div className="call" style={{ left: (DOOR.x + DOOR.w / 2) * scale, top: (DOOR.y - 14) * scale }} aria-live="polite">
-            {[1, 2, 3].map((n) => (
-              <span key={n} className={`c${n} ${knocks >= n ? 'on' : ''}`}>{who}?</span>
-            ))}
+          <div className="cab-doors">
+            <div className="panel l" /><div className="panel r" />
+            <div className="seam" />
           </div>
         </div>
+        <div className="cab-spill" aria-hidden="true" />
+
+        <h1 className="lobby-say" aria-live="polite">
+          {phase === 'arriving'
+            ? (isNew ? `${who}，登记一下。` : `欢迎回来，${who}。`)
+            : name.trim() ? `你好，${who}。` : LOGIN.headline}
+        </h1>
+
+        <section className="board">
+          <div className="board-cap">
+            <span className="kicker">{LOGIN.title}</span>
+            <span className="today"><WeekdayIcon day={today.key} /><span>{today.en}</span></span>
+          </div>
+
+          <div className="tabs">
+            <button type="button" className={tab === 'student' ? 'on' : ''} disabled={busy} onClick={() => setTab('student')}>学生</button>
+            <button type="button" className={tab === 'admin' ? 'on' : ''} disabled={busy || signing} onClick={() => setTab('admin')}>教师</button>
+          </div>
+
+          {tab === 'student' && signing ? (
+            <div className="agree">
+              <h2 className="board-title">签署室友协议</h2>
+              <p className="sub">{who}，第一次来 4A？进门前按 Sheldon 的规矩，先签一份室友协议。</p>
+              <ol className="agree-terms">
+                <li>讲解方式、讲师、提醒都写在协议里，随时可以改。</li>
+                <li>摄像头只用来判断学习状态，画面不上传、不保存。</li>
+                <li>不会的题尽管问，问题没有笨的。</li>
+              </ol>
+              <SignaturePad value={signature} onChange={setSignature} disabled={register.isPending} />
+              <button type="button" className="cta" disabled={signature.length < 3 || busy} onClick={() => register.mutate()}>
+                {register.isPending ? '登记中…' : '签字并取钥匙'}
+              </button>
+              <button type="button" className="back" disabled={busy} onClick={() => { setSigning(false); setSignature(''); resetLobby(); }}>‹ 改名字</button>
+            </div>
+          ) : tab === 'student' ? (
+            <>
+              <h2 className="board-title">{name.trim() ? '带你去 4A。' : `欢迎来到 4A。`}</h2>
+              <p className="sub">报上名字，电梯会来接你。第一次来会先请你签一份室友协议。</p>
+              <label className="fld">
+                <span>你的名字</span>
+                <input
+                  type="text" value={name} placeholder="报上名来" maxLength={100} autoFocus disabled={busy}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && canEnter && onStudentSubmit()}
+                />
+              </label>
+              <div className="fld">
+                <span>第一次来的话</span>
+                <div className="seg3">
+                  {GENDER_OPTIONS.map((g) => (
+                    <button type="button" key={g.value} className={gender === g.value ? 'on' : ''} disabled={busy} onClick={() => setGender(g.value)}>{g.label}</button>
+                  ))}
+                </div>
+              </div>
+              <button type="button" className="cta" disabled={!canEnter} onClick={onStudentSubmit}>
+                {phase === 'idle' ? (enter.isPending ? '核对住户名单…' : '叫电梯') : phase === 'checking' ? '电梯下行…' : '门开了，走进去'}
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 className="board-title">管理台</h2>
+              <p className="sub">{LOGIN.teacherSub}</p>
+              <label className="fld">
+                <span>口令</span>
+                <input
+                  type="password" value={password} placeholder={LOGIN.passwordPlaceholder} autoFocus
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && password && admin.mutate()}
+                />
+              </label>
+              <button type="button" className="cta" disabled={!password || admin.isPending} onClick={() => admin.mutate()}>签署并进入</button>
+              <div className="hint">口令由后端环境变量 ADMIN_PASSWORD 设置。</div>
+            </>
+          )}
+
+          {!signing && <div className="ooo">{LOGIN.outOfOrder}</div>}
+        </section>
+
+        <p className="lobby-foot">Apartment 4A · 走廊尽头，右手边</p>
       </div>
       <Toasts />
     </div>
